@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "acacore"
+version = "0.1.0"
+description = ""
+authors = ["Matteo Campinoti <matteo.campinoti94@gmail.com>"]
+license = "GPL-3.0"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
