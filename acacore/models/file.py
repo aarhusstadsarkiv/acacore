@@ -11,7 +11,7 @@ from uuid import uuid4
 
 from pydantic import Field
 from pydantic import UUID4
-from pydantic import field_validator
+from pydantic import validator
 
 from .base import ACABase
 from .identification import Identification
@@ -28,7 +28,7 @@ class File(ACABase):
     aars_path: Path = Field(None)
 
     # Validators
-    @field_validator("path")
+    @validator("path")
     @classmethod
     def path_must_be_file(cls, path: Path) -> Path:
         """Resolves the file path and validates that it points
@@ -37,12 +37,12 @@ class File(ACABase):
             raise ValueError("File does not exist")
         return path.resolve()
 
-    @field_validator("uuid", mode="before")
+    @validator("uuid", pre=True, always=True)
     @classmethod
     def set_uuid(cls, uuid: UUID4) -> UUID4:
         return uuid or uuid4()
 
-    @field_validator("aars_path", mode="before")
+    @validator("aars_path", pre=True, always=True)
     @classmethod
     def set_aars_path(cls, aars_path: Path, values: Dict[str, Any]) -> Path:
         path: Optional[Path] = values.get("path")

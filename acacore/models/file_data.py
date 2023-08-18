@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Any
 
-from pydantic import Field, model_validator
+from pydantic import Field, root_validator
 
 from .base import ACABase
 from .file import ArchiveFile
@@ -18,7 +18,7 @@ class FileData(ACABase):
     class Config:
         arbitrary_types_allowed = True
 
-    @model_validator(mode="before")
+    @root_validator(pre=True)
     @classmethod
     def create_dir(cls, fields: dict[Any, Any]) -> dict[Any, Any]:
         main_dir = fields.get("main_dir")
