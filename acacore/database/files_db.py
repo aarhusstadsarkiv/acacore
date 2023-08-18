@@ -127,8 +127,8 @@ class FileDB(Database):
         .group_by("puid")
         .order_by(sql.desc("count"))
     )
-    create_view("_IdentificationWarnings", id_warnings, sql_meta)
-    create_view("_SignatureCount", sig_count, sql_meta)
+    # create_view("_IdentificationWarnings", id_warnings, sql_meta)
+    # create_view("_SignatureCount", sig_count, sql_meta)
 
     def __init__(self, url: str) -> None:
         super().__init__(url)
