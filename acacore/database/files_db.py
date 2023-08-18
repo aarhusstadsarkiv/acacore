@@ -70,7 +70,8 @@ class FileDB(Database):
         try:
             files = parse_obj_as(List[ArchiveFile], rows)
         except ValidationError:
-            raise FileParseError("Failed to parse files as ArchiveFiles.")
+            raise
+            # raise FileParseError("Failed to parse files as ArchiveFiles.")
         else:
             return files
 
