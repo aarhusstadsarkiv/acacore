@@ -5,6 +5,7 @@
 import re
 from pathlib import Path
 from typing import Any
+from uuid import UUID
 
 import sqlalchemy as sql
 from databases import Database
@@ -48,6 +49,19 @@ class FileDB(Database):
         sql.Column("is_binary", sql.Boolean),
         sql.Column("file_size_in_bytes", sql.Integer),
         sql.Column("warning", sql.String),
+    )
+
+    converted_files = sql.Table(
+        "_ConvertedFiles",
+        sql_meta,
+        sql.Column(
+            "file_id",
+            sql.Integer,
+            sql.ForeignKey("Files.id"),
+            nullable=False,
+        ),
+        sql.Column("uuid", sql.Unicode, nullable=False),
+        extend_existing=True,
     )
 
     multiple_files = sql.Table(
@@ -99,6 +113,12 @@ class FileDB(Database):
                 pass
             else:
                 raise
+
+    async def converted_uuids(self) -> set[UUID]:
+        conv_files = self.converted_files
+        query = conv_files.select()
+        rows = await self.fetch_all(query)
+        return {UUID(row["uuid"]) for row in rows}
 
     async def is_empty(self) -> bool:
         query = self.files.select()
