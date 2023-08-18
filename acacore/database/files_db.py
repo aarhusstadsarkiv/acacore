@@ -9,7 +9,11 @@ from uuid import UUID
 import sqlalchemy as sql
 from databases import Database
 from pydantic import ValidationError, parse_obj_as
-from sqlalchemy_utils import create_view
+# noinspection PyProtectedMember
+from sqlalchemy.engine import Engine
+# noinspection PyProtectedMember
+from sqlalchemy.sql.expression import TextClause
+from sqlalchemy_views import CreateView, DropView
 
 from ..exceptions.files import FileParseError
 from ..models.file import ArchiveFile
@@ -19,6 +23,12 @@ from ..models.metadata import Metadata
 # -----------------------------------------------------------------------------
 # Database class
 # -----------------------------------------------------------------------------
+
+def create_view(table: sql.Table, definition: TextClause, engine: Engine) -> None:
+    view_drop = DropView(table, if_exists=True)
+    view_create = CreateView(table, definition)
+    engine.execute(view_drop)
+    engine.execute(view_create)
 
 
 # noinspection SqlNoDataSourceInspection
