@@ -1,0 +1,2 @@
+class ACAException(Exception):
+    pass
