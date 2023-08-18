@@ -2,7 +2,6 @@
 # -----------------------------------------------------------------------------
 # Imports
 # -----------------------------------------------------------------------------
-import re
 from pathlib import Path
 from typing import Any
 from uuid import UUID
@@ -10,7 +9,6 @@ from uuid import UUID
 import sqlalchemy as sql
 from databases import Database
 from pydantic import ValidationError, parse_obj_as
-from sqlalchemy.exc import OperationalError
 from sqlalchemy_utils import create_view
 
 from ..exceptions.files import FileParseError
@@ -23,6 +21,7 @@ from ..models.metadata import Metadata
 # -----------------------------------------------------------------------------
 
 
+# noinspection SqlNoDataSourceInspection
 class FileDB(Database):
     """File database."""
 
@@ -63,11 +62,30 @@ class FileDB(Database):
         sql.Column("uuid", sql.Unicode, nullable=False),
         extend_existing=True,
     )
+    not_converted = sql.Table("_NotConverted", sql_meta)
 
     multiple_files = sql.Table(
         "_MultipleFiles",
         sql_meta,
         sql.Column("path", sql.String, nullable=False),
+    )
+
+    file_template_map = sql.Table(
+        "ReplacedFiles",
+        sql_meta,
+        sql.Column("uuid", sql.Unicode, sql.ForeignKey("Files.uuid"), nullable=False),
+        sql.Column(
+            "Template_specifier",
+            sql.Enum(
+                "Damaged",
+                "Empty",
+                "Not_Convertable",
+                "Not_Preservable",
+                "Password_Protected",
+            ),
+            nullable=False,
+        ),
+        extend_existing=True,
     )
 
     empty_directories = sql.Table(
@@ -104,15 +122,111 @@ class FileDB(Database):
 
     def __init__(self, url: str) -> None:
         super().__init__(url)
-        engine = sql.create_engine(url, connect_args={"check_same_thread": False})
+        self.engine = sql.create_engine(url, connect_args={"check_same_thread": False})
+
+        # Table reflection
+        self.sql_meta.reflect(bind=self.engine)
+        self.files = self.sql_meta.tables["Files"]
+        self.converted_files.create(self.engine, checkfirst=True)
+        self.file_template_map.create(self.engine, checkfirst=True)
+
+        # Create _NotConverted view
+        view_def = sql.text(
+            "SELECT f.id, f.uuid, relative_path, puid, signature, warning "
+            "FROM Files AS f "
+            "LEFT JOIN _ConvertedFiles AS c "
+            "ON f.uuid = c.uuid WHERE c.uuid IS NULL",
+        )
+        create_view(self.not_converted, view_def, self.engine)
+
+    async def get_files(self) -> list[ArchiveFile]:
+        query = self.files.select()
+        rows = await self.fetch_all(query)
         try:
-            self.sql_meta.create_all(engine)
-        except OperationalError as error:
-            warn_re = re.compile(r"(?i)(IdentificationWarnings|SignatureCount)")
-            if warn_re.search(str(error)):
-                pass
+            files = parse_obj_as(list[ArchiveFile], rows)
+        except ValidationError:
+            raise FileParseError("Failed to parse files as ArchiveFiles.")
+        else:
+            return files
+
+    async def get_pdf_files(self) -> list[ArchiveFile]:
+        query = self.files.select().where(
+            self.files.c.puid.in_(["fmt/18", "fmt/19", "fmt/20", "fmt/276"]),
+        )
+        rows = await self.fetch_all(query)
+        try:
+            files = parse_obj_as(list[ArchiveFile], rows)
+        except ValidationError:
+            # print(rows)
+            raise FileParseError("Failed to parse files as ArchiveFiles.")
+        else:
+            return files
+
+    async def get_non_conv_dbase_files(self) -> list[ArchiveFile]:
+        query = (
+            "SELECT * FROM Files WHERE Files.uuid NOT IN (SELECT uuid FROM _ConvertedFiles)"
+            " AND Files.puid = 'x-fmt/9';"
+        )
+        rows = await self.fetch_all(query=query)
+        try:
+            files = parse_obj_as(list[ArchiveFile], rows)
+        except ValidationError:
+            # print(rows)
+            raise FileParseError("Failed to parse files as ArchiveFiles.")
+        else:
+            return files
+
+    async def get_not_converted_files(self) -> list[ArchiveFile]:
+        # converted_files = await self.converted_uuids()
+        # query = self.files.select().filter(files.c.uuid.notin_(list(converted_files)))
+        # query = self.files.query.filter(files.uuid.notin_(list(converted_files)))
+
+        query = "SELECT * FROM Files WHERE Files.uuid NOT IN (SELECT uuid FROM _ConvertedFiles);"
+        rows = await self.fetch_all(query=query)
+        try:
+            files = parse_obj_as(list[ArchiveFile], rows)
+        except ValidationError:
+            # print(rows)
+            raise FileParseError("Failed to parse files as ArchiveFiles.")
+        else:
+            return files
+
+    async def update_status(self, uuid: UUID) -> None:
+        async with self.transaction():
+            get_file_id = self.files.select().where(self.files.c.uuid == str(uuid))
+            file_id = await self.fetch_val(get_file_id, column="id")
+            exists = await self.check_status(uuid)
+            if not exists:
+                insert_file = self.converted_files.insert()
+                insert_values = {"file_id": file_id, "uuid": str(uuid)}
+                await self.execute(insert_file, insert_values)
             else:
-                raise
+                return
+
+    async def update_template_status(self, uuid: UUID, specifier: str) -> None:
+        async with self.transaction():
+            exists = await self.check_template_status(uuid)
+            if not exists:
+                insert_file = self.file_template_map.insert()
+                insert_values = {
+                    "uuid": str(uuid),
+                    "Template_specifier": specifier,
+                }
+                await self.execute(insert_file, insert_values)
+            else:
+                return
+
+    async def check_status(self, uuid: UUID) -> bool:
+        conv_files = self.converted_files
+        select_uuid = conv_files.select().where(conv_files.c.uuid == str(uuid))
+        check = await self.fetch_one(select_uuid)
+        return bool(check)
+
+    async def check_template_status(self, uuid: UUID) -> bool:
+        replaced_files = self.file_template_map
+        select_uuid = replaced_files.select().where(replaced_files.c.uuid == str(uuid))
+        check = await self.fetch_one(select_uuid)
+        return bool(check)
 
     async def converted_uuids(self) -> set[UUID]:
         conv_files = self.converted_files
@@ -159,21 +273,6 @@ class FileDB(Database):
             for file in encoded_files:
                 update = self.files.update().where(self.files.c.uuid == file["uuid"]).values(file)
                 await self.execute(update)
-
-    async def get_files(self) -> list[ArchiveFile]:
-        query = self.files.select()
-        rows = await self.fetch_all(query)
-        try:
-            files: list[ArchiveFile] = parse_obj_as(list[ArchiveFile], rows)
-        except ValidationError:
-            raise FileParseError(
-                """Failed to parse files as ArchiveFiles.
-                    Rows from database: {}
-                """.format(
-                    rows,
-                ),
-            )
-        return files
 
     async def set_multi_files(self, multi_files: list[Path]) -> None:
         await self.delsert(
