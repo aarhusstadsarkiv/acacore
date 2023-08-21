@@ -369,3 +369,9 @@ class FileDB(Connection):
             [
                 (Column("count", "int", str, str), "ASC"),
             ])
+
+    def init(self):
+        self.execute(self.files.create_statement(True))
+        self.execute(self.metadata.create_statement(True))
+        self.execute(self.identification_warnings.create_statement(True))
+        self.execute(self.signature_count.create_statement(True))
