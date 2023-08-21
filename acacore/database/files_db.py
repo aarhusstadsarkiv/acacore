@@ -1,116 +1,360 @@
-# -----------------------------------------------------------------------------
-# Imports
-# -----------------------------------------------------------------------------
-# from typing import Any
-# from typing import Dict
-from typing import List
-from typing import Set
+from datetime import datetime
+from os import PathLike
+from pathlib import Path
+from sqlite3 import Connection, Cursor as SQLiteCursor, OperationalError
+from typing import Optional, Type, Callable, Union, TypeVar, Generic, Generator, Any, overload
 from uuid import UUID
 
-import sqlalchemy as sql
-from ..models.file import ArchiveFile
-from databases import Database
-from pydantic import parse_obj_as
-from pydantic import ValidationError
-# noinspection PyProtectedMember
-from sqlalchemy.engine import Engine
-# noinspection PyProtectedMember
-from sqlalchemy.sql.expression import TextClause
-from sqlalchemy_views import CreateView
-from sqlalchemy_views import DropView
+from pydantic.main import BaseModel
 
-from ..exceptions.files import FileParseError
-
-# -----------------------------------------------------------------------------
-# Database class
-# -----------------------------------------------------------------------------
+T = TypeVar("T")
+M = TypeVar("M", bound=BaseModel)
 
 
-class FileDB(Database):
-    """File database"""
+class Cursor:
+    def __init__(self, cursor: SQLiteCursor, columns: list[Union['Column', 'SelectColumn']],
+                 table: Optional['Table'] = None):
+        self.cursor: SQLiteCursor = cursor
+        self.columns: list[Union['Column', 'SelectColumn']] = columns
+        self.table: Optional[Table] = table
 
-    sql_meta = sql.MetaData()
-    converted_files = sql.Table(
-        "_ConvertedFiles",
-        sql_meta,
-        sql.Column(
-            "file_id",
-            sql.Integer,
-            sql.ForeignKey("Files.id"),
-            nullable=False,
-        ),
-        sql.Column("uuid", sql.Unicode, nullable=False),
-        extend_existing=True,
-    )
-    not_converted = sql.Table("_NotConverted", sql_meta)
+    def __iter__(self) -> Generator[dict[str, Any], None, None]:
+        return self.fetchall()
 
-    def __init__(self, url: str) -> None:
-        super().__init__(url)
-        self.engine = sql.create_engine(
-            url, connect_args={"check_same_thread": False}
+    def fetchalltuples(self) -> Generator[tuple, None, None]:
+        return (
+            tuple(c.from_entry(v) for c, v in zip(self.columns, vs, strict=True))
+            for vs in self.cursor.fetchall()
         )
 
-        # Table reflection
-        self.sql_meta.reflect(bind=self.engine)
-        self.files = self.sql_meta.tables["Files"]
-        self.converted_files.create(self.engine, checkfirst=True)
+    def fetchonetuple(self) -> Optional[tuple]:
+        vs: tuple = self.cursor.fetchone()
 
-        # Create _NotConverted view
-        view_def = sql.text(
-            "SELECT f.id, f.uuid, path, aars_path, puid, signature, warning "
-            "FROM Files AS f "
-            "LEFT JOIN _ConvertedFiles AS c "
-            "ON f.uuid = c.uuid WHERE c.uuid IS NULL"
-        )
-        create_view(self.not_converted, view_def, self.engine)
+        return tuple(c.from_entry(v) for c, v in zip(self.columns, vs, strict=True)) if vs else None
 
-    async def get_files(self) -> List[ArchiveFile]:
-        query = self.files.select()
-        rows = await self.fetch_all(query)
-        try:
-            files = parse_obj_as(List[ArchiveFile], rows)
-        except ValidationError:
-            raise
-            # raise FileParseError("Failed to parse files as ArchiveFiles.")
-        else:
-            return files
+    @overload
+    def fetchall(self) -> Generator[dict[str, Any], None, None]:
+        ...
 
-    async def update_status(self, uuid: UUID) -> None:
-        async with self.transaction():
-            get_file_id = self.files.select().where(
-                self.files.c.uuid == str(uuid)
+    @overload
+    def fetchall(self, model: Type[M]) -> Generator[M, None, None]:
+        ...
+
+    def fetchall(self, model: Optional[Type[M]] = None) -> Generator[Union[dict[str, Any], M], None, None]:
+        select_columns: list[SelectColumn] = [SelectColumn.from_column(c) for c in self.columns]
+
+        if model:
+            return (
+                model.model_validate({
+                    c.alias or c.name: v
+                    for c, v in zip(select_columns, vs, strict=True)
+                })
+                for vs in self.cursor.fetchall()
             )
-            file_id = await self.fetch_val(get_file_id, column="id")
-            exists = await self.check_status(uuid)
-            if not exists:
-                insert_file = self.converted_files.insert()
-                insert_values = {"file_id": file_id, "uuid": str(uuid)}
-                await self.execute(insert_file, insert_values)
-            else:
-                return
 
-    async def check_status(self, uuid: UUID) -> bool:
-        conv_files = self.converted_files
-        select_uuid = conv_files.select().where(conv_files.c.uuid == str(uuid))
-        check = await self.fetch_one(select_uuid)
-        return bool(check)
+        return (
+            {
+                c.alias or c.name: c.from_entry(v)
+                for c, v in zip(select_columns, vs, strict=True)
+            }
+            for vs in self.cursor.fetchall()
+        )
 
-    async def converted_uuids(self) -> Set[UUID]:
-        conv_files = self.converted_files
-        query = conv_files.select()
-        rows = await self.fetch_all(query)
-        return {UUID(row["uuid"]) for row in rows}
+    @overload
+    def fetchone(self) -> Generator[dict[str, Any], None, None]:
+        ...
+
+    @overload
+    def fetchone(self, model: Type[M]) -> Generator[M, None, None]:
+        ...
+
+    def fetchone(self, model: Optional[Type[M]] = None) -> Optional[Union[dict[str, Any], M]]:
+        select_columns: list[SelectColumn] = [SelectColumn.from_column(c) for c in self.columns]
+        vs: tuple = self.cursor.fetchone()
+
+        if vs is None:
+            return None
+
+        entry: dict[str, Any] = {
+            c.name: c.from_entry(v)
+            for c, v in zip(select_columns, vs, strict=True)
+        }
+
+        return model.model_validate(entry) if model else entry
 
 
-# -----------------------------------------------------------------------------
-# View Creation Utility
-# -----------------------------------------------------------------------------
+class Column(Generic[T]):
+    def __init__(self, name: str, sql_type: str,
+                 to_entry: Callable[[T], Union[str, bytes, int, float, bool, datetime, None]],
+                 from_entry: Callable[[Union[str, bytes, int, float, bool, datetime, None]], T],
+                 unique: bool = False, primary_key: bool = False, not_null: bool = False,
+                 check: Optional[str] = None, default: Optional[T] = ...):
+        self.name: str = name
+        self.sql_type: str = sql_type
+        self.to_entry: Callable[[T], Union[str, bytes, int, float, bool, datetime, None]] = to_entry
+        self.from_entry: Callable[[Union[str, bytes, int, float, bool, datetime, None]], T] = from_entry
+        self.unique: bool = unique
+        self.primary_key: bool = primary_key
+        self.not_null: bool = not_null
+        self._check: str = check or ""
+        self.default: Union[Optional[T], Ellipsis] = default
+
+    @property
+    def check(self) -> str:
+        return self._check.format(name=self.name) if self._check else ""
+
+    @check.setter
+    def check(self, check: Optional[str]):
+        self._check = check
+
+    def create_statement(self) -> str:
+        elements: list[str] = [self.name, self.sql_type]
+        if self.unique:
+            elements.append("unique")
+        if self.not_null:
+            elements.append("not null")
+        if self.default is not Ellipsis:
+            elements.append(f"default {self.to_entry(self.default)}")
+        if self.check:
+            elements.append(f"check ({self.check})")
+
+        return " ".join(elements)
 
 
-def create_view(
-    table: sql.Table, definition: TextClause, engine: Engine
-) -> None:
-    view_drop = DropView(table, if_exists=True)
-    view_create = CreateView(table, definition)
-    engine.execute(view_drop)
-    engine.execute(view_create)
+class SelectColumn(Column):
+    def __init__(self, name: str, from_entry: Callable[[Union[str, bytes, int, float, bool, datetime, None]], T],
+                 alias: Optional[str] = None):
+        super().__init__(name, "", lambda x: x, from_entry)
+        self.alias: Optional[str] = alias
+
+    @classmethod
+    def from_column(cls, column: 'Column', alias: Optional[str] = None) -> 'SelectColumn':
+        select_column = SelectColumn(column.name, column.from_entry, alias)
+        select_column.sql_type = column.sql_type
+        select_column.to_entry = column.to_entry
+        select_column.unique = column.unique
+        select_column.primary_key = column.primary_key
+        select_column.not_null = column.not_null
+        select_column._check = column._check
+
+        if isinstance(column, SelectColumn):
+            select_column.alias = alias or column.alias
+
+        return select_column
+
+
+# noinspection SqlNoDataSourceInspection
+class Table:
+    def __init__(self, connection: 'FileDB', name: str, columns: list[Column]):
+        self.connection: 'FileDB' = connection
+        self.name: str = name
+        self.columns: list[Column] = columns
+
+    def __len__(self) -> int:
+        return self.connection.execute(f"select count(*) from {self.name}").fetchone()[0]
+
+    def __iter__(self) -> Generator[dict[str, Any], None, None]:
+        return self.select().fetchall()
+
+    @property
+    def keys(self) -> list[Column]:
+        return [c for c in self.columns if c.primary_key]
+
+    @property
+    def create_statement(self, exist_ok: bool = True) -> str:
+        elements: list[str] = ["create table"]
+
+        if exist_ok:
+            elements.append("if not exists")
+
+        elements.append(self.name)
+
+        if self.columns:
+            elements.append(
+                "(" +
+                ", ".join(c.create_statement() for c in self.columns) +
+                (f", primary key ({', '.join(c.name for c in keys)})" if (keys := self.keys) else "") +
+                ")"
+            )
+
+        return " ".join(elements)
+
+    def select(self, columns: Optional[list[Union['Column', 'SelectColumn']]] = None,
+               where: Optional[str] = None,
+               order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
+               limit: Optional[int] = None,
+               parameters: Optional[list[Any]] = None) -> Cursor:
+        columns = columns or self.columns
+        parameters = parameters or []
+
+        assert columns, "Columns cannot be empty"
+
+        select_columns: list[SelectColumn] = [SelectColumn.from_column(c) for c in columns]
+
+        select_names = [
+            '{} as {}'.format(c.name, c.alias) if c.alias else c.name
+            for c in select_columns
+        ]
+
+        statement: str = f"SELECT {','.join(select_names)} FROM {self.name}"
+
+        if where:
+            statement += f" WHERE {where}"
+
+        if order_by:
+            order_statements = [
+                f"{c.name if isinstance(c, Column) else c} {s}"
+                for c, s in order_by
+            ]
+            statement += f" ORDER BY {','.join(order_statements)}"
+
+        if limit is not None:
+            statement += f" LIMIT {limit}"
+
+        return Cursor(self.connection.execute(statement, parameters), columns, self)
+
+    def insert(self, entry: dict[str, Any], exist_ok: bool = False, replace: bool = False):
+        values: list[Union[str, bytes, int, float, bool, datetime, None]] = [
+            c.to_entry(entry[c.name]) for c in self.columns
+        ]
+
+        elements: list[str] = ["INSERT"]
+
+        if replace:
+            elements.append("OR REPLACE")
+        elif exist_ok:
+            elements.append("OR IGNORE")
+
+        elements.append(f"INTO {self.name}")
+
+        elements.append(f"({','.join(c.name for c in self.columns)})")
+        elements.append(f"VALUES ({','.join('?' * len(values))})")
+
+        self.connection.execute(" ".join(elements), values)
+
+
+# noinspection SqlNoDataSourceInspection
+class View(Table):
+    def __init__(self, connection: 'FileDB', name: str, on: Union[Table, str],
+                 columns: list[Union[Column, SelectColumn]], where: Optional[str] = None,
+                 group_by: Optional[list[Union[Column, SelectColumn]]] = None,
+                 order_by: Optional[list[tuple[Union[str, Column], str]]] = None, limit: Optional[int] = None):
+        assert columns, "Views must have columns"
+        super().__init__(connection, name, columns)
+        self.on: Union[Table, str] = on
+        self.where: str = where
+        self.group_by: list[Union[Column, SelectColumn]] = group_by or []
+        self.order_by: Optional[list[tuple[Union[str, Column], str]]] = order_by or []
+        self.limit: Optional[int] = limit
+
+    @property
+    def create_statement(self, exist_ok: bool = True) -> str:
+        elements: list[str] = ["CREATE VIEW"]
+
+        if exist_ok:
+            elements.append("IF NOT EXISTS")
+
+        elements.append(self.name)
+
+        elements.append("AS")
+
+        select_names = [
+            f'{c.name} as {c.alias}' if c.alias else c.name
+            for c in [SelectColumn.from_column(c) for c in self.columns]
+        ]
+
+        elements.append(
+            f"SELECT {','.join(select_names)} "
+            f"FROM {self.on.name if isinstance(self.on, Table) else self.on}"
+        )
+
+        if self.where:
+            elements.append(f"WHERE {self.where}")
+
+        if self.group_by:
+            elements.append("GROUP BY")
+            elements.append(",".join([
+                c.alias or c.name
+                for c in [SelectColumn.from_column(c) for c in self.group_by]
+            ]))
+
+        if self.order_by:
+            order_statements = [
+                f"{(SelectColumn.from_column(c).name or c.name) if isinstance(c, Column) else c} {s}"
+                for c, s in self.order_by
+            ]
+            elements.append(f"ORDER BY {','.join(order_statements)}")
+
+        if self.limit is not None:
+            elements.append(f"LIMIT {self.limit}")
+
+        return " ".join(elements)
+
+    def select(self, columns: Optional[list[Union['Column', 'SelectColumn']]] = None,
+               where: Optional[str] = None,
+               order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
+               limit: Optional[int] = None,
+               parameters: Optional[list[Any]] = None) -> Cursor:
+        columns = columns or [
+            Column(c.alias or c.name, c.sql_type, c.to_entry, c.from_entry, c.unique, c.primary_key, c.not_null,
+                   c.check, c.default)
+            for c in map(SelectColumn.from_column, self.columns)
+        ]
+        return super().select(columns, where, order_by, limit, parameters)
+
+    def insert(self, *_args, **_kwargs):
+        raise OperationalError("Cannot insert into view")
+
+
+class FileDB(Connection):
+    def __init__(self, database: str | bytes | PathLike[str] | PathLike[bytes], *,
+                 timeout: float = 5.0,
+                 detect_types: int = 0, isolation_level: Optional[str] = 'DEFERRED', check_same_thread: bool = True,
+                 factory: Optional[Type[Connection]] = Connection, cached_statements: int = 100, uri: bool = False):
+        super().__init__(database, timeout, detect_types, isolation_level, check_same_thread, factory,
+                         cached_statements, uri)
+
+        self.files = Table(self, "Files", [
+            Column("id", "integer", int, int, True, True, True),
+            Column("uuid", "varchar", str, UUID, True, False, True),
+            Column("relative_path", "varchar", str, Path, False, False, True),
+            Column("checksum", "varchar", str, str, False, False, False),
+            Column("puid", "varchar", str, str, False, False, False),
+            Column("signature", "varchar", str, str, False, False, False),
+            Column("is_binary", "boolean", bool, lambda x: None if x is None else bool(x), False, False, False),
+            Column("file_size_in_bytes", "integer", int, int, False, False, False),
+            Column("warning", "varchar", str, str, False, False, False),
+            Column("warning", "varchar", str, str, False, False, False),
+        ])
+
+        self.metadata = Table(self, "Metadata", [
+            Column("last_run", "datetime", datetime.isoformat, datetime.fromisoformat, False, False, True),
+            Column("processed_dir", "varchar", str, Path, False, False, True),
+            Column("file_count", "integer", int, lambda x: None if x is None else bool(x), False, False, False),
+            Column("total_size", "integer", int, lambda x: None if x is None else bool(x), False, False, False),
+        ])
+
+        self.identification_warnings = View(self, "_IdentificationWarnings", self.files, self.files.columns,
+                                            f'"{self.files.name}".warning IS NOT null')
+
+        self.signature_count = View(
+            self, "_SignatureCount",
+            self.files,
+            [
+                Column("puid", "varchar", str, str, False, False, False),
+                Column("signature", "varchar", str, str, False, False, False),
+                SelectColumn(
+                    f'count('
+                    f'CASE WHEN ("{self.files.name}".puid IS NULL) '
+                    f'THEN \'None\' '
+                    f'ELSE "{self.files.name}".puid '
+                    f'END)',
+                    int, "count")
+            ],
+            None,
+            [
+                Column("puid", "varchar", str, str, False, False, False),
+            ],
+            [
+                (Column("count", "int", str, str), "ASC"),
+            ])
