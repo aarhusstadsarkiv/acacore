@@ -334,7 +334,6 @@ class FileDB(Connection):
             Column("is_binary", "boolean", bool, lambda x: None if x is None else bool(x), False, False, False),
             Column("file_size_in_bytes", "integer", int, int, False, False, False),
             Column("warning", "varchar", str, str, False, False, False),
-            Column("warning", "varchar", str, str, False, False, False),
         ])
 
         self.metadata = Table(self, "Metadata", [
