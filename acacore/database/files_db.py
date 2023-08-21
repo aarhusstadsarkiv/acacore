@@ -343,8 +343,10 @@ class FileDB(Connection):
             self, "_SignatureCount",
             self.files,
             [
-                Column("puid", "varchar", str, str, False, False, False),
-                Column("signature", "varchar", str, str, False, False, False),
+                Column("puid", "varchar", lambda x: None if x is None else str(x),
+                       lambda x: None if x is None else str(x), False, False, False),
+                Column("signature", "varchar", lambda x: None if x is None else str(x),
+                       lambda x: None if x is None else str(x), False, False, False),
                 SelectColumn(
                     f'count('
                     f'CASE WHEN ("{self.files.name}".puid IS NULL) '
