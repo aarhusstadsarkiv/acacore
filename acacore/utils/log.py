@@ -1,4 +1,8 @@
-from logging import Logger, FileHandler, getLogger, Formatter, INFO
+from logging import FileHandler
+from logging import Formatter
+from logging import INFO
+from logging import Logger
+from logging import getLogger
 from pathlib import Path
 
 
