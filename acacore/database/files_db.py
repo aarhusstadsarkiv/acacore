@@ -170,7 +170,6 @@ class Table:
     def keys(self) -> list[Column]:
         return [c for c in self.columns if c.primary_key]
 
-    @property
     def create_statement(self, exist_ok: bool = True) -> str:
         elements: list[str] = ["create table"]
 
@@ -257,7 +256,6 @@ class View(Table):
         self.order_by: Optional[list[tuple[Union[str, Column], str]]] = order_by or []
         self.limit: Optional[int] = limit
 
-    @property
     def create_statement(self, exist_ok: bool = True) -> str:
         elements: list[str] = ["CREATE VIEW"]
 
