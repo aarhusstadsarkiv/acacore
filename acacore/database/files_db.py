@@ -116,6 +116,9 @@ class Cursor:
     def __iter__(self) -> Generator[dict[str, Any], None, None]:
         return self.fetchall()
 
+    def __next__(self) -> Optional[dict[str, Any]]:
+        return self.fetchone()
+
     def fetchalltuples(self) -> Generator[tuple, None, None]:
         """
         Fetch all the results from the cursor as tuples and convert the data using the given columns.
