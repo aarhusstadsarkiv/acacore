@@ -1,12 +1,10 @@
 # -----------------------------------------------------------------------------
 # Imports
 # -----------------------------------------------------------------------------
-
-
 from pathlib import Path
 from typing import Optional
 
-from pydantic import UUID4
+from pydantic import UUID4, Field
 
 from .base import ACABase
 from .identification import Identification
@@ -21,8 +19,8 @@ from ..utils.io import size_fmt
 class File(ACABase):
     """File data model."""
 
-    id: int
-    uuid: UUID4
+    id: int = Field(primary_key=True)
+    uuid: UUID4 = Field(primary_key=True)
     checksum: Optional[str]
     puid: Optional[str]
     relative_path: Path
