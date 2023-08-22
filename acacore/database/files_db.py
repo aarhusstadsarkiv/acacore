@@ -18,8 +18,13 @@ from uuid import UUID
 from pydantic.main import BaseModel
 
 T = TypeVar("T")
+R = TypeVar("R")
 M = TypeVar("M", bound=BaseModel)
 V = Union[str, bytes, int, float, bool, datetime, None]
+
+
+def or_none(func: Callable[[T], R]) -> Callable[[T], Optional[R]]:
+    return lambda x: None if x is None else func(x)
 
 
 class Cursor:
@@ -323,12 +328,10 @@ class FileDB(Connection):
             Column("id", "integer", int, int, True, True, True),
             Column("uuid", "varchar", str, UUID, True, False, True),
             Column("relative_path", "varchar", str, Path, False, False, True),
-            Column("checksum", "varchar", lambda x: None if x is None else str(x),
-                   lambda x: None if x is None else str(x), False, False, False),
-            Column("puid", "varchar", lambda x: None if x is None else str(x), lambda x: None if x is None else str(x),
-                   False, False, False),
+            Column("checksum", "varchar", or_none(str), or_none(str), False, False, False),
+            Column("puid", "varchar", or_none(str), or_none(str), False, False, False),
             Column("signature", "varchar", str, str, False, False, False),
-            Column("is_binary", "boolean", bool, lambda x: None if x is None else bool(x), False, False, False),
+            Column("is_binary", "boolean", or_none(bool), or_none(bool), False, False, False),
             Column("file_size_in_bytes", "integer", int, int, False, False, False),
             Column("warning", "varchar", str, str, False, False, False),
         ])
@@ -336,8 +339,8 @@ class FileDB(Connection):
         self.metadata = Table(self, "Metadata", [
             Column("last_run", "datetime", datetime.isoformat, datetime.fromisoformat, False, False, True),
             Column("processed_dir", "varchar", str, Path, False, False, True),
-            Column("file_count", "integer", int, lambda x: None if x is None else bool(x), False, False, False),
-            Column("total_size", "integer", int, lambda x: None if x is None else bool(x), False, False, False),
+            Column("file_count", "integer", or_none(int), or_none(int), False, False, False),
+            Column("total_size", "integer", or_none(int), or_none(int), False, False, False),
         ])
 
         self.identification_warnings = View(self, "_IdentificationWarnings", self.files, self.files.columns,
@@ -347,10 +350,8 @@ class FileDB(Connection):
             self, "_SignatureCount",
             self.files,
             [
-                Column("puid", "varchar", lambda x: None if x is None else str(x),
-                       lambda x: None if x is None else str(x), False, False, False),
-                Column("signature", "varchar", lambda x: None if x is None else str(x),
-                       lambda x: None if x is None else str(x), False, False, False),
+                Column("puid", "varchar", or_none(str), or_none(str), False, False, False),
+                Column("signature", "varchar", or_none(str), or_none(str), False, False, False),
                 SelectColumn(
                     f'count('
                     f'CASE WHEN ("{self.files.name}".puid IS NULL) '
