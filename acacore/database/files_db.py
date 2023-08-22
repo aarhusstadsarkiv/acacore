@@ -211,6 +211,24 @@ class Cursor:
         return model.model_validate(entry) if model else entry
 
 
+class ModelCursor(Cursor, Generic[M]):
+    def __init__(self, cursor: SQLiteCursor, model: Type[M], table: Optional['Table'] = None):
+        super().__init__(cursor, model_to_columns(model), table)
+        self.model: Type[M] = model
+
+    def __iter__(self) -> Generator[M, None, None]:
+        return self.fetchall()
+
+    def __next__(self) -> Optional[M]:
+        return self.fetchone()
+
+    def fetchall(self, model: Optional[Type[M]] = None) -> Generator[M, None, None]:
+        return super().fetchall(model or self.model)
+
+    def fetchone(self, model: Optional[Type[M]] = None) -> Optional[M]:
+        return super().fetchone(model or self.model)
+
+
 class Column(Generic[T]):
     def __init__(self, name: str, sql_type: str,
                  to_entry: Callable[[T], V], from_entry: Callable[[V], T],
@@ -464,6 +482,28 @@ class Table:
         self.connection.execute(" ".join(elements), values)
 
 
+class ModelTable(Table, Generic[M]):
+    def __init__(self, connection: 'FileDB', name: str, model: Type[M]):
+        super().__init__(connection, name, model_to_columns(model))
+        self.model: Type[M] = model
+
+    def __iter__(self) -> Generator[M, None, None]:
+        return self.select().fetchall()
+
+    def select(self, model: Type[M] = None,
+               where: Optional[str] = None,
+               order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
+               limit: Optional[int] = None,
+               parameters: Optional[list[Any]] = None) -> ModelCursor[M]:
+        return ModelCursor[M](
+            super().select(model_to_columns(model or self.model), where, order_by, limit, parameters).cursor,
+            model or self.model, self
+        )
+
+    def insert(self, entry: M, exist_ok: bool = False, replace: bool = False):
+        super().insert(entry.model_dump(), exist_ok, replace)
+
+
 # noinspection SqlNoDataSourceInspection
 class View(Table):
     def __init__(self, connection: 'FileDB', name: str, on: Union[Table, str],
@@ -578,6 +618,25 @@ class View(Table):
             OperationalError: Insert transactions are not allowed on views.
         """
         raise OperationalError("Cannot insert into view")
+
+
+class ModelView(View, Generic[M]):
+    def __init__(self, connection: 'FileDB', name: str, on: Union[Table, str], model: Type[M],
+                 columns: list[Union[Column, SelectColumn]], where: Optional[str] = None,
+                 group_by: Optional[list[Union[Column, SelectColumn]]] = None,
+                 order_by: Optional[list[tuple[Union[str, Column], str]]] = None, limit: Optional[int] = None):
+        super().__init__(connection, name, on, columns, where, group_by, order_by, limit)
+        self.model: Type[M] = model
+
+    def select(self, model: Type[M] = None,
+               where: Optional[str] = None,
+               order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
+               limit: Optional[int] = None,
+               parameters: Optional[list[Any]] = None) -> ModelCursor[M]:
+        return ModelCursor[M](
+            super().select(model_to_columns(model or self.model), where, order_by, limit, parameters).cursor,
+            model or self.model, self
+        )
 
 
 class FileDB(Connection):
