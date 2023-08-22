@@ -27,3 +27,11 @@ class Identification(ACABase):
             raise ValueError(f"PUID missing for signature {signature}.")
 
         return data
+
+
+class SignatureCount(ACABase):
+    """Signature count datamodel"""
+
+    puid: Optional[str]
+    signature: Optional[str]
+    count: Optional[int]
