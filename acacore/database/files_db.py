@@ -738,25 +738,22 @@ class FileDB(Connection):
             uri: If set to True, database is interpreted as a URI with a file path and an optional query string.
         """
         from ..models.file import File
+        from ..models.metadata import Metadata
+        from ..models.identification import SignatureCount
 
         super().__init__(database, timeout, detect_types, isolation_level, check_same_thread, factory,
                          cached_statements, uri)
 
         self.files = ModelTable[File](self, "Files", File)
+        self.metadata = ModelTable[Metadata](self, "Metadata", Metadata)
 
-        self.metadata = Table(self, "Metadata", [
-            Column("last_run", "datetime", datetime.isoformat, datetime.fromisoformat, False, False, True),
-            Column("processed_dir", "varchar", str, Path, False, False, True),
-            Column("file_count", "integer", or_none(int), or_none(int), False, False, False),
-            Column("total_size", "integer", or_none(int), or_none(int), False, False, False),
-        ])
+        self.identification_warnings = ModelView[File](self, "_IdentificationWarnings", self.files, self.files.model,
+                                                       f'"{self.files.name}".warning IS NOT null')
 
-        self.identification_warnings = View(self, "_IdentificationWarnings", self.files, self.files.columns,
-                                            f'"{self.files.name}".warning IS NOT null')
-
-        self.signature_count = View(
+        self.signature_count = ModelView[SignatureCount](
             self, "_SignatureCount",
             self.files,
+            SignatureCount,
             [
                 Column("puid", "varchar", or_none(str), or_none(str), False, False, False),
                 Column("signature", "varchar", or_none(str), or_none(str), False, False, False),
