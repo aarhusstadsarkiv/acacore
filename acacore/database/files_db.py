@@ -13,7 +13,6 @@ from typing import Type
 from typing import TypeVar
 from typing import Union
 from typing import overload
-from uuid import UUID
 
 from pydantic.main import BaseModel
 
@@ -663,20 +662,12 @@ class FileDB(Connection):
                 to avoid parsing overhead.
             uri: If set to True, database is interpreted as a URI with a file path and an optional query string.
         """
+        from ..models.file import File
+
         super().__init__(database, timeout, detect_types, isolation_level, check_same_thread, factory,
                          cached_statements, uri)
 
-        self.files = Table(self, "Files", [
-            Column("id", "integer", int, int, True, True, True),
-            Column("uuid", "varchar", str, UUID, True, False, True),
-            Column("relative_path", "varchar", str, Path, False, False, True),
-            Column("checksum", "varchar", or_none(str), or_none(str), False, False, False),
-            Column("puid", "varchar", or_none(str), or_none(str), False, False, False),
-            Column("signature", "varchar", str, str, False, False, False),
-            Column("is_binary", "boolean", or_none(bool), or_none(bool), False, False, False),
-            Column("file_size_in_bytes", "integer", int, int, False, False, False),
-            Column("warning", "varchar", str, str, False, False, False),
-        ])
+        self.files = ModelTable[File](self, "Files", File)
 
         self.metadata = Table(self, "Metadata", [
             Column("last_run", "datetime", datetime.isoformat, datetime.fromisoformat, False, False, True),
