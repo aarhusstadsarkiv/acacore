@@ -19,6 +19,7 @@ from pydantic.main import BaseModel
 
 T = TypeVar("T")
 M = TypeVar("M", bound=BaseModel)
+V = Union[str, bytes, int, float, bool, datetime, None]
 
 
 class Cursor:
@@ -95,14 +96,13 @@ class Cursor:
 
 class Column(Generic[T]):
     def __init__(self, name: str, sql_type: str,
-                 to_entry: Callable[[T], Union[str, bytes, int, float, bool, datetime, None]],
-                 from_entry: Callable[[Union[str, bytes, int, float, bool, datetime, None]], T],
+                 to_entry: Callable[[T], V], from_entry: Callable[[V], T],
                  unique: bool = False, primary_key: bool = False, not_null: bool = False,
                  check: Optional[str] = None, default: Optional[T] = ...):
         self.name: str = name
         self.sql_type: str = sql_type
-        self.to_entry: Callable[[T], Union[str, bytes, int, float, bool, datetime, None]] = to_entry
-        self.from_entry: Callable[[Union[str, bytes, int, float, bool, datetime, None]], T] = from_entry
+        self.to_entry: Callable[[T], V] = to_entry
+        self.from_entry: Callable[[V], T] = from_entry
         self.unique: bool = unique
         self.primary_key: bool = primary_key
         self.not_null: bool = not_null
@@ -132,8 +132,7 @@ class Column(Generic[T]):
 
 
 class SelectColumn(Column):
-    def __init__(self, name: str, from_entry: Callable[[Union[str, bytes, int, float, bool, datetime, None]], T],
-                 alias: Optional[str] = None):
+    def __init__(self, name: str, from_entry: Callable[[V], T], alias: Optional[str] = None):
         super().__init__(name, "", lambda x: x, from_entry)
         self.alias: Optional[str] = alias
 
@@ -223,9 +222,7 @@ class Table:
         return Cursor(self.connection.execute(statement, parameters), columns, self)
 
     def insert(self, entry: dict[str, Any], exist_ok: bool = False, replace: bool = False):
-        values: list[Union[str, bytes, int, float, bool, datetime, None]] = [
-            c.to_entry(entry[c.name]) for c in self.columns
-        ]
+        values: list[V] = [c.to_entry(entry[c.name]) for c in self.columns]
 
         elements: list[str] = ["INSERT"]
 
