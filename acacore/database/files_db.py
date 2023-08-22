@@ -79,7 +79,7 @@ def _schema_to_column(name: str, schema: dict) -> 'Column':
     )
 
 
-def model_to_columns(model: M) -> list['Column']:
+def model_to_columns(model: Type[BaseModel]) -> list['Column']:
     return [_schema_to_column(p, s) for p, s in model.model_json_schema()["properties"].items()]
 
 
@@ -270,6 +270,10 @@ class Column(Generic[T]):
                 f", not_null={self.not_null}"
                 f"{f', default={repr(self.default)}' if self.default is not Ellipsis else ''}"
                 f")")
+
+    @classmethod
+    def from_model(cls, model: Type[BaseModel]) -> list['Column']:
+        return model_to_columns(model)
 
     @property
     def check(self) -> str:
