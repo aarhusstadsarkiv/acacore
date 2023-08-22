@@ -22,6 +22,67 @@ R = TypeVar("R")
 M = TypeVar("M", bound=BaseModel)
 V = Union[str, bytes, int, float, bool, datetime, None]
 
+_sql_schema_types: dict[str, str] = {
+    "string": "text",
+    "integer": "integer",
+    "number": "real",
+    "boolean": "boolean",
+    "bytes": "blob",
+    "null": "text",
+}
+
+
+def _schema_to_column(name: str, schema: dict) -> 'Column':
+    schema_type: Optional[str] = schema.get("type", None)
+    schema_any_of: list[dict] = schema.get("anyOf", [])
+
+    sql_type: str
+    to_entry: Callable[[Optional[T]], V]
+    from_entry: Callable[[V], Optional[T]]
+    not_null: bool = (schema_any_of or [{}])[-1].get("type", None) != "null"
+
+    if schema_type:
+        sql_type = _sql_schema_types.get(schema_type, None)
+        type_format: Optional[str] = schema.get("format", None)
+
+        if type_format == "path":
+            to_entry, from_entry = str, Path
+        elif type_format == "date-time":
+            to_entry, from_entry = datetime.isoformat, datetime.fromisoformat
+        elif type_format == "binary":
+            to_entry, from_entry = bytes, bytes
+        elif schema_type == "string":
+            to_entry, from_entry = str, str
+        elif schema_type == "integer":
+            to_entry, from_entry = float, float
+        elif schema_type == "number":
+            to_entry, from_entry = float, float
+        elif schema_type == "boolean":
+            to_entry, from_entry = bool, bool
+        elif schema_type == "null":
+            to_entry, from_entry = lambda x: x, lambda x: x
+        else:
+            raise TypeError(f"Cannot recognize type from schema {schema!r}")
+    elif schema_any_of:
+        if len(schema_any_of) > 2:
+            raise TypeError(f"Cannot recognize type from schema {schema!r}")
+
+        return _schema_to_column(name, {**schema_any_of[0], **schema})
+    else:
+        raise TypeError(f"Cannot recognize type from schema {schema!r}")
+
+    return Column(
+        name, sql_type, or_none(to_entry), or_none(from_entry),
+        unique=schema.get("default", False),
+        primary_key=schema.get("primary_key", False),
+        not_null=not_null,
+        default=schema.get("default", ...)
+    )
+
+
+def model_to_columns(model: M) -> list['Column']:
+    return [_schema_to_column(p, s) for p, s in model.model_json_schema()["properties"].items()]
+
 
 def or_none(func: Callable[[T], R]) -> Callable[[T], Optional[R]]:
     """
