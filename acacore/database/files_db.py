@@ -571,6 +571,14 @@ class FileDB(Connection):
                 (Column("count", "int", str, str), "ASC"),
             ])
 
+    @property
+    def path(self) -> Optional[Path]:
+        for _, name, filename in self.execute("PRAGMA database_list"):
+            if name == "main" and filename:
+                return Path(filename)
+
+        return None
+
     def init(self):
         """
         Create the Files and Metadata tables, and the _IdentificationWarnings and _SignatureCount views.
