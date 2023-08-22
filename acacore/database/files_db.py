@@ -177,11 +177,11 @@ class Cursor:
         )
 
     @overload
-    def fetchone(self) -> Generator[dict[str, Any], None, None]:
+    def fetchone(self) -> Optional[dict[str, Any]]:
         ...
 
     @overload
-    def fetchone(self, model: Type[M]) -> Generator[M, None, None]:
+    def fetchone(self, model: Type[M]) -> Optional[M]:
         ...
 
     def fetchone(self, model: Optional[Type[M]] = None) -> Optional[Union[dict[str, Any], M]]:
