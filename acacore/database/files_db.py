@@ -24,12 +24,30 @@ V = Union[str, bytes, int, float, bool, datetime, None]
 
 
 def or_none(func: Callable[[T], R]) -> Callable[[T], Optional[R]]:
+    """
+    Create a lambda function of arity one that will return None if its argument is None,
+    otherwise it will call func on the object.
+
+    Args:
+        func: A function of type (T) -> R that will handle the object if it is not none.
+
+    Returns:
+        object: A function of type (T) -> R | None.
+    """
     return lambda x: None if x is None else func(x)
 
 
 class Cursor:
     def __init__(self, cursor: SQLiteCursor, columns: list[Union['Column', 'SelectColumn']],
                  table: Optional['Table'] = None):
+        """
+        A wrapper class for an SQLite cursor that returns its results as dicts (or objects).
+
+        Args:
+            cursor: An SQLite cursor from a select transaction.
+            columns: A list of columns to use to convert the tuples returned by the cursor.
+            table: Optionally, the Table from which on which the select transaction was executed.
+        """
         self.cursor: SQLiteCursor = cursor
         self.columns: list[Union['Column', 'SelectColumn']] = columns
         self.table: Optional[Table] = table
@@ -38,12 +56,24 @@ class Cursor:
         return self.fetchall()
 
     def fetchalltuples(self) -> Generator[tuple, None, None]:
+        """
+        Fetch all the results from the cursor as tuples and convert the data using the given columns.
+
+        Returns:
+            Generator: A generator for the tuples in the cursor.
+        """
         return (
             tuple(c.from_entry(v) for c, v in zip(self.columns, vs, strict=True))
             for vs in self.cursor.fetchall()
         )
 
     def fetchonetuple(self) -> Optional[tuple]:
+        """
+        Fetch one result from the cursor as tuples and convert the data using the given columns.
+
+        Returns:
+            tuple: A single tuple from the cursor.
+        """
         vs: tuple = self.cursor.fetchone()
 
         return tuple(c.from_entry(v) for c, v in zip(self.columns, vs, strict=True)) if vs else None
@@ -57,6 +87,15 @@ class Cursor:
         ...
 
     def fetchall(self, model: Optional[Type[M]] = None) -> Generator[Union[dict[str, Any], M], None, None]:
+        """
+        Fetch all results from the cursor and return them as dicts, with the columns' names/aliases used as keys.
+
+        Args:
+            model: Optionally, a pydantic.BaseModel class to use instead of a dict.
+
+        Returns:
+            Generator: A generator for converted dicts (or models).
+        """
         select_columns: list[SelectColumn] = [SelectColumn.from_column(c) for c in self.columns]
 
         if model:
@@ -85,6 +124,15 @@ class Cursor:
         ...
 
     def fetchone(self, model: Optional[Type[M]] = None) -> Optional[Union[dict[str, Any], M]]:
+        """
+        Fetch one result from the cursor and return it as a dict, with the columns' names/aliases used as keys.
+
+        Args:
+            model: Optionally, a pydantic.BaseModel class to use instead of a dict.
+
+        Returns:
+            dict: A single dict (or model) if the cursor is not exhausted, otherwise None.
+        """
         select_columns: list[SelectColumn] = [SelectColumn.from_column(c) for c in self.columns]
         vs: tuple = self.cursor.fetchone()
 
@@ -104,6 +152,24 @@ class Column(Generic[T]):
                  to_entry: Callable[[T], V], from_entry: Callable[[V], T],
                  unique: bool = False, primary_key: bool = False, not_null: bool = False,
                  check: Optional[str] = None, default: Optional[T] = ...):
+        """
+        A class that stores information regarding a table column.
+
+        Args:
+            name: The name of the column.
+            sql_type: The SQL type to use when creating a table.
+            to_entry: A function that returns a type supported by SQLite
+                (str, bytes, int, float, bool, datetime, or None).
+            from_entry: A function that takes a type returned by SQLite (str, bytes, int, float, or None)
+                and returns another object.
+            unique: True if the column should be set as UNIQUE.
+            primary_key: True if the column is a PRIMARY KEY.
+            not_null: True if the column is NOT NULL.
+            check: A string containing a CHECK expression, {name} substrings will be substituted
+                with the name of the column.
+            default: The column's DEFAULT value, which will be converted using `to_entry`.
+                Note that None is considered a valid default value; to set it to empty use Ellipsis (...).
+        """
         self.name: str = name
         self.sql_type: str = sql_type
         self.to_entry: Callable[[T], V] = to_entry
@@ -123,6 +189,12 @@ class Column(Generic[T]):
         self._check = check
 
     def create_statement(self) -> str:
+        """
+        Generate the statement that creates the column.
+
+        Returns:
+            A column statement for a CREATE TABLE expression.
+        """
         elements: list[str] = [self.name, self.sql_type]
         if self.unique:
             elements.append("unique")
@@ -142,11 +214,32 @@ class Column(Generic[T]):
 
 class SelectColumn(Column):
     def __init__(self, name: str, from_entry: Callable[[V], T], alias: Optional[str] = None):
+        """
+        A subclass of Column for SELECT expressions that need complex statements and/or an alias.
+
+        Args:
+            name: The name or select statement for the select expression (e.g., count(*)).
+            from_entry: A function that takes a type returned by SQLite (str, bytes, int, float, or None)
+                and returns another object.
+            alias: An alternative name for the select statement, it will be used with the AS keyword
+                and as a key by Cursor.
+        """
         super().__init__(name, "", lambda x: x, from_entry)
         self.alias: Optional[str] = alias
 
     @classmethod
     def from_column(cls, column: 'Column', alias: Optional[str] = None) -> 'SelectColumn':
+        """
+        Take a Column object and create a SelectColumn with the given alias.
+
+        Args:
+            column: The Column object to be converted.
+            alias: An alternative name for the select statement, it will be used with the AS keyword
+                and as a key by Cursor.
+
+        Returns:
+            SelectColumn: A SelectColumn object.
+        """
         select_column = SelectColumn(column.name, column.from_entry, alias)
         select_column.sql_type = column.sql_type
         select_column.to_entry = column.to_entry
@@ -164,6 +257,14 @@ class SelectColumn(Column):
 # noinspection SqlNoDataSourceInspection
 class Table:
     def __init__(self, connection: 'FileDB', name: str, columns: list[Column]):
+        """
+        A class that holds information about a table.
+
+        Args:
+            connection: A FileDB object connected to the database the table belongs to.
+            name: The name of the table.
+            columns: The columns of the table.
+        """
         self.connection: 'FileDB' = connection
         self.name: str = name
         self.columns: list[Column] = columns
@@ -176,9 +277,24 @@ class Table:
 
     @property
     def keys(self) -> list[Column]:
+        """
+        The list of PRIMARY KEY columns in the table.
+
+        Returns:
+            A list of Column objects whose `primary_key` field is set to True.
+        """
         return [c for c in self.columns if c.primary_key]
 
     def create_statement(self, exist_ok: bool = True) -> str:
+        """
+        Generate the expression that creates the table.
+
+        Args:
+            exist_ok: True if existing tables with the same name should be ignored.
+
+        Returns:
+            A CREATE TABLE expression.
+        """
         elements: list[str] = ["create table"]
 
         if exist_ok:
@@ -201,6 +317,20 @@ class Table:
                order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
                limit: Optional[int] = None,
                parameters: Optional[list[Any]] = None) -> Cursor:
+        """
+        Select entries from the table.
+
+        Args:
+            columns: A list of columns to be selected, defaults to all the existing columns in the table.
+            where: A WHERE expression.
+            order_by: A list tuples containing one column (either as Column or string)
+                and a sorting direction ("ASC", or "DESC").
+            limit: The number of rows to limit the results to.
+            parameters: Values to substitute in the SELECT expression, both in the `where` and SelectColumn statements.
+
+        Returns:
+            Cursor: A Cursor object wrapping the SQLite cursor returned by the SELECT transaction.
+        """
         columns = columns or self.columns
         parameters = parameters or []
 
@@ -231,6 +361,15 @@ class Table:
         return Cursor(self.connection.execute(statement, parameters), columns, self)
 
     def insert(self, entry: dict[str, Any], exist_ok: bool = False, replace: bool = False):
+        """
+        Insert a row in the table. Existing rows with matching keys can be ignored or replaced.
+
+        Args:
+            entry: The row to be inserted as a dict with keys matching the names of the columns.
+                The values need not be converted beforehand.
+            exist_ok: True if existing rows with the same keys should be ignored, False otherwise
+            replace: True if existing rows with the same keys should be replaced, False otherwise.
+        """
         values: list[V] = [c.to_entry(entry[c.name]) for c in self.columns]
 
         elements: list[str] = ["INSERT"]
@@ -254,6 +393,20 @@ class View(Table):
                  columns: list[Union[Column, SelectColumn]], where: Optional[str] = None,
                  group_by: Optional[list[Union[Column, SelectColumn]]] = None,
                  order_by: Optional[list[tuple[Union[str, Column], str]]] = None, limit: Optional[int] = None):
+        """
+        A subclass of Table to handle views.
+
+        Args:
+            connection: A FileDB object connected to the database the view belongs to.
+            name: The name of the table.
+            on: The table the view is based on.
+            columns: The columns of the view.
+            where: A WHERE expression for the view.
+            group_by: A GROUP BY expression for the view.
+            order_by: A list tuples containing one column (either as Column or string)
+                and a sorting direction ("ASC", or "DESC").
+            limit: The number of rows to limit the results to.
+        """
         assert columns, "Views must have columns"
         super().__init__(connection, name, columns)
         self.on: Union[Table, str] = on
@@ -263,6 +416,15 @@ class View(Table):
         self.limit: Optional[int] = limit
 
     def create_statement(self, exist_ok: bool = True) -> str:
+        """
+        Generate the expression that creates the view.
+
+        Args:
+            exist_ok: True if existing views with the same name should be ignored.
+
+        Returns:
+            A CREATE VIEW expression.
+        """
         elements: list[str] = ["CREATE VIEW"]
 
         if exist_ok:
@@ -309,6 +471,20 @@ class View(Table):
                order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
                limit: Optional[int] = None,
                parameters: Optional[list[Any]] = None) -> Cursor:
+        """
+        Select entries from the view.
+
+        Args:
+            columns: A list of columns to be selected, defaults to all the existing columns in the view.
+            where: A WHERE expression.
+            order_by: A list tuples containing one column (either as Column or string)
+                and a sorting direction ("ASC", or "DESC").
+            limit: The number of rows to limit the results to.
+            parameters: Values to substitute in the SELECT expression, both in the `where` and SelectColumn statements.
+
+        Returns:
+            Cursor: A Cursor object wrapping the SQLite cursor returned by the SELECT transaction.
+        """
         columns = columns or [
             Column(c.alias or c.name, c.sql_type, c.to_entry, c.from_entry, c.unique, c.primary_key, c.not_null,
                    c.check, c.default)
@@ -317,6 +493,10 @@ class View(Table):
         return super().select(columns, where, order_by, limit, parameters)
 
     def insert(self, *_args, **_kwargs):
+        """
+        Raises:
+            OperationalError: Insert transactions are not allowed on views.
+        """
         raise OperationalError("Cannot insert into view")
 
 
@@ -325,6 +505,25 @@ class FileDB(Connection):
                  timeout: float = 5.0,
                  detect_types: int = 0, isolation_level: Optional[str] = 'DEFERRED', check_same_thread: bool = True,
                  factory: Optional[Type[Connection]] = Connection, cached_statements: int = 100, uri: bool = False):
+        """
+        A wrapper class for an SQLite connection.
+
+        Args:
+            database: The path or URI to the database.
+            timeout: How many seconds the connection should wait before raising an OperationalError
+                when a table is locked.
+            detect_types: Control whether and how data types not natively supported by SQLite are looked up to be
+                converted to Python types.
+            isolation_level: The isolation_level of the connection, controlling whether
+                and how transactions are implicitly opened.
+            check_same_thread: If True (default), ProgrammingError will be raised if the database connection
+                is used by a thread other than the one that created it.
+            factory: A custom subclass of Connection to create the connection with,
+                if not the default Connection class.
+            cached_statements: The number of statements that sqlite3 should internally cache for this connection,
+                to avoid parsing overhead.
+            uri: If set to True, database is interpreted as a URI with a file path and an optional query string.
+        """
         super().__init__(database, timeout, detect_types, isolation_level, check_same_thread, factory,
                          cached_statements, uri)
 
@@ -373,6 +572,9 @@ class FileDB(Connection):
             ])
 
     def init(self):
+        """
+        Create the Files and Metadata tables, and the _IdentificationWarnings and _SignatureCount views.
+        """
         self.execute(self.files.create_statement(True))
         self.execute(self.metadata.create_statement(True))
         self.execute(self.identification_warnings.create_statement(True))
