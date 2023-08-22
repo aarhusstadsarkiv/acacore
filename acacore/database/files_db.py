@@ -129,7 +129,11 @@ class Column(Generic[T]):
         if self.not_null:
             elements.append("not null")
         if self.default is not Ellipsis:
-            elements.append(f"default {self.to_entry(self.default)}")
+            default_value: V = self.to_entry(self.default)
+            elements.append(
+                "default '{}'".format(default_value.replace("'", "\\'")) if isinstance(default_value, str)
+                else f"default {'null' if default_value is None else default_value}"
+            )
         if self.check:
             elements.append(f"check ({self.check})")
 
