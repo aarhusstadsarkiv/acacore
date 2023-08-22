@@ -212,6 +212,14 @@ class Cursor:
 
 class ModelCursor(Cursor, Generic[M]):
     def __init__(self, cursor: SQLiteCursor, model: Type[M], table: Optional['Table'] = None):
+        """
+        A wrapper class for an SQLite cursor that returns its results as model objects.
+
+        Args:
+            cursor: An SQLite cursor from a select transaction.
+            model: A model representing the objects in the cursor.
+            table: Optionally, the Table from which on which the select transaction was executed.
+        """
         super().__init__(cursor, model_to_columns(model), table)
         self.model: Type[M] = model
 
@@ -222,9 +230,27 @@ class ModelCursor(Cursor, Generic[M]):
         return self.fetchone()
 
     def fetchall(self, model: Optional[Type[M]] = None) -> Generator[M, None, None]:
+        """
+        Fetch all results from the cursor and return them as model objects.
+
+        Args:
+            model: Optionally, a different pydantic.BaseModel class to use instead of the one in the ModelCursor.
+
+        Returns:
+            Generator: A generator for converted objects.
+        """
         return super().fetchall(model or self.model)
 
     def fetchone(self, model: Optional[Type[M]] = None) -> Optional[M]:
+        """
+        Fetch one result from the cursor and return it as model object.
+
+        Args:
+            model: Optionally, a different pydantic.BaseModel class to use instead of the one in the ModelCursor.
+
+        Returns:
+            object: A single object if the cursor is not exhausted, otherwise None.
+        """
         return super().fetchone(model or self.model)
 
 
@@ -487,6 +513,14 @@ class Table:
 
 class ModelTable(Table, Generic[M]):
     def __init__(self, connection: 'FileDB', name: str, model: Type[M]):
+        """
+        A class that holds information about a table using a model.
+
+        Args:
+            connection: A FileDB object connected to the database the table belongs to.
+            name: The name of the table.
+            model: The model representing the table.
+        """
         super().__init__(connection, name, model_to_columns(model))
         self.model: Type[M] = model
 
@@ -498,12 +532,34 @@ class ModelTable(Table, Generic[M]):
                order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
                limit: Optional[int] = None,
                parameters: Optional[list[Any]] = None) -> ModelCursor[M]:
+        """
+        Select entries from the table.
+
+        Args:
+            model: A model with the fields to be selected, defaults to the table's model.
+            where: A WHERE expression.
+            order_by: A list tuples containing one column (either as Column or string)
+                and a sorting direction ("ASC", or "DESC").
+            limit: The number of rows to limit the results to.
+            parameters: Values to substitute in the SELECT expression, both in the `where` and SelectColumn statements.
+
+        Returns:
+            Cursor: A Cursor object wrapping the SQLite cursor returned by the SELECT transaction.
+        """
         return ModelCursor[M](
             super().select(model_to_columns(model or self.model), where, order_by, limit, parameters).cursor,
             model or self.model, self
         )
 
     def insert(self, entry: M, exist_ok: bool = False, replace: bool = False):
+        """
+        Insert a row in the table. Existing rows with matching keys can be ignored or replaced.
+
+        Args:
+            entry: The row to be inserted as a model object with attributes matching the names of the columns.
+            exist_ok: True if existing rows with the same keys should be ignored, False otherwise
+            replace: True if existing rows with the same keys should be replaced, False otherwise.
+        """
         super().insert(entry.model_dump(), exist_ok, replace)
 
 
@@ -625,10 +681,25 @@ class View(Table):
 
 class ModelView(View, Generic[M]):
     def __init__(self, connection: 'FileDB', name: str, on: Union[Table, str], model: Type[M],
-                 columns: list[Union[Column, SelectColumn]], where: Optional[str] = None,
+                 columns: list[Union[Column, SelectColumn]] = None, where: Optional[str] = None,
                  group_by: Optional[list[Union[Column, SelectColumn]]] = None,
                  order_by: Optional[list[tuple[Union[str, Column], str]]] = None, limit: Optional[int] = None):
-        super().__init__(connection, name, on, columns, where, group_by, order_by, limit)
+        """
+       A subclass of Table to handle views with models.
+
+       Args:
+           connection: A FileDB object connected to the database the view belongs to.
+           name: The name of the table.
+           on: The table the view is based on.
+           model: A BaseModel subclass.
+           columns: Optionally, the columns of the view if the model is too limited.
+           where: A WHERE expression for the view.
+           group_by: A GROUP BY expression for the view.
+           order_by: A list tuples containing one column (either as Column or string)
+               and a sorting direction ("ASC", or "DESC").
+           limit: The number of rows to limit the results to.
+       """
+        super().__init__(connection, name, on, columns or model_to_columns(model), where, group_by, order_by, limit)
         self.model: Type[M] = model
 
     def select(self, model: Type[M] = None,
