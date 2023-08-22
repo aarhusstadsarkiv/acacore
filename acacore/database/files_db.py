@@ -180,6 +180,16 @@ class Column(Generic[T]):
         self._check: str = check or ""
         self.default: Union[Optional[T], Ellipsis] = default
 
+    def __repr__(self):
+        return (f"{self.__class__.__name__}("
+                f"{self.name}"
+                f", {self.sql_type!r}"
+                f", unique={self.unique}"
+                f", primary_key={self.primary_key}"
+                f", not_null={self.not_null}"
+                f"{f', default={repr(self.default)}' if self.default is not Ellipsis else ''}"
+                f")")
+
     @property
     def check(self) -> str:
         return self._check.format(name=self.name) if self._check else ""
@@ -268,6 +278,9 @@ class Table:
         self.connection: 'FileDB' = connection
         self.name: str = name
         self.columns: list[Column] = columns
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.name})"
 
     def __len__(self) -> int:
         return self.connection.execute(f"select count(*) from {self.name}").fetchone()[0]
@@ -414,6 +427,9 @@ class View(Table):
         self.group_by: list[Union[Column, SelectColumn]] = group_by or []
         self.order_by: Optional[list[tuple[Union[str, Column], str]]] = order_by or []
         self.limit: Optional[int] = limit
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.name}, on={self.on!r})"
 
     def create_statement(self, exist_ok: bool = True) -> str:
         """
@@ -570,6 +586,9 @@ class FileDB(Connection):
             [
                 (Column("count", "int", str, str), "ASC"),
             ])
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.path})"
 
     @property
     def path(self) -> Optional[Path]:
