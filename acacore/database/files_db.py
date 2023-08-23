@@ -738,8 +738,8 @@ class FileDB(Connection):
             uri: If set to True, database is interpreted as a URI with a file path and an optional query string.
         """
         from ..models.file import File, ConvertedFile
-        from ..models.metadata import Metadata
         from ..models.identification import SignatureCount
+        from ..models.metadata import Metadata
 
         super().__init__(database, timeout, detect_types, isolation_level, check_same_thread, factory,
                          cached_statements, uri)
@@ -748,16 +748,20 @@ class FileDB(Connection):
         self.metadata = self.create_table("Metadata", Metadata)
         self.converted_files = self.create_table("_ConvertedFiles", ConvertedFile)
 
-        self.not_converted = ModelView[File](self, "_NotConverted", self.files, self.files.model,
-                                             f'"{self.files.name}".uuid IS NOT IN '
-                                             f'(SELECT uuid from {self.converted_files.name})')
-        self.identification_warnings = ModelView[File](self, "_IdentificationWarnings", self.files, self.files.model,
-                                                       f'"{self.files.name}".warning IS NOT null')
-        self.signature_count = ModelView[SignatureCount](
-            self, "_SignatureCount",
-            self.files,
-            SignatureCount,
+        self.not_converted = self.create_view("_NotConverted", self.files, self.files.model,
+                                              f'"{self.files.name}".uuid IS NOT IN '
+                                              f'(SELECT uuid from {self.converted_files.name})')
+        self.identification_warnings = self.create_view("_IdentificationWarnings", self.files, self.files.model,
+                                                        f'"{self.files.name}".warning IS NOT null')
+        self.signature_count = self.create_view(
+            "_SignatureCount", self.files, SignatureCount, None,
             [
+                Column("puid", "varchar", str, str, False, False, False),
+            ],
+            [
+                (Column("count", "int", str, str), "ASC"),
+            ],
+            select_columns=[
                 Column("puid", "varchar", or_none(str), or_none(str), False, False, False),
                 Column("signature", "varchar", or_none(str), or_none(str), False, False, False),
                 SelectColumn(
@@ -767,13 +771,6 @@ class FileDB(Connection):
                     f'ELSE "{self.files.name}".puid '
                     f'END)',
                     int, "count")
-            ],
-            None,
-            [
-                Column("puid", "varchar", str, str, False, False, False),
-            ],
-            [
-                (Column("count", "int", str, str), "ASC"),
             ])
 
     def __repr__(self):
@@ -809,3 +806,37 @@ class FileDB(Connection):
             return ModelTable[M](self, name, columns)
         else:
             return Table(self, name, columns)
+
+    @overload
+    def create_view(self, name: str, on: Union[Table, str],
+                    columns: Type[M],
+                    where: Optional[str] = None,
+                    group_by: Optional[list[Union[Column, SelectColumn]]] = None,
+                    order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
+                    limit: Optional[int] = None,
+                    *, select_columns: Optional[list[Union[Column, SelectColumn]]] = None
+                    ) -> ModelView[M]:
+        ...
+
+    @overload
+    def create_view(self, name: str, on: Union[Table, str],
+                    columns: list[Union[Column, SelectColumn]],
+                    where: Optional[str] = None,
+                    group_by: Optional[list[Union[Column, SelectColumn]]] = None,
+                    order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
+                    limit: Optional[int] = None
+                    ) -> View:
+        ...
+
+    def create_view(self, name: str, on: Union[Table, str],
+                    columns: Union[list[Union[Column, SelectColumn]], Type[M]],
+                    where: Optional[str] = None,
+                    group_by: Optional[list[Union[Column, SelectColumn]]] = None,
+                    order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
+                    limit: Optional[int] = None,
+                    *, select_columns: Optional[list[Union[Column, SelectColumn]]] = None
+                    ) -> Union[View, ModelView[M]]:
+        if issubclass(columns, BaseModel):
+            return ModelView[M](self, name, on, columns, select_columns, where, group_by, order_by, limit)
+        else:
+            return View(self, name, on, columns, where, group_by, order_by, limit)
