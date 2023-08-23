@@ -737,7 +737,7 @@ class FileDB(Connection):
                 to avoid parsing overhead.
             uri: If set to True, database is interpreted as a URI with a file path and an optional query string.
         """
-        from ..models.file import File
+        from ..models.file import File, ConvertedFile
         from ..models.metadata import Metadata
         from ..models.identification import SignatureCount
 
@@ -746,10 +746,13 @@ class FileDB(Connection):
 
         self.files = self.create_table("Files", File)
         self.metadata = self.create_table("Metadata", Metadata)
+        self.converted_files = self.create_table("_ConvertedFiles", ConvertedFile)
 
+        self.not_converted = ModelView[File](self, "_NotConverted", self.files, self.files.model,
+                                             f'"{self.files.name}".uuid IS NOT IN '
+                                             f'(SELECT uuid from {self.converted_files.name})')
         self.identification_warnings = ModelView[File](self, "_IdentificationWarnings", self.files, self.files.model,
                                                        f'"{self.files.name}".warning IS NOT null')
-
         self.signature_count = ModelView[SignatureCount](
             self, "_SignatureCount",
             self.files,
