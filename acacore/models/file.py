@@ -97,3 +97,8 @@ class File(ACABase):
 
 class ArchiveFile(Identification, File):
     """ArchiveFile data model."""
+
+
+class ConvertedFile(ACABase):
+    file_id: int = Field(primary_key=True)
+    uuid: UUID4 = Field(primary_key=True)
