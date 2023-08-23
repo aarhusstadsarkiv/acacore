@@ -744,8 +744,8 @@ class FileDB(Connection):
         super().__init__(database, timeout, detect_types, isolation_level, check_same_thread, factory,
                          cached_statements, uri)
 
-        self.files = ModelTable[File](self, "Files", File)
-        self.metadata = ModelTable[Metadata](self, "Metadata", Metadata)
+        self.files = self.create_table("Files", File)
+        self.metadata = self.create_table("Metadata", Metadata)
 
         self.identification_warnings = ModelView[File](self, "_IdentificationWarnings", self.files, self.files.model,
                                                        f'"{self.files.name}".warning IS NOT null')
@@ -792,3 +792,17 @@ class FileDB(Connection):
         self.execute(self.metadata.create_statement(True))
         self.execute(self.identification_warnings.create_statement(True))
         self.execute(self.signature_count.create_statement(True))
+
+    @overload
+    def create_table(self, name: str, columns: Type[M]) -> ModelTable[M]:
+        ...
+
+    @overload
+    def create_table(self, name: str, columns: list[Column]) -> Table:
+        ...
+
+    def create_table(self, name: str, columns: Union[Type[M], list[Column]]) -> Union[Table, ModelTable[M]]:
+        if issubclass(columns, BaseModel):
+            return ModelTable[M](self, name, columns)
+        else:
+            return Table(self, name, columns)
