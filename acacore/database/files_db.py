@@ -786,12 +786,15 @@ class FileDB(Connection):
 
     def init(self):
         """
-        Create the Files and Metadata tables, and the _IdentificationWarnings and _SignatureCount views.
+        Create the default tables and views.
         """
         self.execute(self.files.create_statement(True))
         self.execute(self.metadata.create_statement(True))
+        self.execute(self.converted_files.create_statement(True))
+        self.execute(self.not_converted.create_statement(True))
         self.execute(self.identification_warnings.create_statement(True))
         self.execute(self.signature_count.create_statement(True))
+        self.commit()
 
     @overload
     def create_table(self, name: str, columns: Type[M]) -> ModelTable[M]:
