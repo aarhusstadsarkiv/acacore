@@ -802,6 +802,14 @@ class FileDB(Connection):
         ...
 
     def create_table(self, name: str, columns: Union[Type[M], list[Column]]) -> Union[Table, ModelTable[M]]:
+        """
+        Create a table in the database.
+        When the `columns` argument is a subclass of BadeModel, a ModelTable object is returned.
+
+        Args:
+            name: The name of the table.
+            columns: A BaseModel subclass or the columns of the table.
+        """
         if issubclass(columns, BaseModel):
             return ModelTable[M](self, name, columns)
         else:
@@ -836,6 +844,21 @@ class FileDB(Connection):
                     limit: Optional[int] = None,
                     *, select_columns: Optional[list[Union[Column, SelectColumn]]] = None
                     ) -> Union[View, ModelView[M]]:
+        """
+        Create a view in the database.
+        When the `columns` argument is a subclass of BadeModel, a ModelView object is returned.
+
+        Args:
+            name: The name of the table.
+            on: The table the view is based on.
+            columns: A BaseModel subclass or the columns of the view.
+            where: A WHERE expression for the view.
+            group_by: A GROUP BY expression for the view.
+            order_by: A list tuples containing one column (either as Column or string)
+                and a sorting direction ("ASC", or "DESC").
+            limit: The number of rows to limit the results to.
+            select_columns: Optionally, the columns of the view if a model is given and is too limited.
+        """
         if issubclass(columns, BaseModel):
             return ModelView[M](self, name, on, columns, select_columns, where, group_by, order_by, limit)
         else:
