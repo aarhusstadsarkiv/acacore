@@ -560,7 +560,7 @@ class FileDB(Connection):
         self.converted_files = self.create_table("_ConvertedFiles", ConvertedFile)
 
         self.not_converted = self.create_view("_NotConverted", self.files, self.files.model,
-                                              f'"{self.files.name}".uuid IS NOT IN '
+                                              f'"{self.files.name}".uuid NOT IN '
                                               f'(SELECT uuid from {self.converted_files.name})')
         self.identification_warnings = self.create_view("_IdentificationWarnings", self.files, self.files.model,
                                                         f'"{self.files.name}".warning IS NOT null')
