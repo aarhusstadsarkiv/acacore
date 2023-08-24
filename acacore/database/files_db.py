@@ -13,6 +13,7 @@ from typing import Type
 from typing import TypeVar
 from typing import Union
 from typing import overload
+from uuid import UUID
 
 from pydantic.main import BaseModel
 
@@ -30,6 +31,18 @@ _sql_schema_types: dict[str, str] = {
     "null": "text",
 }
 
+_sql_schema_type_converters: dict[str, tuple[Callable[[Optional[T]], V], Callable[[V], Optional[T]]]] = {
+    "path": (str, Path),
+    "date-time": (datetime.isoformat, datetime.fromisoformat),
+    "uuid4": (str, UUID),
+    "binary": (bytes, bytes),
+    "string": (str, str),
+    "integer": (float, float),
+    "number": (float, float),
+    "boolean": (bool, bool),
+    "null": (lambda x: x, lambda x: x),
+}
+
 
 def _schema_to_column(name: str, schema: dict) -> 'Column':
     schema_type: Optional[str] = schema.get("type", None)
@@ -42,28 +55,16 @@ def _schema_to_column(name: str, schema: dict) -> 'Column':
 
     if schema_type:
         sql_type = _sql_schema_types.get(schema_type, None)
-        type_format: Optional[str] = schema.get("format", None)
+        type_name: str = schema.get("format", schema_type)
 
-        if type_format == "path":
-            to_entry, from_entry = str, Path
-        elif type_format == "date-time":
-            to_entry, from_entry = datetime.isoformat, datetime.fromisoformat
-        elif type_format == "binary":
-            to_entry, from_entry = bytes, bytes
-        elif schema_type == "string":
-            to_entry, from_entry = str, str
-        elif schema_type == "integer":
-            to_entry, from_entry = float, float
-        elif schema_type == "number":
-            to_entry, from_entry = float, float
-        elif schema_type == "boolean":
-            to_entry, from_entry = bool, bool
-        elif schema_type == "null":
-            to_entry, from_entry = lambda x: x, lambda x: x
+        if type_name in _sql_schema_type_converters:
+            to_entry, from_entry = _sql_schema_type_converters[type_name]
         else:
             raise TypeError(f"Cannot recognize type from schema {schema!r}")
     elif schema_any_of:
-        if len(schema_any_of) > 2:
+        if schema_any_of[-1].get("type", None) != "null" and len(schema_any_of) > 1:
+            raise TypeError(f"Cannot recognize type from schema {schema!r}")
+        elif len(schema_any_of) > 2:
             raise TypeError(f"Cannot recognize type from schema {schema!r}")
 
         return _schema_to_column(name, {**schema_any_of[0], **schema})
