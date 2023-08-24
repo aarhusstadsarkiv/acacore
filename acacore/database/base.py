@@ -18,7 +18,6 @@ from pydantic.main import BaseModel
 from .column import Column
 from .column import SelectColumn
 from .column import model_to_columns
-from ..utils.functions import or_none
 
 T = TypeVar("T")
 R = TypeVar("R")
@@ -185,16 +184,16 @@ class ModelCursor(Cursor, Generic[M]):
 
 # noinspection SqlNoDataSourceInspection
 class Table:
-    def __init__(self, connection: 'FileDB', name: str, columns: list[Column]):
+    def __init__(self, connection: 'FileDBBase', name: str, columns: list[Column]):
         """
         A class that holds information about a table.
 
         Args:
-            connection: A FileDB object connected to the database the table belongs to.
+            connection: A FileDBBase object connected to the database the table belongs to.
             name: The name of the table.
             columns: The columns of the table.
         """
-        self.connection: 'FileDB' = connection
+        self.connection: 'FileDBBase' = connection
         self.name: str = name
         self.columns: list[Column] = columns
 
@@ -323,12 +322,12 @@ class Table:
 
 
 class ModelTable(Table, Generic[M]):
-    def __init__(self, connection: 'FileDB', name: str, model: Type[M]):
+    def __init__(self, connection: 'FileDBBase', name: str, model: Type[M]):
         """
         A class that holds information about a table using a model.
 
         Args:
-            connection: A FileDB object connected to the database the table belongs to.
+            connection: A FileDBBase object connected to the database the table belongs to.
             name: The name of the table.
             model: The model representing the table.
         """
@@ -376,7 +375,7 @@ class ModelTable(Table, Generic[M]):
 
 # noinspection SqlNoDataSourceInspection
 class View(Table):
-    def __init__(self, connection: 'FileDB', name: str, on: Union[Table, str],
+    def __init__(self, connection: 'FileDBBase', name: str, on: Union[Table, str],
                  columns: list[Union[Column, SelectColumn]], where: Optional[str] = None,
                  group_by: Optional[list[Union[Column, SelectColumn]]] = None,
                  order_by: Optional[list[tuple[Union[str, Column], str]]] = None, limit: Optional[int] = None):
@@ -384,7 +383,7 @@ class View(Table):
         A subclass of Table to handle views.
 
         Args:
-            connection: A FileDB object connected to the database the view belongs to.
+            connection: A FileDBBase object connected to the database the view belongs to.
             name: The name of the table.
             on: The table the view is based on.
             columns: The columns of the view.
@@ -491,7 +490,7 @@ class View(Table):
 
 
 class ModelView(View, Generic[M]):
-    def __init__(self, connection: 'FileDB', name: str, on: Union[Table, str], model: Type[M],
+    def __init__(self, connection: 'FileDBBase', name: str, on: Union[Table, str], model: Type[M],
                  columns: list[Union[Column, SelectColumn]] = None, where: Optional[str] = None,
                  group_by: Optional[list[Union[Column, SelectColumn]]] = None,
                  order_by: Optional[list[tuple[Union[str, Column], str]]] = None, limit: Optional[int] = None):
@@ -499,7 +498,7 @@ class ModelView(View, Generic[M]):
        A subclass of Table to handle views with models.
 
        Args:
-           connection: A FileDB object connected to the database the view belongs to.
+           connection: A FileDBBase object connected to the database the view belongs to.
            name: The name of the table.
            on: The table the view is based on.
            model: A BaseModel subclass.
@@ -548,10 +547,6 @@ class FileDBBase(Connection):
                 to avoid parsing overhead.
             uri: If set to True, database is interpreted as a URI with a file path and an optional query string.
         """
-        from ..models.file import File, ConvertedFile
-        from ..models.identification import SignatureCount
-        from ..models.metadata import Metadata
-
         super().__init__(database, timeout, detect_types, isolation_level, check_same_thread, factory,
                          cached_statements, uri)
 
