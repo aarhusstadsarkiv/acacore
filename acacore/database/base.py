@@ -198,7 +198,7 @@ class Table:
         self.columns: list[Column] = columns
 
     def __repr__(self):
-        return f"{self.__class__.__name__}({self.name})"
+        return f'{self.__class__.__name__}("{self.name}")'
 
     def __len__(self) -> int:
         return self.connection.execute(f"select count(*) from {self.name}").fetchone()[0]
@@ -334,6 +334,9 @@ class ModelTable(Table, Generic[M]):
         super().__init__(connection, name, model_to_columns(model))
         self.model: Type[M] = model
 
+    def __repr__(self):
+        return f'{self.__class__.__name__}[{self.model.__name__}]("{self.name}")'
+
     def __iter__(self) -> Generator[M, None, None]:
         return self.select().fetchall()
 
@@ -402,7 +405,7 @@ class View(Table):
         self.limit: Optional[int] = limit
 
     def __repr__(self):
-        return f"{self.__class__.__name__}({self.name}, on={self.on!r})"
+        return f'{self.__class__.__name__}("{self.name}", on={self.on!r})'
 
     def create_statement(self, exist_ok: bool = True) -> str:
         """
@@ -511,6 +514,9 @@ class ModelView(View, Generic[M]):
        """
         super().__init__(connection, name, on, columns or model_to_columns(model), where, group_by, order_by, limit)
         self.model: Type[M] = model
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}[{self.model.__name__}]("{self.name}", on={self.on!r})'
 
     def select(self, model: Type[M] = None,
                where: Optional[str] = None,
