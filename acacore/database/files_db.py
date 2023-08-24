@@ -436,6 +436,9 @@ class Table:
 
         return " ".join(elements)
 
+    def create(self, exist_ok: bool = True):
+        self.connection.execute(self.create_statement(exist_ok))
+
     def select(self, columns: Optional[list[Union['Column', 'SelectColumn']]] = None,
                where: Optional[str] = None,
                order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
@@ -788,12 +791,12 @@ class FileDB(Connection):
         """
         Create the default tables and views.
         """
-        self.execute(self.files.create_statement(True))
-        self.execute(self.metadata.create_statement(True))
-        self.execute(self.converted_files.create_statement(True))
-        self.execute(self.not_converted.create_statement(True))
-        self.execute(self.identification_warnings.create_statement(True))
-        self.execute(self.signature_count.create_statement(True))
+        self.files.create(True)
+        self.metadata.create(True)
+        self.converted_files.create(True)
+        self.not_converted.create(True)
+        self.identification_warnings.create(True)
+        self.signature_count.create(True)
         self.commit()
 
     @overload
