@@ -30,9 +30,7 @@ class File(ACABase):
     warning: Optional[str]
 
     def get_absolute_path(self, root: Optional[Path] = None) -> Path:
-        return (
-            root.joinpath(self.relative_path) if root else self.relative_path.resolve()
-        )
+        return root.joinpath(self.relative_path) if root else self.relative_path.resolve()
 
     def read_text(self) -> str:
         """Expose read text functionality from pathlib.
