@@ -1,0 +1,8 @@
+name: Linting & Test
+
+on:
+    push
+
+jobs:
+    call-linting-from-utils:
+        uses: aarhusstadsarkiv/acautils/.github/workflows/linting_ruff-mypy.yml@main
