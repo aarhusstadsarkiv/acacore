@@ -1,6 +1,6 @@
 from os import PathLike
 from sqlite3 import Connection
-from typing import Optional, Type
+from typing import Optional, Type, Union
 
 from acacore.utils.functions import or_none
 
@@ -10,7 +10,7 @@ from .base import Column, FileDBBase, SelectColumn
 class FileDB(FileDBBase):
     def __init__(
         self,
-        database: str | bytes | PathLike[str] | PathLike[bytes],
+        database: Union[str, bytes, PathLike[str], PathLike[bytes]],
         *,
         timeout: float = 5.0,
         detect_types: int = 0,
