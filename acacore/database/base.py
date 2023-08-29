@@ -68,10 +68,7 @@ class Cursor:
     def fetchall(self, model: Type[M]) -> Generator[M, None, None]:
         ...
 
-    def fetchall(
-        self,
-        model: Optional[Type[M]] = None,
-    ) -> Generator[Union[dict[str, Any], M], None, None]:
+    def fetchall(self, model: Optional[Type[M]] = None) -> Generator[Union[dict[str, Any], M], None, None]:
         """
         Fetch all results from the cursor and return them as dicts, with the columns' names/aliases used as keys.
 
@@ -286,12 +283,7 @@ class Table:
 
         return Cursor(self.connection.execute(statement, parameters), columns, self)
 
-    def insert(
-        self,
-        entry: dict[str, Any],
-        exist_ok: bool = False,
-        replace: bool = False,
-    ):
+    def insert(self, entry: dict[str, Any], exist_ok: bool = False, replace: bool = False):
         """
         Insert a row in the table. Existing rows with matching keys can be ignored or replaced.
 
