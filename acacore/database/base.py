@@ -21,7 +21,7 @@ class Cursor:
         cursor: SQLiteCursor,
         columns: list[Union[Column, SelectColumn]],
         table: Optional["Table"] = None,
-    ) -> None:
+    ):
         """
         A wrapper class for an SQLite cursor that returns its results as dicts (or objects).
 
@@ -58,7 +58,11 @@ class Cursor:
         """
         vs: tuple = self.cursor.fetchone()
 
-        return tuple(c.from_entry(v) for c, v in zip(self.columns, vs, strict=True)) if vs else None
+        return (
+            tuple(c.from_entry(v) for c, v in zip(self.columns, vs, strict=True))
+            if vs
+            else None
+        )
 
     @overload
     def fetchall(self) -> Generator[dict[str, Any], None, None]:
@@ -69,8 +73,7 @@ class Cursor:
         ...
 
     def fetchall(
-        self,
-        model: Optional[Type[M]] = None,
+        self, model: Optional[Type[M]] = None
     ) -> Generator[Union[dict[str, Any], M], None, None]:
         """
         Fetch all results from the cursor and return them as dicts, with the columns' names/aliases used as keys.
@@ -81,7 +84,9 @@ class Cursor:
         Returns:
             Generator: A generator for converted dicts (or models).
         """
-        select_columns: list[SelectColumn] = [SelectColumn.from_column(c) for c in self.columns]
+        select_columns: list[SelectColumn] = [
+            SelectColumn.from_column(c) for c in self.columns
+        ]
 
         if model:
             return (
@@ -117,13 +122,17 @@ class Cursor:
         Returns:
             dict: A single dict (or model) if the cursor is not exhausted, otherwise None.
         """
-        select_columns: list[SelectColumn] = [SelectColumn.from_column(c) for c in self.columns]
+        select_columns: list[SelectColumn] = [
+            SelectColumn.from_column(c) for c in self.columns
+        ]
         vs: tuple = self.cursor.fetchone()
 
         if vs is None:
             return None
 
-        entry: dict[str, Any] = {c.name: c.from_entry(v) for c, v in zip(select_columns, vs, strict=True)}
+        entry: dict[str, Any] = {
+            c.name: c.from_entry(v) for c, v in zip(select_columns, vs, strict=True)
+        }
 
         return model.model_validate(entry) if model else entry
 
@@ -196,7 +205,9 @@ class Table:
         return f'{self.__class__.__name__}("{self.name}")'
 
     def __len__(self) -> int:
-        return self.connection.execute(f"select count(*) from {self.name}").fetchone()[0]
+        return self.connection.execute(f"select count(*) from {self.name}").fetchone()[
+            0
+        ]
 
     def __iter__(self) -> Generator[dict[str, Any], None, None]:
         return self.select().fetchall()
@@ -268,7 +279,9 @@ class Table:
 
         assert columns, "Columns cannot be empty"
 
-        select_columns: list[SelectColumn] = [SelectColumn.from_column(c) for c in columns]
+        select_columns: list[SelectColumn] = [
+            SelectColumn.from_column(c) for c in columns
+        ]
 
         select_names = [f"{c.name} as {c.alias}" if c.alias else c.name for c in select_columns]
 
@@ -287,10 +300,7 @@ class Table:
         return Cursor(self.connection.execute(statement, parameters), columns, self)
 
     def insert(
-        self,
-        entry: dict[str, Any],
-        exist_ok: bool = False,
-        replace: bool = False,
+        self, entry: dict[str, Any], exist_ok: bool = False, replace: bool = False
     ):
         """
         Insert a row in the table. Existing rows with matching keys can be ignored or replaced.

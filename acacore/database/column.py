@@ -70,7 +70,10 @@ def _schema_to_column(name: str, schema: dict) -> "Column":
 
 
 def model_to_columns(model: Type[BaseModel]) -> list["Column"]:
-    return [_schema_to_column(p, s) for p, s in model.model_json_schema()["properties"].items()]
+    return [
+        _schema_to_column(p, s)
+        for p, s in model.model_json_schema()["properties"].items()
+    ]
 
 
 class Column(Generic[T]):
