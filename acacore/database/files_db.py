@@ -1,6 +1,6 @@
 from os import PathLike
 from sqlite3 import Connection
-from typing import Optional
+from typing import Optional, Union
 from typing import Type
 
 from .base import Column
@@ -12,7 +12,7 @@ from ..utils.functions import or_none
 class FileDB(FileDBBase):
     def __init__(
         self,
-        database: str | bytes | PathLike[str] | PathLike[bytes],
+        database: Union[str, bytes, PathLike[str], PathLike[bytes]],
         *,
         timeout: float = 5.0,
         detect_types: int = 0,
