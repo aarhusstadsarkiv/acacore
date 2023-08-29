@@ -80,3 +80,6 @@ class FileDB(FileDBBase):
         self.identification_warnings.create(True)
         self.signature_count.create(True)
         self.commit()
+
+    def is_empty(self) -> bool:
+        return not self.files.select(limit=1).fetchone()
