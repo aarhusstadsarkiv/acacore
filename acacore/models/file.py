@@ -104,3 +104,4 @@ class ArchiveFile(Identification, File):
 class ConvertedFile(ACABase):
     file_id: int = Field(primary_key=True)
     uuid: UUID4 = Field(primary_key=True)
+    status: str
