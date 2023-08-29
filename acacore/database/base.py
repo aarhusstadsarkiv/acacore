@@ -26,8 +26,12 @@ V = Union[str, bytes, int, float, bool, datetime, None]
 
 
 class Cursor:
-    def __init__(self, cursor: SQLiteCursor, columns: list[Union[Column, SelectColumn]],
-                 table: Optional['Table'] = None):
+    def __init__(
+        self,
+        cursor: SQLiteCursor,
+        columns: list[Union[Column, SelectColumn]],
+        table: Optional["Table"] = None,
+    ):
         """
         A wrapper class for an SQLite cursor that returns its results as dicts (or objects).
 
@@ -67,7 +71,11 @@ class Cursor:
         """
         vs: tuple = self.cursor.fetchone()
 
-        return tuple(c.from_entry(v) for c, v in zip(self.columns, vs, strict=True)) if vs else None
+        return (
+            tuple(c.from_entry(v) for c, v in zip(self.columns, vs, strict=True))
+            if vs
+            else None
+        )
 
     @overload
     def fetchall(self) -> Generator[dict[str, Any], None, None]:
@@ -77,7 +85,9 @@ class Cursor:
     def fetchall(self, model: Type[M]) -> Generator[M, None, None]:
         ...
 
-    def fetchall(self, model: Optional[Type[M]] = None) -> Generator[Union[dict[str, Any], M], None, None]:
+    def fetchall(
+        self, model: Optional[Type[M]] = None
+    ) -> Generator[Union[dict[str, Any], M], None, None]:
         """
         Fetch all results from the cursor and return them as dicts, with the columns' names/aliases used as keys.
 
@@ -87,14 +97,18 @@ class Cursor:
         Returns:
             Generator: A generator for converted dicts (or models).
         """
-        select_columns: list[SelectColumn] = [SelectColumn.from_column(c) for c in self.columns]
+        select_columns: list[SelectColumn] = [
+            SelectColumn.from_column(c) for c in self.columns
+        ]
 
         if model:
             return (
-                model.model_validate({
-                    c.alias or c.name: v
-                    for c, v in zip(select_columns, vs, strict=True)
-                })
+                model.model_validate(
+                    {
+                        c.alias or c.name: v
+                        for c, v in zip(select_columns, vs, strict=True)
+                    }
+                )
                 for vs in self.cursor.fetchall()
             )
 
@@ -114,7 +128,9 @@ class Cursor:
     def fetchone(self, model: Type[M]) -> Optional[M]:
         ...
 
-    def fetchone(self, model: Optional[Type[M]] = None) -> Optional[Union[dict[str, Any], M]]:
+    def fetchone(
+        self, model: Optional[Type[M]] = None
+    ) -> Optional[Union[dict[str, Any], M]]:
         """
         Fetch one result from the cursor and return it as a dict, with the columns' names/aliases used as keys.
 
@@ -124,22 +140,25 @@ class Cursor:
         Returns:
             dict: A single dict (or model) if the cursor is not exhausted, otherwise None.
         """
-        select_columns: list[SelectColumn] = [SelectColumn.from_column(c) for c in self.columns]
+        select_columns: list[SelectColumn] = [
+            SelectColumn.from_column(c) for c in self.columns
+        ]
         vs: tuple = self.cursor.fetchone()
 
         if vs is None:
             return None
 
         entry: dict[str, Any] = {
-            c.name: c.from_entry(v)
-            for c, v in zip(select_columns, vs, strict=True)
+            c.name: c.from_entry(v) for c, v in zip(select_columns, vs, strict=True)
         }
 
         return model.model_validate(entry) if model else entry
 
 
 class ModelCursor(Cursor, Generic[M]):
-    def __init__(self, cursor: SQLiteCursor, model: Type[M], table: Optional['Table'] = None):
+    def __init__(
+        self, cursor: SQLiteCursor, model: Type[M], table: Optional["Table"] = None
+    ):
         """
         A wrapper class for an SQLite cursor that returns its results as model objects.
 
@@ -184,7 +203,7 @@ class ModelCursor(Cursor, Generic[M]):
 
 # noinspection SqlNoDataSourceInspection
 class Table:
-    def __init__(self, connection: 'FileDBBase', name: str, columns: list[Column]):
+    def __init__(self, connection: "FileDBBase", name: str, columns: list[Column]):
         """
         A class that holds information about a table.
 
@@ -193,7 +212,7 @@ class Table:
             name: The name of the table.
             columns: The columns of the table.
         """
-        self.connection: 'FileDBBase' = connection
+        self.connection: "FileDBBase" = connection
         self.name: str = name
         self.columns: list[Column] = columns
 
@@ -201,7 +220,9 @@ class Table:
         return f'{self.__class__.__name__}("{self.name}")'
 
     def __len__(self) -> int:
-        return self.connection.execute(f"select count(*) from {self.name}").fetchone()[0]
+        return self.connection.execute(f"select count(*) from {self.name}").fetchone()[
+            0
+        ]
 
     def __iter__(self) -> Generator[dict[str, Any], None, None]:
         return self.select().fetchall()
@@ -235,10 +256,14 @@ class Table:
 
         if self.columns:
             elements.append(
-                "(" +
-                ", ".join(c.create_statement() for c in self.columns) +
-                (f", primary key ({', '.join(c.name for c in keys)})" if (keys := self.keys) else "") +
-                ")"
+                "("
+                + ", ".join(c.create_statement() for c in self.columns)
+                + (
+                    f", primary key ({', '.join(c.name for c in keys)})"
+                    if (keys := self.keys)
+                    else ""
+                )
+                + ")"
             )
 
         return " ".join(elements)
@@ -246,11 +271,14 @@ class Table:
     def create(self, exist_ok: bool = True):
         self.connection.execute(self.create_statement(exist_ok))
 
-    def select(self, columns: Optional[list[Union[Column, SelectColumn]]] = None,
-               where: Optional[str] = None,
-               order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
-               limit: Optional[int] = None,
-               parameters: Optional[list[Any]] = None) -> Cursor:
+    def select(
+        self,
+        columns: Optional[list[Union[Column, SelectColumn]]] = None,
+        where: Optional[str] = None,
+        order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
+        limit: Optional[int] = None,
+        parameters: Optional[list[Any]] = None,
+    ) -> Cursor:
         """
         Select entries from the table.
 
@@ -270,10 +298,12 @@ class Table:
 
         assert columns, "Columns cannot be empty"
 
-        select_columns: list[SelectColumn] = [SelectColumn.from_column(c) for c in columns]
+        select_columns: list[SelectColumn] = [
+            SelectColumn.from_column(c) for c in columns
+        ]
 
         select_names = [
-            '{} as {}'.format(c.name, c.alias) if c.alias else c.name
+            "{} as {}".format(c.name, c.alias) if c.alias else c.name
             for c in select_columns
         ]
 
@@ -284,8 +314,7 @@ class Table:
 
         if order_by:
             order_statements = [
-                f"{c.name if isinstance(c, Column) else c} {s}"
-                for c, s in order_by
+                f"{c.name if isinstance(c, Column) else c} {s}" for c, s in order_by
             ]
             statement += f" ORDER BY {','.join(order_statements)}"
 
@@ -294,7 +323,9 @@ class Table:
 
         return Cursor(self.connection.execute(statement, parameters), columns, self)
 
-    def insert(self, entry: dict[str, Any], exist_ok: bool = False, replace: bool = False):
+    def insert(
+        self, entry: dict[str, Any], exist_ok: bool = False, replace: bool = False
+    ):
         """
         Insert a row in the table. Existing rows with matching keys can be ignored or replaced.
 
@@ -322,7 +353,7 @@ class Table:
 
 
 class ModelTable(Table, Generic[M]):
-    def __init__(self, connection: 'FileDBBase', name: str, model: Type[M]):
+    def __init__(self, connection: "FileDBBase", name: str, model: Type[M]):
         """
         A class that holds information about a table using a model.
 
@@ -340,11 +371,14 @@ class ModelTable(Table, Generic[M]):
     def __iter__(self) -> Generator[M, None, None]:
         return self.select().fetchall()
 
-    def select(self, model: Type[M] = None,
-               where: Optional[str] = None,
-               order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
-               limit: Optional[int] = None,
-               parameters: Optional[list[Any]] = None) -> ModelCursor[M]:
+    def select(
+        self,
+        model: Type[M] = None,
+        where: Optional[str] = None,
+        order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
+        limit: Optional[int] = None,
+        parameters: Optional[list[Any]] = None,
+    ) -> ModelCursor[M]:
         """
         Select entries from the table.
 
@@ -360,8 +394,17 @@ class ModelTable(Table, Generic[M]):
             Cursor: A Cursor object wrapping the SQLite cursor returned by the SELECT transaction.
         """
         return ModelCursor[M](
-            super().select(model_to_columns(model or self.model), where, order_by, limit, parameters).cursor,
-            model or self.model, self
+            super()
+            .select(
+                model_to_columns(model or self.model),
+                where,
+                order_by,
+                limit,
+                parameters,
+            )
+            .cursor,
+            model or self.model,
+            self,
         )
 
     def insert(self, entry: M, exist_ok: bool = False, replace: bool = False):
@@ -378,10 +421,17 @@ class ModelTable(Table, Generic[M]):
 
 # noinspection SqlNoDataSourceInspection
 class View(Table):
-    def __init__(self, connection: 'FileDBBase', name: str, on: Union[Table, str],
-                 columns: list[Union[Column, SelectColumn]], where: Optional[str] = None,
-                 group_by: Optional[list[Union[Column, SelectColumn]]] = None,
-                 order_by: Optional[list[tuple[Union[str, Column], str]]] = None, limit: Optional[int] = None):
+    def __init__(
+        self,
+        connection: "FileDBBase",
+        name: str,
+        on: Union[Table, str],
+        columns: list[Union[Column, SelectColumn]],
+        where: Optional[str] = None,
+        group_by: Optional[list[Union[Column, SelectColumn]]] = None,
+        order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
+        limit: Optional[int] = None,
+    ):
         """
         A subclass of Table to handle views.
 
@@ -427,7 +477,7 @@ class View(Table):
         elements.append("AS")
 
         select_names = [
-            f'{c.name} as {c.alias}' if c.alias else c.name
+            f"{c.name} as {c.alias}" if c.alias else c.name
             for c in [SelectColumn.from_column(c) for c in self.columns]
         ]
 
@@ -441,10 +491,14 @@ class View(Table):
 
         if self.group_by:
             elements.append("GROUP BY")
-            elements.append(",".join([
-                c.alias or c.name
-                for c in [SelectColumn.from_column(c) for c in self.group_by]
-            ]))
+            elements.append(
+                ",".join(
+                    [
+                        c.alias or c.name
+                        for c in [SelectColumn.from_column(c) for c in self.group_by]
+                    ]
+                )
+            )
 
         if self.order_by:
             order_statements = [
@@ -458,11 +512,14 @@ class View(Table):
 
         return " ".join(elements)
 
-    def select(self, columns: Optional[list[Union[Column, SelectColumn]]] = None,
-               where: Optional[str] = None,
-               order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
-               limit: Optional[int] = None,
-               parameters: Optional[list[Any]] = None) -> Cursor:
+    def select(
+        self,
+        columns: Optional[list[Union[Column, SelectColumn]]] = None,
+        where: Optional[str] = None,
+        order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
+        limit: Optional[int] = None,
+        parameters: Optional[list[Any]] = None,
+    ) -> Cursor:
         """
         Select entries from the view.
 
@@ -478,8 +535,17 @@ class View(Table):
             Cursor: A Cursor object wrapping the SQLite cursor returned by the SELECT transaction.
         """
         columns = columns or [
-            Column(c.alias or c.name, c.sql_type, c.to_entry, c.from_entry, c.unique, c.primary_key, c.not_null,
-                   c.check, c.default)
+            Column(
+                c.alias or c.name,
+                c.sql_type,
+                c.to_entry,
+                c.from_entry,
+                c.unique,
+                c.primary_key,
+                c.not_null,
+                c.check,
+                c.default,
+            )
             for c in map(SelectColumn.from_column, self.columns)
         ]
         return super().select(columns, where, order_by, limit, parameters)
@@ -493,47 +559,84 @@ class View(Table):
 
 
 class ModelView(View, Generic[M]):
-    def __init__(self, connection: 'FileDBBase', name: str, on: Union[Table, str], model: Type[M],
-                 columns: list[Union[Column, SelectColumn]] = None, where: Optional[str] = None,
-                 group_by: Optional[list[Union[Column, SelectColumn]]] = None,
-                 order_by: Optional[list[tuple[Union[str, Column], str]]] = None, limit: Optional[int] = None):
+    def __init__(
+        self,
+        connection: "FileDBBase",
+        name: str,
+        on: Union[Table, str],
+        model: Type[M],
+        columns: list[Union[Column, SelectColumn]] = None,
+        where: Optional[str] = None,
+        group_by: Optional[list[Union[Column, SelectColumn]]] = None,
+        order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
+        limit: Optional[int] = None,
+    ):
         """
-       A subclass of Table to handle views with models.
+        A subclass of Table to handle views with models.
 
-       Args:
-           connection: A FileDBBase object connected to the database the view belongs to.
-           name: The name of the table.
-           on: The table the view is based on.
-           model: A BaseModel subclass.
-           columns: Optionally, the columns of the view if the model is too limited.
-           where: A WHERE expression for the view.
-           group_by: A GROUP BY expression for the view.
-           order_by: A list tuples containing one column (either as Column or string)
-               and a sorting direction ("ASC", or "DESC").
-           limit: The number of rows to limit the results to.
-       """
-        super().__init__(connection, name, on, columns or model_to_columns(model), where, group_by, order_by, limit)
+        Args:
+            connection: A FileDBBase object connected to the database the view belongs to.
+            name: The name of the table.
+            on: The table the view is based on.
+            model: A BaseModel subclass.
+            columns: Optionally, the columns of the view if the model is too limited.
+            where: A WHERE expression for the view.
+            group_by: A GROUP BY expression for the view.
+            order_by: A list tuples containing one column (either as Column or string)
+                and a sorting direction ("ASC", or "DESC").
+            limit: The number of rows to limit the results to.
+        """
+        super().__init__(
+            connection,
+            name,
+            on,
+            columns or model_to_columns(model),
+            where,
+            group_by,
+            order_by,
+            limit,
+        )
         self.model: Type[M] = model
 
     def __repr__(self):
         return f'{self.__class__.__name__}[{self.model.__name__}]("{self.name}", on={self.on!r})'
 
-    def select(self, model: Type[M] = None,
-               where: Optional[str] = None,
-               order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
-               limit: Optional[int] = None,
-               parameters: Optional[list[Any]] = None) -> ModelCursor[M]:
+    def select(
+        self,
+        model: Type[M] = None,
+        where: Optional[str] = None,
+        order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
+        limit: Optional[int] = None,
+        parameters: Optional[list[Any]] = None,
+    ) -> ModelCursor[M]:
         return ModelCursor[M](
-            super().select(model_to_columns(model or self.model), where, order_by, limit, parameters).cursor,
-            model or self.model, self
+            super()
+            .select(
+                model_to_columns(model or self.model),
+                where,
+                order_by,
+                limit,
+                parameters,
+            )
+            .cursor,
+            model or self.model,
+            self,
         )
 
 
 class FileDBBase(Connection):
-    def __init__(self, database: str | bytes | PathLike[str] | PathLike[bytes], *,
-                 timeout: float = 5.0,
-                 detect_types: int = 0, isolation_level: Optional[str] = 'DEFERRED', check_same_thread: bool = True,
-                 factory: Optional[Type[Connection]] = Connection, cached_statements: int = 100, uri: bool = False):
+    def __init__(
+        self,
+        database: Union[str, bytes, PathLike[str], PathLike[bytes]],
+        *,
+        timeout: float = 5.0,
+        detect_types: int = 0,
+        isolation_level: Optional[str] = "DEFERRED",
+        check_same_thread: bool = True,
+        factory: Optional[Type[Connection]] = Connection,
+        cached_statements: int = 100,
+        uri: bool = False,
+    ):
         """
         A wrapper class for an SQLite connection.
 
@@ -553,8 +656,16 @@ class FileDBBase(Connection):
                 to avoid parsing overhead.
             uri: If set to True, database is interpreted as a URI with a file path and an optional query string.
         """
-        super().__init__(database, timeout, detect_types, isolation_level, check_same_thread, factory,
-                         cached_statements, uri)
+        super().__init__(
+            database,
+            timeout,
+            detect_types,
+            isolation_level,
+            check_same_thread,
+            factory,
+            cached_statements,
+            uri,
+        )
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.path})"
@@ -575,7 +686,9 @@ class FileDBBase(Connection):
     def create_table(self, name: str, columns: list[Column]) -> Table:
         ...
 
-    def create_table(self, name: str, columns: Union[Type[M], list[Column]]) -> Union[Table, ModelTable[M]]:
+    def create_table(
+        self, name: str, columns: Union[Type[M], list[Column]]
+    ) -> Union[Table, ModelTable[M]]:
         """
         Create a table in the database.
         When the `columns` argument is a subclass of BadeModel, a ModelTable object is returned.
@@ -590,34 +703,45 @@ class FileDBBase(Connection):
             return Table(self, name, columns)
 
     @overload
-    def create_view(self, name: str, on: Union[Table, str],
-                    columns: Type[M],
-                    where: Optional[str] = None,
-                    group_by: Optional[list[Union[Column, SelectColumn]]] = None,
-                    order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
-                    limit: Optional[int] = None,
-                    *, select_columns: Optional[list[Union[Column, SelectColumn]]] = None
-                    ) -> ModelView[M]:
+    def create_view(
+        self,
+        name: str,
+        on: Union[Table, str],
+        columns: Type[M],
+        where: Optional[str] = None,
+        group_by: Optional[list[Union[Column, SelectColumn]]] = None,
+        order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
+        limit: Optional[int] = None,
+        *,
+        select_columns: Optional[list[Union[Column, SelectColumn]]] = None,
+    ) -> ModelView[M]:
         ...
 
     @overload
-    def create_view(self, name: str, on: Union[Table, str],
-                    columns: list[Union[Column, SelectColumn]],
-                    where: Optional[str] = None,
-                    group_by: Optional[list[Union[Column, SelectColumn]]] = None,
-                    order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
-                    limit: Optional[int] = None
-                    ) -> View:
+    def create_view(
+        self,
+        name: str,
+        on: Union[Table, str],
+        columns: list[Union[Column, SelectColumn]],
+        where: Optional[str] = None,
+        group_by: Optional[list[Union[Column, SelectColumn]]] = None,
+        order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
+        limit: Optional[int] = None,
+    ) -> View:
         ...
 
-    def create_view(self, name: str, on: Union[Table, str],
-                    columns: Union[list[Union[Column, SelectColumn]], Type[M]],
-                    where: Optional[str] = None,
-                    group_by: Optional[list[Union[Column, SelectColumn]]] = None,
-                    order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
-                    limit: Optional[int] = None,
-                    *, select_columns: Optional[list[Union[Column, SelectColumn]]] = None
-                    ) -> Union[View, ModelView[M]]:
+    def create_view(
+        self,
+        name: str,
+        on: Union[Table, str],
+        columns: Union[list[Union[Column, SelectColumn]], Type[M]],
+        where: Optional[str] = None,
+        group_by: Optional[list[Union[Column, SelectColumn]]] = None,
+        order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
+        limit: Optional[int] = None,
+        *,
+        select_columns: Optional[list[Union[Column, SelectColumn]]] = None,
+    ) -> Union[View, ModelView[M]]:
         """
         Create a view in the database.
         When the `columns` argument is a subclass of BadeModel, a ModelView object is returned.
@@ -634,6 +758,16 @@ class FileDBBase(Connection):
             select_columns: Optionally, the columns of the view if a model is given and is too limited.
         """
         if issubclass(columns, BaseModel):
-            return ModelView[M](self, name, on, columns, select_columns, where, group_by, order_by, limit)
+            return ModelView[M](
+                self,
+                name,
+                on,
+                columns,
+                select_columns,
+                where,
+                group_by,
+                order_by,
+                limit,
+            )
         else:
             return View(self, name, on, columns, where, group_by, order_by, limit)
