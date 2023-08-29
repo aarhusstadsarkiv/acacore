@@ -530,7 +530,7 @@ class ModelView(View, Generic[M]):
 
 
 class FileDBBase(Connection):
-    def __init__(self, database: str | bytes | PathLike[str] | PathLike[bytes], *,
+    def __init__(self, database: Union[str, bytes, PathLike[str], PathLike[bytes]], *,
                  timeout: float = 5.0,
                  detect_types: int = 0, isolation_level: Optional[str] = 'DEFERRED', check_same_thread: bool = True,
                  factory: Optional[Type[Connection]] = Connection, cached_statements: int = 100, uri: bool = False):
