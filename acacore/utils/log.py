@@ -19,9 +19,7 @@ def setup_logger(log_name: str, log_path: Path) -> Logger:
         Path.mkdir(log_path.parent, parents=True, exist_ok=True)
 
     log: Logger = getLogger(log_name)
-    file_handler: FileHandler = FileHandler(
-        log_path, "a", encoding="utf-8"
-    )
+    file_handler: FileHandler = FileHandler(log_path, "a", encoding="utf-8")
     # noinspection SpellCheckingInspection
     log_fmt: Formatter = Formatter(
         fmt="%(asctime)s %(levelname)s: %(message)s",
