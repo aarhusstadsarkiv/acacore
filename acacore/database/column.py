@@ -1,11 +1,6 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Callable
-from typing import Generic
-from typing import Optional
-from typing import Type
-from typing import TypeVar
-from typing import Union
+from typing import Callable, Generic, Optional, Type, TypeVar, Union
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -23,7 +18,8 @@ _sql_schema_types: dict[str, str] = {
 }
 
 _sql_schema_type_converters: dict[
-    str, tuple[Callable[[Optional[T]], V], Callable[[V], Optional[T]]]
+    str,
+    tuple[Callable[[Optional[T]], V], Callable[[V], Optional[T]]],
 ] = {
     "path": (str, Path),
     "date-time": (datetime.isoformat, datetime.fromisoformat),
@@ -55,11 +51,8 @@ def _schema_to_column(name: str, schema: dict) -> "Column":
         else:
             raise TypeError(f"Cannot recognize type from schema {schema!r}")
     elif schema_any_of:
-        if schema_any_of[-1].get("type", None) != "null" and len(schema_any_of) > 1:
+        if (schema_any_of[-1].get("type", None) != "null" and len(schema_any_of) > 1) or len(schema_any_of) > 2:
             raise TypeError(f"Cannot recognize type from schema {schema!r}")
-        elif len(schema_any_of) > 2:
-            raise TypeError(f"Cannot recognize type from schema {schema!r}")
-
         return _schema_to_column(name, {**schema_any_of[0], **schema})
     else:
         raise TypeError(f"Cannot recognize type from schema {schema!r}")
@@ -77,10 +70,7 @@ def _schema_to_column(name: str, schema: dict) -> "Column":
 
 
 def model_to_columns(model: Type[BaseModel]) -> list["Column"]:
-    return [
-        _schema_to_column(p, s)
-        for p, s in model.model_json_schema()["properties"].items()
-    ]
+    return [_schema_to_column(p, s) for p, s in model.model_json_schema()["properties"].items()]
 
 
 class Column(Generic[T]):
@@ -95,7 +85,7 @@ class Column(Generic[T]):
         not_null: bool = False,
         check: Optional[str] = None,
         default: Optional[T] = ...,
-    ):
+    ) -> None:
         """
         A class that stores information regarding a table column.
 
@@ -124,7 +114,7 @@ class Column(Generic[T]):
         self._check: str = check or ""
         self.default: Union[Optional[T], Ellipsis] = default
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"{self.__class__.__name__}("
             f"{self.name}"
@@ -132,7 +122,7 @@ class Column(Generic[T]):
             f", unique={self.unique}"
             f", primary_key={self.primary_key}"
             f", not_null={self.not_null}"
-            f"{f', default={repr(self.default)}' if self.default is not Ellipsis else ''}"
+            f"{f', default={self.default!r}' if self.default is not Ellipsis else ''}"
             f")"
         )
 
@@ -165,7 +155,7 @@ class Column(Generic[T]):
             elements.append(
                 "default '{}'".format(default_value.replace("'", "\\'"))
                 if isinstance(default_value, str)
-                else f"default {'null' if default_value is None else default_value}"
+                else f"default {'null' if default_value is None else default_value}",
             )
         if self.check:
             elements.append(f"check ({self.check})")
@@ -175,8 +165,11 @@ class Column(Generic[T]):
 
 class SelectColumn(Column):
     def __init__(
-        self, name: str, from_entry: Callable[[V], T], alias: Optional[str] = None
-    ):
+        self,
+        name: str,
+        from_entry: Callable[[V], T],
+        alias: Optional[str] = None,
+    ) -> None:
         """
         A subclass of Column for SELECT expressions that need complex statements and/or an alias.
 

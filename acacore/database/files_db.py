@@ -1,18 +1,16 @@
 from os import PathLike
 from sqlite3 import Connection
-from typing import Optional, Union
-from typing import Type
+from typing import Optional, Type
 
-from .base import Column
-from .base import FileDBBase
-from .base import SelectColumn
-from ..utils.functions import or_none
+from acacore.utils.functions import or_none
+
+from .base import Column, FileDBBase, SelectColumn
 
 
 class FileDB(FileDBBase):
     def __init__(
         self,
-        database: Union[str, bytes, PathLike[str], PathLike[bytes]],
+        database: str | bytes | PathLike[str] | PathLike[bytes],
         *,
         timeout: float = 5.0,
         detect_types: int = 0,
@@ -21,7 +19,7 @@ class FileDB(FileDBBase):
         factory: Optional[Type[Connection]] = Connection,
         cached_statements: int = 100,
         uri: bool = False,
-    ):
+    ) -> None:
         """
         A class that handles the SQLite database used by AArhus City Archives to process data archives.
 
@@ -41,9 +39,9 @@ class FileDB(FileDBBase):
                 to avoid parsing overhead.
             uri: If set to True, database is interpreted as a URI with a file path and an optional query string.
         """
-        from ..models.file import File, ConvertedFile
-        from ..models.identification import SignatureCount
-        from ..models.metadata import Metadata
+        from acacore.models.file import ConvertedFile, File
+        from acacore.models.identification import SignatureCount
+        from acacore.models.metadata import Metadata
 
         super().__init__(
             database,
@@ -64,8 +62,7 @@ class FileDB(FileDBBase):
             "_NotConverted",
             self.files,
             self.files.model,
-            f'"{self.files.name}".uuid NOT IN '
-            f"(SELECT uuid from {self.converted_files.name})",
+            f'"{self.files.name}".uuid NOT IN ' f"(SELECT uuid from {self.converted_files.name})",
         )
         self.identification_warnings = self.create_view(
             "_IdentificationWarnings",
@@ -86,7 +83,13 @@ class FileDB(FileDBBase):
             ],
             select_columns=[
                 Column(
-                    "puid", "varchar", or_none(str), or_none(str), False, False, False
+                    "puid",
+                    "varchar",
+                    or_none(str),
+                    or_none(str),
+                    False,
+                    False,
+                    False,
                 ),
                 Column(
                     "signature",
@@ -110,9 +113,7 @@ class FileDB(FileDBBase):
         )
 
     def init(self):
-        """
-        Create the default tables and views.
-        """
+        """Create the default tables and views."""
         self.files.create(True)
         self.metadata.create(True)
         self.converted_files.create(True)

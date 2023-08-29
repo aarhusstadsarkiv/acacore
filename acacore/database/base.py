@@ -1,23 +1,13 @@
 from datetime import datetime
 from os import PathLike
 from pathlib import Path
-from sqlite3 import Connection
+from sqlite3 import Connection, OperationalError
 from sqlite3 import Cursor as SQLiteCursor
-from sqlite3 import OperationalError
-from typing import Any
-from typing import Generator
-from typing import Generic
-from typing import Optional
-from typing import Type
-from typing import TypeVar
-from typing import Union
-from typing import overload
+from typing import Any, Generator, Generic, Optional, Type, TypeVar, Union, overload
 
 from pydantic.main import BaseModel
 
-from .column import Column
-from .column import SelectColumn
-from .column import model_to_columns
+from .column import Column, SelectColumn, model_to_columns
 
 T = TypeVar("T")
 R = TypeVar("R")
@@ -31,7 +21,7 @@ class Cursor:
         cursor: SQLiteCursor,
         columns: list[Union[Column, SelectColumn]],
         table: Optional["Table"] = None,
-    ):
+    ) -> None:
         """
         A wrapper class for an SQLite cursor that returns its results as dicts (or objects).
 
@@ -57,10 +47,7 @@ class Cursor:
         Returns:
             Generator: A generator for the tuples in the cursor.
         """
-        return (
-            tuple(c.from_entry(v) for c, v in zip(self.columns, vs, strict=True))
-            for vs in self.cursor.fetchall()
-        )
+        return (tuple(c.from_entry(v) for c, v in zip(self.columns, vs, strict=True)) for vs in self.cursor.fetchall())
 
     def fetchonetuple(self) -> Optional[tuple]:
         """
@@ -71,11 +58,7 @@ class Cursor:
         """
         vs: tuple = self.cursor.fetchone()
 
-        return (
-            tuple(c.from_entry(v) for c, v in zip(self.columns, vs, strict=True))
-            if vs
-            else None
-        )
+        return tuple(c.from_entry(v) for c, v in zip(self.columns, vs, strict=True)) if vs else None
 
     @overload
     def fetchall(self) -> Generator[dict[str, Any], None, None]:
@@ -85,9 +68,7 @@ class Cursor:
     def fetchall(self, model: Type[M]) -> Generator[M, None, None]:
         ...
 
-    def fetchall(
-        self, model: Optional[Type[M]] = None
-    ) -> Generator[Union[dict[str, Any], M], None, None]:
+    def fetchall(self, model: Optional[Type[M]] = None) -> Generator[Union[dict[str, Any], M], None, None]:
         """
         Fetch all results from the cursor and return them as dicts, with the columns' names/aliases used as keys.
 
@@ -97,26 +78,18 @@ class Cursor:
         Returns:
             Generator: A generator for converted dicts (or models).
         """
-        select_columns: list[SelectColumn] = [
-            SelectColumn.from_column(c) for c in self.columns
-        ]
+        select_columns: list[SelectColumn] = [SelectColumn.from_column(c) for c in self.columns]
 
         if model:
             return (
                 model.model_validate(
-                    {
-                        c.alias or c.name: v
-                        for c, v in zip(select_columns, vs, strict=True)
-                    }
+                    {c.alias or c.name: v for c, v in zip(select_columns, vs, strict=True)},
                 )
                 for vs in self.cursor.fetchall()
             )
 
         return (
-            {
-                c.alias or c.name: c.from_entry(v)
-                for c, v in zip(select_columns, vs, strict=True)
-            }
+            {c.alias or c.name: c.from_entry(v) for c, v in zip(select_columns, vs, strict=True)}
             for vs in self.cursor.fetchall()
         )
 
@@ -129,7 +102,8 @@ class Cursor:
         ...
 
     def fetchone(
-        self, model: Optional[Type[M]] = None
+        self,
+        model: Optional[Type[M]] = None,
     ) -> Optional[Union[dict[str, Any], M]]:
         """
         Fetch one result from the cursor and return it as a dict, with the columns' names/aliases used as keys.
@@ -140,25 +114,24 @@ class Cursor:
         Returns:
             dict: A single dict (or model) if the cursor is not exhausted, otherwise None.
         """
-        select_columns: list[SelectColumn] = [
-            SelectColumn.from_column(c) for c in self.columns
-        ]
+        select_columns: list[SelectColumn] = [SelectColumn.from_column(c) for c in self.columns]
         vs: tuple = self.cursor.fetchone()
 
         if vs is None:
             return None
 
-        entry: dict[str, Any] = {
-            c.name: c.from_entry(v) for c, v in zip(select_columns, vs, strict=True)
-        }
+        entry: dict[str, Any] = {c.name: c.from_entry(v) for c, v in zip(select_columns, vs, strict=True)}
 
         return model.model_validate(entry) if model else entry
 
 
 class ModelCursor(Cursor, Generic[M]):
     def __init__(
-        self, cursor: SQLiteCursor, model: Type[M], table: Optional["Table"] = None
-    ):
+        self,
+        cursor: SQLiteCursor,
+        model: Type[M],
+        table: Optional["Table"] = None,
+    ) -> None:
         """
         A wrapper class for an SQLite cursor that returns its results as model objects.
 
@@ -203,7 +176,7 @@ class ModelCursor(Cursor, Generic[M]):
 
 # noinspection SqlNoDataSourceInspection
 class Table:
-    def __init__(self, connection: "FileDBBase", name: str, columns: list[Column]):
+    def __init__(self, connection: "FileDBBase", name: str, columns: list[Column]) -> None:
         """
         A class that holds information about a table.
 
@@ -216,13 +189,11 @@ class Table:
         self.name: str = name
         self.columns: list[Column] = columns
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'{self.__class__.__name__}("{self.name}")'
 
     def __len__(self) -> int:
-        return self.connection.execute(f"select count(*) from {self.name}").fetchone()[
-            0
-        ]
+        return self.connection.execute(f"select count(*) from {self.name}").fetchone()[0]
 
     def __iter__(self) -> Generator[dict[str, Any], None, None]:
         return self.select().fetchall()
@@ -258,12 +229,8 @@ class Table:
             elements.append(
                 "("
                 + ", ".join(c.create_statement() for c in self.columns)
-                + (
-                    f", primary key ({', '.join(c.name for c in keys)})"
-                    if (keys := self.keys)
-                    else ""
-                )
-                + ")"
+                + (f", primary key ({', '.join(c.name for c in keys)})" if (keys := self.keys) else "")
+                + ")",
             )
 
         return " ".join(elements)
@@ -298,14 +265,9 @@ class Table:
 
         assert columns, "Columns cannot be empty"
 
-        select_columns: list[SelectColumn] = [
-            SelectColumn.from_column(c) for c in columns
-        ]
+        select_columns: list[SelectColumn] = [SelectColumn.from_column(c) for c in columns]
 
-        select_names = [
-            "{} as {}".format(c.name, c.alias) if c.alias else c.name
-            for c in select_columns
-        ]
+        select_names = [f"{c.name} as {c.alias}" if c.alias else c.name for c in select_columns]
 
         statement: str = f"SELECT {','.join(select_names)} FROM {self.name}"
 
@@ -313,9 +275,7 @@ class Table:
             statement += f" WHERE {where}"
 
         if order_by:
-            order_statements = [
-                f"{c.name if isinstance(c, Column) else c} {s}" for c, s in order_by
-            ]
+            order_statements = [f"{c.name if isinstance(c, Column) else c} {s}" for c, s in order_by]
             statement += f" ORDER BY {','.join(order_statements)}"
 
         if limit is not None:
@@ -323,9 +283,7 @@ class Table:
 
         return Cursor(self.connection.execute(statement, parameters), columns, self)
 
-    def insert(
-        self, entry: dict[str, Any], exist_ok: bool = False, replace: bool = False
-    ):
+    def insert(self, entry: dict[str, Any], exist_ok: bool = False, replace: bool = False):
         """
         Insert a row in the table. Existing rows with matching keys can be ignored or replaced.
 
@@ -353,7 +311,7 @@ class Table:
 
 
 class ModelTable(Table, Generic[M]):
-    def __init__(self, connection: "FileDBBase", name: str, model: Type[M]):
+    def __init__(self, connection: "FileDBBase", name: str, model: Type[M]) -> None:
         """
         A class that holds information about a table using a model.
 
@@ -365,7 +323,7 @@ class ModelTable(Table, Generic[M]):
         super().__init__(connection, name, model_to_columns(model))
         self.model: Type[M] = model
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'{self.__class__.__name__}[{self.model.__name__}]("{self.name}")'
 
     def __iter__(self) -> Generator[M, None, None]:
@@ -373,7 +331,7 @@ class ModelTable(Table, Generic[M]):
 
     def select(
         self,
-        model: Type[M] = None,
+        model: Optional[Type[M]] = None,
         where: Optional[str] = None,
         order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
         limit: Optional[int] = None,
@@ -431,7 +389,7 @@ class View(Table):
         group_by: Optional[list[Union[Column, SelectColumn]]] = None,
         order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
         limit: Optional[int] = None,
-    ):
+    ) -> None:
         """
         A subclass of Table to handle views.
 
@@ -454,7 +412,7 @@ class View(Table):
         self.order_by: Optional[list[tuple[Union[str, Column], str]]] = order_by or []
         self.limit: Optional[int] = limit
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'{self.__class__.__name__}("{self.name}", on={self.on!r})'
 
     def create_statement(self, exist_ok: bool = True) -> str:
@@ -477,13 +435,11 @@ class View(Table):
         elements.append("AS")
 
         select_names = [
-            f"{c.name} as {c.alias}" if c.alias else c.name
-            for c in [SelectColumn.from_column(c) for c in self.columns]
+            f"{c.name} as {c.alias}" if c.alias else c.name for c in [SelectColumn.from_column(c) for c in self.columns]
         ]
 
         elements.append(
-            f"SELECT {','.join(select_names)} "
-            f"FROM {self.on.name if isinstance(self.on, Table) else self.on}"
+            f"SELECT {','.join(select_names)} " f"FROM {self.on.name if isinstance(self.on, Table) else self.on}",
         )
 
         if self.where:
@@ -493,11 +449,8 @@ class View(Table):
             elements.append("GROUP BY")
             elements.append(
                 ",".join(
-                    [
-                        c.alias or c.name
-                        for c in [SelectColumn.from_column(c) for c in self.group_by]
-                    ]
-                )
+                    [c.alias or c.name for c in [SelectColumn.from_column(c) for c in self.group_by]],
+                ),
             )
 
         if self.order_by:
@@ -554,7 +507,7 @@ class View(Table):
         """
         Raises:
             OperationalError: Insert transactions are not allowed on views.
-        """
+        """  # noqa: D205
         raise OperationalError("Cannot insert into view")
 
 
@@ -565,12 +518,12 @@ class ModelView(View, Generic[M]):
         name: str,
         on: Union[Table, str],
         model: Type[M],
-        columns: list[Union[Column, SelectColumn]] = None,
+        columns: Optional[list[Union[Column, SelectColumn]]] = None,
         where: Optional[str] = None,
         group_by: Optional[list[Union[Column, SelectColumn]]] = None,
         order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
         limit: Optional[int] = None,
-    ):
+    ) -> None:
         """
         A subclass of Table to handle views with models.
 
@@ -598,12 +551,12 @@ class ModelView(View, Generic[M]):
         )
         self.model: Type[M] = model
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'{self.__class__.__name__}[{self.model.__name__}]("{self.name}", on={self.on!r})'
 
     def select(
         self,
-        model: Type[M] = None,
+        model: Optional[Type[M]] = None,
         where: Optional[str] = None,
         order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
         limit: Optional[int] = None,
@@ -627,7 +580,7 @@ class ModelView(View, Generic[M]):
 class FileDBBase(Connection):
     def __init__(
         self,
-        database: Union[str, bytes, PathLike[str], PathLike[bytes]],
+        database: str | bytes | PathLike[str] | PathLike[bytes],
         *,
         timeout: float = 5.0,
         detect_types: int = 0,
@@ -636,7 +589,7 @@ class FileDBBase(Connection):
         factory: Optional[Type[Connection]] = Connection,
         cached_statements: int = 100,
         uri: bool = False,
-    ):
+    ) -> None:
         """
         A wrapper class for an SQLite connection.
 
@@ -667,7 +620,7 @@ class FileDBBase(Connection):
             uri,
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.path})"
 
     @property
@@ -687,10 +640,12 @@ class FileDBBase(Connection):
         ...
 
     def create_table(
-        self, name: str, columns: Union[Type[M], list[Column]]
+        self,
+        name: str,
+        columns: Union[Type[M], list[Column]],
     ) -> Union[Table, ModelTable[M]]:
-        """
-        Create a table in the database.
+        """Create a table in the database.
+
         When the `columns` argument is a subclass of BadeModel, a ModelTable object is returned.
 
         Args:
@@ -742,8 +697,8 @@ class FileDBBase(Connection):
         *,
         select_columns: Optional[list[Union[Column, SelectColumn]]] = None,
     ) -> Union[View, ModelView[M]]:
-        """
-        Create a view in the database.
+        """Create a view in the database.
+
         When the `columns` argument is a subclass of BadeModel, a ModelView object is returned.
 
         Args:

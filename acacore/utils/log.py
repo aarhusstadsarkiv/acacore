@@ -1,15 +1,10 @@
-from logging import FileHandler
-from logging import Formatter
-from logging import INFO
-from logging import Logger
-from logging import getLogger
+from logging import INFO, FileHandler, Formatter, Logger, getLogger
 from pathlib import Path
 
 
 def setup_logger(log_name: str, log_path: Path) -> Logger:
-    """
-    General method for setting op a log object. Ensures that the different logs we use across tools are
-    standardized
+    """General method for setting op a log object. Ensures that the different logs we use across tools are standardized.
+
     ## Args
     * log_name: the name given to the logger within the logging modules own namespace. All descendant logs needs to have a name on the form 'log_name.descendant_log_name', which often is the name of the module or submodule that the function is called from.
     * log_path: the path directly to the log as a `txt` file. If the file is not there, it will be created. If it already exists, it will append the messages to the file.
