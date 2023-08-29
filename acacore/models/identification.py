@@ -1,5 +1,4 @@
-from typing import Any
-from typing import Optional
+from typing import Any, Optional
 
 from pydantic import model_validator
 
@@ -18,19 +17,18 @@ class Identification(ACABase):
     @classmethod
     def check_puid_sig(cls, data: dict[Any, Any]) -> dict[Any, Any]:
         """Validate that a PUID cannot have an empty signature or vice versa."""
-
         puid, signature = data.get("puid"), data.get("signature")
 
         if puid is not None and signature is None:
             raise ValueError(f"Signature missing for PUID {puid}.")
-        elif puid is None and signature is not None:
+        elif puid is None and signature is not None:  # noqa: RET506
             raise ValueError(f"PUID missing for signature {signature}.")
 
         return data
 
 
 class SignatureCount(ACABase):
-    """Signature count datamodel"""
+    """Signature count datamodel."""
 
     puid: Optional[str]
     signature: Optional[str]

@@ -1,12 +1,12 @@
 from pathlib import Path
-from typing import Any
-from typing import Optional
+from typing import Any, ClassVar, Optional
 
 from pydantic import model_validator
 
+from acacore.database.files_db import FileDB
+
 from .base import ACABase
 from .file import ArchiveFile
-from ..database.files_db import FileDB
 
 
 # noinspection PyNestedDecorators
@@ -14,7 +14,7 @@ class FileData(ACABase):
     main_dir: Path
     data_dir: Optional[Path] = None
     db: Optional[FileDB] = None
-    files: list[ArchiveFile] = []
+    files: ClassVar[list[ArchiveFile]] = []
 
     class Config:
         arbitrary_types_allowed = True

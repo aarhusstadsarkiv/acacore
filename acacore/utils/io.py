@@ -12,7 +12,7 @@ def size_fmt(size: float) -> str:
     size: float
         The file size in bytes.
 
-    Returns
+    Returns:
     -------
     str
         Human readable string representing size in binary multiples.

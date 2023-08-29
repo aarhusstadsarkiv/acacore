@@ -1,11 +1,6 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Callable
-from typing import Generic
-from typing import Optional
-from typing import Type
-from typing import TypeVar
-from typing import Union
+from typing import Callable, Generic, Optional, Type, TypeVar, Union
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -22,7 +17,10 @@ _sql_schema_types: dict[str, str] = {
     "null": "text",
 }
 
-_sql_schema_type_converters: dict[str, tuple[Callable[[Optional[T]], V], Callable[[V], Optional[T]]]] = {
+_sql_schema_type_converters: dict[
+    str,
+    tuple[Callable[[Optional[T]], V], Callable[[V], Optional[T]]],
+] = {
     "path": (str, Path),
     "date-time": (datetime.isoformat, datetime.fromisoformat),
     "uuid4": (str, UUID),
@@ -35,7 +33,7 @@ _sql_schema_type_converters: dict[str, tuple[Callable[[Optional[T]], V], Callabl
 }
 
 
-def _schema_to_column(name: str, schema: dict) -> 'Column':
+def _schema_to_column(name: str, schema: dict) -> "Column":
     schema_type: Optional[str] = schema.get("type", None)
     schema_any_of: list[dict] = schema.get("anyOf", [])
 
@@ -53,33 +51,41 @@ def _schema_to_column(name: str, schema: dict) -> 'Column':
         else:
             raise TypeError(f"Cannot recognize type from schema {schema!r}")
     elif schema_any_of:
-        if schema_any_of[-1].get("type", None) != "null" and len(schema_any_of) > 1:
+        if (schema_any_of[-1].get("type", None) != "null" and len(schema_any_of) > 1) or len(schema_any_of) > 2:
             raise TypeError(f"Cannot recognize type from schema {schema!r}")
-        elif len(schema_any_of) > 2:
-            raise TypeError(f"Cannot recognize type from schema {schema!r}")
-
         return _schema_to_column(name, {**schema_any_of[0], **schema})
     else:
         raise TypeError(f"Cannot recognize type from schema {schema!r}")
 
     return Column(
-        name, sql_type, lambda x: None if x is None else to_entry(x), lambda x: None if x is None else from_entry(x),
+        name,
+        sql_type,
+        lambda x: None if x is None else to_entry(x),
+        lambda x: None if x is None else from_entry(x),
         unique=schema.get("default", False),
         primary_key=schema.get("primary_key", False),
         not_null=not_null,
-        default=schema.get("default", ...)
+        default=schema.get("default", ...),
     )
 
 
-def model_to_columns(model: Type[BaseModel]) -> list['Column']:
+def model_to_columns(model: Type[BaseModel]) -> list["Column"]:
     return [_schema_to_column(p, s) for p, s in model.model_json_schema()["properties"].items()]
 
 
 class Column(Generic[T]):
-    def __init__(self, name: str, sql_type: str,
-                 to_entry: Callable[[T], V], from_entry: Callable[[V], T],
-                 unique: bool = False, primary_key: bool = False, not_null: bool = False,
-                 check: Optional[str] = None, default: Optional[T] = ...):
+    def __init__(
+        self,
+        name: str,
+        sql_type: str,
+        to_entry: Callable[[T], V],
+        from_entry: Callable[[V], T],
+        unique: bool = False,
+        primary_key: bool = False,
+        not_null: bool = False,
+        check: Optional[str] = None,
+        default: Optional[T] = ...,
+    ) -> None:
         """
         A class that stores information regarding a table column.
 
@@ -108,18 +114,20 @@ class Column(Generic[T]):
         self._check: str = check or ""
         self.default: Union[Optional[T], Ellipsis] = default
 
-    def __repr__(self):
-        return (f"{self.__class__.__name__}("
-                f"{self.name}"
-                f", {self.sql_type!r}"
-                f", unique={self.unique}"
-                f", primary_key={self.primary_key}"
-                f", not_null={self.not_null}"
-                f"{f', default={repr(self.default)}' if self.default is not Ellipsis else ''}"
-                f")")
+    def __repr__(self) -> str:
+        return (
+            f"{self.__class__.__name__}("
+            f"{self.name}"
+            f", {self.sql_type!r}"
+            f", unique={self.unique}"
+            f", primary_key={self.primary_key}"
+            f", not_null={self.not_null}"
+            f"{f', default={self.default!r}' if self.default is not Ellipsis else ''}"
+            f")"
+        )
 
     @classmethod
-    def from_model(cls, model: Type[BaseModel]) -> list['Column']:
+    def from_model(cls, model: Type[BaseModel]) -> list["Column"]:
         return model_to_columns(model)
 
     @property
@@ -145,8 +153,9 @@ class Column(Generic[T]):
         if self.default is not Ellipsis:
             default_value: V = self.to_entry(self.default)
             elements.append(
-                "default '{}'".format(default_value.replace("'", "\\'")) if isinstance(default_value, str)
-                else f"default {'null' if default_value is None else default_value}"
+                "default '{}'".format(default_value.replace("'", "\\'"))
+                if isinstance(default_value, str)
+                else f"default {'null' if default_value is None else default_value}",
             )
         if self.check:
             elements.append(f"check ({self.check})")
@@ -155,7 +164,12 @@ class Column(Generic[T]):
 
 
 class SelectColumn(Column):
-    def __init__(self, name: str, from_entry: Callable[[V], T], alias: Optional[str] = None):
+    def __init__(
+        self,
+        name: str,
+        from_entry: Callable[[V], T],
+        alias: Optional[str] = None,
+    ) -> None:
         """
         A subclass of Column for SELECT expressions that need complex statements and/or an alias.
 
@@ -170,7 +184,7 @@ class SelectColumn(Column):
         self.alias: Optional[str] = alias
 
     @classmethod
-    def from_column(cls, column: Column, alias: Optional[str] = None) -> 'SelectColumn':
+    def from_column(cls, column: Column, alias: Optional[str] = None) -> "SelectColumn":
         """
         Take a Column object and create a SelectColumn with the given alias.
 

@@ -6,10 +6,10 @@ from typing import Optional
 
 from pydantic import UUID4, Field
 
+from acacore.utils.io import size_fmt
+
 from .base import ACABase
 from .identification import Identification
-from ..utils.io import size_fmt
-
 
 # -----------------------------------------------------------------------------
 # Model
@@ -19,7 +19,7 @@ from ..utils.io import size_fmt
 class File(ACABase):
     """File data model."""
 
-    id: int = Field(primary_key=True)
+    id: int = Field(primary_key=True)  # noqa: A003
     uuid: UUID4 = Field(primary_key=True)
     checksum: Optional[str]
     puid: Optional[str]
@@ -75,7 +75,7 @@ class File(ACABase):
         return self.relative_path.suffix.lower()
 
     def size(self) -> int:
-        """Get the file size in bytes
+        """Get the file size in bytes.
 
         Returns:
         -------
