@@ -89,8 +89,7 @@ class Cursor:
             )
 
         return (
-            {c.alias or c.name: c.from_entry(v) for c, v in zip(select_columns, vs)}
-            for vs in self.cursor.fetchall()
+            {c.alias or c.name: c.from_entry(v) for c, v in zip(select_columns, vs)} for vs in self.cursor.fetchall()
         )
 
     @overload
