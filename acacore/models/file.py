@@ -28,6 +28,7 @@ class File(ACABase):
     file_size_in_bytes: int
     signature: Optional[str]
     warning: Optional[str] = None
+    action: Optional[str] = None
 
     def get_absolute_path(self, root: Optional[Path] = None) -> Path:
         return root.joinpath(self.relative_path) if root else self.relative_path.resolve()
