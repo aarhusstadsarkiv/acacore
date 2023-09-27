@@ -1,6 +1,7 @@
 # -----------------------------------------------------------------------------
 # Imports
 # -----------------------------------------------------------------------------
+from enum import Enum
 from pathlib import Path
 from typing import Optional
 
@@ -11,11 +12,16 @@ from acacore.utils.io import size_fmt
 from .base import ACABase
 from .identification import Identification
 
+
+class Action(Enum):
+    CONVERT = 'Convertool: To convert.'
+    REPLACE = 'Convertool: Replace with template. File is not preservable.'
+    MANUAL = 'Manual: File should be converted manually. [info about the manual conversion from reference_files].'
+    RENAME = 'Renamer: File has extension mismatch. Should be renamed'
+
 # -----------------------------------------------------------------------------
 # Model
 # -----------------------------------------------------------------------------
-
-
 class File(ACABase):
     """File data model."""
 
@@ -28,7 +34,7 @@ class File(ACABase):
     file_size_in_bytes: int
     signature: Optional[str]
     warning: Optional[str] = None
-    action: Optional[str] = None
+    action: Optional[Action] = None
 
     def get_absolute_path(self, root: Optional[Path] = None) -> Path:
         return root.joinpath(self.relative_path) if root else self.relative_path.resolve()
