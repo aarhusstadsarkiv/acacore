@@ -11,6 +11,7 @@ class Identification(ACABase):
     puid: Optional[str]
     signature: Optional[str]
     warning: Optional[str]
+    file_size: Optional[int]
 
     # noinspection PyNestedDecorators
     @model_validator(mode="before")
