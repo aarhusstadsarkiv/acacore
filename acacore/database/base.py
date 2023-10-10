@@ -47,7 +47,7 @@ class Cursor:
         Returns:
             Generator: A generator for the tuples in the cursor.
         """
-        return (tuple(c.from_entry(v) for c, v in zip(self.columns, vs, strict=True)) for vs in self.cursor.fetchall())
+        return (tuple(c.from_entry(v) for c, v in zip(self.columns, vs)) for vs in self.cursor.fetchall())
 
     def fetchonetuple(self) -> Optional[tuple]:
         """
@@ -58,7 +58,7 @@ class Cursor:
         """
         vs: tuple = self.cursor.fetchone()
 
-        return tuple(c.from_entry(v) for c, v in zip(self.columns, vs, strict=True)) if vs else None
+        return tuple(c.from_entry(v) for c, v in zip(self.columns, vs)) if vs else None
 
     @overload
     def fetchall(self) -> Generator[dict[str, Any], None, None]:
@@ -83,14 +83,13 @@ class Cursor:
         if model:
             return (
                 model.model_validate(
-                    {c.alias or c.name: v for c, v in zip(select_columns, vs, strict=True)},
+                    {c.alias or c.name: v for c, v in zip(select_columns, vs)},
                 )
                 for vs in self.cursor.fetchall()
             )
 
         return (
-            {c.alias or c.name: c.from_entry(v) for c, v in zip(select_columns, vs, strict=True)}
-            for vs in self.cursor.fetchall()
+            {c.alias or c.name: c.from_entry(v) for c, v in zip(select_columns, vs)} for vs in self.cursor.fetchall()
         )
 
     @overload
@@ -120,7 +119,7 @@ class Cursor:
         if vs is None:
             return None
 
-        entry: dict[str, Any] = {c.name: c.from_entry(v) for c, v in zip(select_columns, vs, strict=True)}
+        entry: dict[str, Any] = {c.name: c.from_entry(v) for c, v in zip(select_columns, vs)}
 
         return model.model_validate(entry) if model else entry
 
