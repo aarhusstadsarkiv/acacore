@@ -15,16 +15,16 @@ from .base import SelectColumn
 
 class FileDB(FileDBBase):
     def __init__(
-        self,
-        database: Union[str, bytes, PathLike[str], PathLike[bytes]],
-        *,
-        timeout: float = 5.0,
-        detect_types: int = 0,
-        isolation_level: Optional[str] = "DEFERRED",
-        check_same_thread: bool = True,
-        factory: Optional[Type[Connection]] = Connection,
-        cached_statements: int = 100,
-        uri: bool = False,
+            self,
+            database: Union[str, bytes, PathLike[str], PathLike[bytes]],
+            *,
+            timeout: float = 5.0,
+            detect_types: int = 0,
+            isolation_level: Optional[str] = "DEFERRED",
+            check_same_thread: bool = True,
+            factory: Optional[Type[Connection]] = Connection,
+            cached_statements: int = 100,
+            uri: bool = False,
     ) -> None:
         """
         A class that handles the SQLite database used by AArhus City Archives to process data archives.
@@ -45,10 +45,11 @@ class FileDB(FileDBBase):
                 to avoid parsing overhead.
             uri: If set to True, database is interpreted as a URI with a file path and an optional query string.
         """
-        from acacore.models.file import ConvertedFile, File
+        from acacore.models.file import ConvertedFile
+        from acacore.models.file import File
+        from acacore.models.history import HistoryEntry
         from acacore.models.identification import SignatureCount
         from acacore.models.metadata import Metadata
-        from acacore.models.history import HistoryEntry
 
         super().__init__(
             database,
@@ -134,13 +135,13 @@ class FileDB(FileDBBase):
         return not self.files.select(limit=1).fetchone()
 
     def add_history(
-        self,
-        uuid: UUID,
-        operation: str,
-        data: Any,
-        reason: Optional[str] = None,
-        *,
-        time: Optional[datetime] = None,
+            self,
+            uuid: UUID,
+            operation: str,
+            data: Optional[Union[dict, list, str, int, float, bool, datetime]],
+            reason: Optional[str] = None,
+            *,
+            time: Optional[datetime] = None,
     ):
         self.history.insert(
             self.history.model(
@@ -148,6 +149,6 @@ class FileDB(FileDBBase):
                 operation=operation,
                 data=data,
                 reason=reason,
-                time=time or datetime.now(),
+                time=time or datetime.utcnow(),
             )
         )
