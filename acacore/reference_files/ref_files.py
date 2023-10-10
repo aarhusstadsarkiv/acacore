@@ -11,7 +11,9 @@ def to_re_identify() -> dict[str, str]:
     Is kept updated on the reference-files repo. The function caches the result,
     soo multiple calls in the same run should not be an issue.
     """
-    response: HTTPResponse = request.urlopen("https://raw.githubusercontent.com/aarhusstadsarkiv/reference-files/main/to_reidentify.json")
+    response: HTTPResponse = request.urlopen(
+        "https://raw.githubusercontent.com/aarhusstadsarkiv/reference-files/main/to_reidentify.json",
+    )
     if response.getcode() != 200:
         raise ConnectionError
 
