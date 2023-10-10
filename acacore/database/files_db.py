@@ -1,10 +1,16 @@
+from datetime import datetime
 from os import PathLike
 from sqlite3 import Connection
-from typing import Optional, Type, Union
+from typing import Any
+from typing import Optional
+from typing import Type
+from typing import Union
+from uuid import UUID
 
 from acacore.utils.functions import or_none
-
-from .base import Column, FileDBBase, SelectColumn
+from .base import Column
+from .base import FileDBBase
+from .base import SelectColumn
 
 
 class FileDB(FileDBBase):
@@ -42,6 +48,7 @@ class FileDB(FileDBBase):
         from acacore.models.file import ConvertedFile, File
         from acacore.models.identification import SignatureCount
         from acacore.models.metadata import Metadata
+        from acacore.models.history import HistoryEntry
 
         super().__init__(
             database,
@@ -57,6 +64,7 @@ class FileDB(FileDBBase):
         self.files = self.create_table("Files", File)
         self.metadata = self.create_table("Metadata", Metadata)
         self.converted_files = self.create_table("_ConvertedFiles", ConvertedFile)
+        self.history = self.create_table("History", HistoryEntry)
 
         self.not_converted = self.create_view(
             "_NotConverted",
@@ -124,3 +132,22 @@ class FileDB(FileDBBase):
 
     def is_empty(self) -> bool:
         return not self.files.select(limit=1).fetchone()
+
+    def add_history(
+        self,
+        uuid: UUID,
+        operation: str,
+        data: Any,
+        reason: Optional[str] = None,
+        *,
+        time: Optional[datetime] = None,
+    ):
+        self.history.insert(
+            self.history.model(
+                uuid=uuid,
+                operation=operation,
+                data=data,
+                reason=reason,
+                time=time or datetime.now(),
+            )
+        )
