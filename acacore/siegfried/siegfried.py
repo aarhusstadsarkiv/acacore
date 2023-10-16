@@ -2,6 +2,8 @@ from datetime import datetime
 from os import PathLike
 from subprocess import CompletedProcess
 from subprocess import run
+from typing import Optional
+from typing import Union
 
 from pydantic import BaseModel
 from pydantic import ConfigDict
@@ -29,7 +31,7 @@ class SiegfriedIdentifier(BaseModel):
 
 class SiegfriedMatch(BaseModel):
     ns: str
-    id: str | None
+    id: Optional[str]
     format: str
     version: str
     mime: str
@@ -40,7 +42,7 @@ class SiegfriedMatch(BaseModel):
     # noinspection PyNestedDecorators
     @field_validator("id")
     @classmethod
-    def unknown_id(cls, _id: str | None):
+    def unknown_id(cls, _id: Optional[str]):
         _id = (_id or "").strip()
         return None if _id.lower() == "unknown" else _id or None
 
@@ -71,7 +73,7 @@ class Siegfried:
         https://github.com/richardlehane/siegfried
     """
 
-    def __init__(self, binary: str | PathLike = "sf"):
+    def __init__(self, binary: Union[str, PathLike] = "sf"):
         """
         Args:
             binary: The path to the Siegfried binary, or the program name if it is included in the PATH variable
@@ -82,7 +84,7 @@ class Siegfried:
         self.binary: str = str(binary)
         _check_process(run([self.binary, "-v"], capture_output=True, encoding="utf-8"))
 
-    def identify(self, path: str | PathLike) -> SiegfriedResult:
+    def identify(self, path: Union[str, PathLike]) -> SiegfriedResult:
         """
         Identify a file.
 
