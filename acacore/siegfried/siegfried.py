@@ -1,5 +1,6 @@
 from datetime import datetime
 from os import PathLike
+from pathlib import Path
 from subprocess import CompletedProcess
 from subprocess import run
 from typing import Optional
@@ -105,5 +106,30 @@ class Siegfried:
         _check_process(process)
         try:
             return SiegfriedResult.model_validate_json(process.stdout)
+        except ValueError as err:
+            raise IdentificationError(err)
+
+    def identify_many(self, paths: list[Path]) -> tuple[tuple[Path, SiegfriedFile]]:
+        """
+        Identify multiple files.
+
+        Args:
+            paths: The paths to the files
+
+        Returns:
+            A tuple of tuples joining the paths with their SiegfriedFile result
+
+        Raises:
+            IdentificationError: If there is an error calling Siegfried or processing its results
+        """
+        process: CompletedProcess = run(
+            [self.binary, "-json", "-multi", "1024", *map(str, paths)],
+            capture_output=True,
+            encoding="utf-8",
+        )
+        _check_process(process)
+        try:
+            result = SiegfriedResult.model_validate_json(process.stdout)
+            return tuple(zip(paths, result.files))
         except ValueError as err:
             raise IdentificationError(err)
