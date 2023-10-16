@@ -3,10 +3,13 @@ import re
 import subprocess
 from logging import Logger
 from pathlib import Path
-from typing import Any, Optional, Tuple
+from typing import Any
+from typing import Optional
+from typing import Tuple
 
 from acacore.models.identification import Identification
-from acacore.reference_files.ref_files import costum_sigs, to_re_identify
+from acacore.reference_files.ref_files import costum_sigs
+from acacore.reference_files.ref_files import to_re_identify
 
 
 def aca_id_for_file_id(path: Path, file_id: Identification) -> Identification:

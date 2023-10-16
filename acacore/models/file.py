@@ -4,12 +4,13 @@
 from pathlib import Path
 from typing import Optional
 
-from pydantic import UUID4, Field
+from pydantic import Field
+from pydantic import UUID4
 
 from acacore.utils.io import size_fmt
-
 from .base import ACABase
 from .identification import Identification
+
 
 # -----------------------------------------------------------------------------
 # Model

@@ -1,12 +1,16 @@
 from datetime import datetime
 from os import PathLike
 from sqlite3 import Connection
-from typing import Any, Optional, Type, Union
+from typing import Any
+from typing import Optional
+from typing import Type
+from typing import Union
 from uuid import UUID
 
 from acacore.utils.functions import or_none
-
-from .base import Column, FileDBBase, SelectColumn
+from .base import Column
+from .base import FileDBBase
+from .base import SelectColumn
 
 
 class FileDB(FileDBBase):
