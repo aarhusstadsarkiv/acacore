@@ -56,9 +56,7 @@ def _schema_to_column(name: str, schema: dict) -> "Column":
         else:
             raise TypeError(f"Cannot recognize type from schema {schema!r}")
     elif schema_any_of:
-        if (schema_any_of[-1].get("type", None) != "null" and len(schema_any_of) > 1) or len(
-            schema_any_of
-        ) > 2:
+        if (schema_any_of[-1].get("type", None) != "null" and len(schema_any_of) > 1) or len(schema_any_of) > 2:
             raise TypeError(f"Cannot recognize type from schema {schema!r}")
         return _schema_to_column(name, {**schema_any_of[0], **schema})
     else:
