@@ -1,7 +1,6 @@
 from datetime import datetime
 from os import PathLike
 from sqlite3 import Connection
-from typing import Any
 from typing import Optional
 from typing import Type
 from typing import Union
@@ -15,16 +14,16 @@ from .base import SelectColumn
 
 class FileDB(FileDBBase):
     def __init__(
-            self,
-            database: Union[str, bytes, PathLike[str], PathLike[bytes]],
-            *,
-            timeout: float = 5.0,
-            detect_types: int = 0,
-            isolation_level: Optional[str] = "DEFERRED",
-            check_same_thread: bool = True,
-            factory: Optional[Type[Connection]] = Connection,
-            cached_statements: int = 100,
-            uri: bool = False,
+        self,
+        database: Union[str, bytes, PathLike[str], PathLike[bytes]],
+        *,
+        timeout: float = 5.0,
+        detect_types: int = 0,
+        isolation_level: Optional[str] = "DEFERRED",
+        check_same_thread: bool = True,
+        factory: Optional[Type[Connection]] = Connection,
+        cached_statements: int = 100,
+        uri: bool = False,
     ) -> None:
         """
         A class that handles the SQLite database used by AArhus City Archives to process data archives.
@@ -135,13 +134,13 @@ class FileDB(FileDBBase):
         return not self.files.select(limit=1).fetchone()
 
     def add_history(
-            self,
-            uuid: UUID,
-            operation: str,
-            data: Optional[Union[dict, list, str, int, float, bool, datetime]],
-            reason: Optional[str] = None,
-            *,
-            time: Optional[datetime] = None,
+        self,
+        uuid: UUID,
+        operation: str,
+        data: Optional[Union[dict, list, str, int, float, bool, datetime]],
+        reason: Optional[str] = None,
+        *,
+        time: Optional[datetime] = None,
     ):
         self.history.insert(
             self.history.model(
