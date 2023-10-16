@@ -4,8 +4,9 @@ from subprocess import CompletedProcess
 from subprocess import run
 
 from pydantic import BaseModel
+from pydantic import ConfigDict
 from pydantic import Field
-from pydantic import field_validator, ConfigDict
+from pydantic import field_validator
 
 from acacore.exceptions.files import IdentificationError
 
@@ -17,9 +18,8 @@ def _check_process(process: CompletedProcess):
     """
     if process.returncode != 0:
         raise IdentificationError(
-            process.stderr or
-            process.stdout or
-            f"Unknown siegfried error code {process.returncode}")
+            process.stderr or process.stdout or f"Unknown siegfried error code {process.returncode}"
+        )
 
 
 class SiegfriedIdentifier(BaseModel):
@@ -95,8 +95,11 @@ class Siegfried:
         Raises:
             IdentificationError: if there is an error calling Siegfried or processing its results
         """
-        process: CompletedProcess = run([self.binary, "-json", "-multi", "1024", str(path)],
-                                        capture_output=True, encoding="utf-8")
+        process: CompletedProcess = run(
+            [self.binary, "-json", "-multi", "1024", str(path)],
+            capture_output=True,
+            encoding="utf-8",
+        )
         _check_process(process)
         try:
             return SiegfriedResult.model_validate_json(process.stdout)
