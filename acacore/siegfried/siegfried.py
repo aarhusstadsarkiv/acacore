@@ -74,10 +74,10 @@ class Siegfried:
     def __init__(self, binary: str | PathLike = "sf"):
         """
         Args:
-            binary: the path to the Siegfried binary, or the program name if it is included in the PATH variable
+            binary: The path to the Siegfried binary, or the program name if it is included in the PATH variable
 
         Raises:
-            IdentificationError: if Siegfried is not configured properly
+            IdentificationError: If Siegfried is not configured properly
         """
         self.binary: str = str(binary)
         _check_process(run([self.binary, "-v"], capture_output=True, encoding="utf-8"))
@@ -93,7 +93,7 @@ class Siegfried:
             A SiegfriedResult object
 
         Raises:
-            IdentificationError: if there is an error calling Siegfried or processing its results
+            IdentificationError: If there is an error calling Siegfried or processing its results
         """
         process: CompletedProcess = run(
             [self.binary, "-json", "-multi", "1024", str(path)],
