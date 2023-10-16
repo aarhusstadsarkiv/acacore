@@ -1,13 +1,23 @@
 from datetime import datetime
 from os import PathLike
 from pathlib import Path
-from sqlite3 import Connection, OperationalError
+from sqlite3 import Connection
 from sqlite3 import Cursor as SQLiteCursor
-from typing import Any, Generator, Generic, Optional, Type, TypeVar, Union, overload
+from sqlite3 import OperationalError
+from typing import Any
+from typing import Generator
+from typing import Generic
+from typing import Optional
+from typing import Type
+from typing import TypeVar
+from typing import Union
+from typing import overload
 
 from pydantic.main import BaseModel
 
-from .column import Column, SelectColumn, model_to_columns
+from .column import Column
+from .column import SelectColumn
+from .column import model_to_columns
 
 T = TypeVar("T")
 R = TypeVar("R")
@@ -47,7 +57,10 @@ class Cursor:
         Returns:
             Generator: A generator for the tuples in the cursor.
         """
-        return (tuple(c.from_entry(v) for c, v in zip(self.columns, vs)) for vs in self.cursor.fetchall())
+        return (
+            tuple(c.from_entry(v) for c, v in zip(self.columns, vs))
+            for vs in self.cursor.fetchall()
+        )
 
     def fetchonetuple(self) -> Optional[tuple]:
         """
@@ -68,7 +81,9 @@ class Cursor:
     def fetchall(self, model: Type[M]) -> Generator[M, None, None]:
         ...
 
-    def fetchall(self, model: Optional[Type[M]] = None) -> Generator[Union[dict[str, Any], M], None, None]:
+    def fetchall(
+        self, model: Optional[Type[M]] = None
+    ) -> Generator[Union[dict[str, Any], M], None, None]:
         """
         Fetch all results from the cursor and return them as dicts, with the columns' names/aliases used as keys.
 
@@ -89,7 +104,8 @@ class Cursor:
             )
 
         return (
-            {c.alias or c.name: c.from_entry(v) for c, v in zip(select_columns, vs)} for vs in self.cursor.fetchall()
+            {c.alias or c.name: c.from_entry(v) for c, v in zip(select_columns, vs)}
+            for vs in self.cursor.fetchall()
         )
 
     @overload
@@ -228,7 +244,11 @@ class Table:
             elements.append(
                 "("
                 + ", ".join(c.create_statement() for c in self.columns)
-                + (f", primary key ({', '.join(c.name for c in keys)})" if (keys := self.keys) else "")
+                + (
+                    f", primary key ({', '.join(c.name for c in keys)})"
+                    if (keys := self.keys)
+                    else ""
+                )
                 + ")",
             )
 
@@ -274,7 +294,9 @@ class Table:
             statement += f" WHERE {where}"
 
         if order_by:
-            order_statements = [f"{c.name if isinstance(c, Column) else c} {s}" for c, s in order_by]
+            order_statements = [
+                f"{c.name if isinstance(c, Column) else c} {s}" for c, s in order_by
+            ]
             statement += f" ORDER BY {','.join(order_statements)}"
 
         if limit is not None:
@@ -434,11 +456,13 @@ class View(Table):
         elements.append("AS")
 
         select_names = [
-            f"{c.name} as {c.alias}" if c.alias else c.name for c in [SelectColumn.from_column(c) for c in self.columns]
+            f"{c.name} as {c.alias}" if c.alias else c.name
+            for c in [SelectColumn.from_column(c) for c in self.columns]
         ]
 
         elements.append(
-            f"SELECT {','.join(select_names)} " f"FROM {self.on.name if isinstance(self.on, Table) else self.on}",
+            f"SELECT {','.join(select_names)} "
+            f"FROM {self.on.name if isinstance(self.on, Table) else self.on}",
         )
 
         if self.where:
@@ -448,7 +472,10 @@ class View(Table):
             elements.append("GROUP BY")
             elements.append(
                 ",".join(
-                    [c.alias or c.name for c in [SelectColumn.from_column(c) for c in self.group_by]],
+                    [
+                        c.alias or c.name
+                        for c in [SelectColumn.from_column(c) for c in self.group_by]
+                    ],
                 ),
             )
 

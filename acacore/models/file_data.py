@@ -1,10 +1,11 @@
 from pathlib import Path
-from typing import Any, ClassVar, Optional
+from typing import Any
+from typing import ClassVar
+from typing import Optional
 
 from pydantic import model_validator
 
 from acacore.database.files_db import FileDB
-
 from .base import ACABase
 from .file import ArchiveFile
 
