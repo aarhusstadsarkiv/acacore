@@ -2,9 +2,11 @@ from datetime import datetime
 from os import PathLike
 from pathlib import Path
 from re import compile as re_compile
-from subprocess import CompletedProcess, run
+from subprocess import CompletedProcess
+from subprocess import run
 from typing import Literal
-from typing import Optional, Union
+from typing import Optional
+from typing import Union
 
 from pydantic import BaseModel
 from pydantic import ConfigDict
@@ -23,13 +25,13 @@ TSignature = Literal["pronom", "loc", "tika", "freedesktop", "pronom-tika-loc", 
 
 def _check_process(process: CompletedProcess) -> CompletedProcess:
     """
+    Check process and raise exception if it failed.
+
     Raises:
         IdentificationError: if the process ends with a return code other than 0.
-    """  # noqa: D205
+    """
     if process.returncode != 0:
-        raise IdentificationError(
-            process.stderr or process.stdout or f"Unknown siegfried error code {process.returncode}"
-        )
+        raise IdentificationError(process.stderr or process.stdout or f"Unknown error code {process.returncode}")
 
     return process
 
@@ -121,8 +123,9 @@ class SiegfriedMatch(BaseModel):
 
     def sort_tuple(self) -> tuple[int, int, int, int, int]:
         """
-        Get a tuple of integers useful for sorting matches. The fields used for the tuple are: byte match,
-        extension match, format, version, and mime.
+        Get a tuple of integers useful for sorting matches.
+
+        The fields used for the tuple are: byte match, extension match, format, version, and mime.
 
         Returns:
             A tuple of 5 integers.
@@ -152,6 +155,7 @@ class SiegfriedMatch(BaseModel):
 class SiegfriedFile(BaseModel):
     """
     The SiegfriedFile class represents a file that has been analyzed by Siegfried.
+
     It contains information about the file's name, size, modification date, matching results, and any
     errors encountered during analysis.
 
@@ -224,7 +228,7 @@ class Siegfried:
         https://github.com/richardlehane/siegfried
     """
 
-    def __init__(self, binary: Union[str, PathLike] = "sf", signature: str = "default.sig"):
+    def __init__(self, binary: Union[str, PathLike] = "sf", signature: str = "default.sig") -> None:
         """
         Initializes a new instance of the Siegfried class.
 
@@ -237,7 +241,7 @@ class Siegfried:
 
     def run(self, *args: str) -> CompletedProcess:
         """
-        Run the Siegfried command
+        Run the Siegfried command.
 
         Args:
             *args: The arguments to be given to Siegfried (excluding the binary path/name).
