@@ -1,7 +1,6 @@
 from datetime import datetime
 from os import PathLike
 from sqlite3 import Connection
-from typing import Any
 from typing import Optional
 from typing import Type
 from typing import Union
@@ -137,7 +136,7 @@ class FileDB(FileDBBase):
         self,
         uuid: UUID,
         operation: str,
-        data: Any,  # noqa: ANN401
+        data: Optional[Union[dict, list, str, int, float, bool, datetime]],
         reason: Optional[str] = None,
         *,
         time: Optional[datetime] = None,
