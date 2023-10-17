@@ -113,6 +113,9 @@ exclude = [
     "__init__.py"
 ]
 
+[tool.ruff.isort]
+combine-as-imports = false
+force-single-line = true
 
 [tool.ruff.pydocstyle]
 convention = "google"
