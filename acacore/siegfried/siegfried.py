@@ -89,7 +89,6 @@ class Siegfried:
         """
         self.binary: str = str(binary)
         self.signature: str = signature
-        _check_process(run([self.binary, "-v"], capture_output=True, encoding="utf-8"))
 
     def run(self, *args: str) -> CompletedProcess:
         """
