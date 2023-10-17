@@ -3,6 +3,7 @@ from os import PathLike
 from pathlib import Path
 from subprocess import CompletedProcess
 from subprocess import run
+from typing import Literal
 from typing import Optional
 from typing import Union
 
@@ -12,6 +13,8 @@ from pydantic import Field
 from pydantic import field_validator
 
 from acacore.exceptions.files import IdentificationError
+
+TSignature = Literal["pronom", "loc", "tika", "freedesktop", "pronom-tika-loc", "deluxe", "archivematica"]
 
 
 def _check_process(process: CompletedProcess) -> CompletedProcess:
@@ -102,6 +105,25 @@ class Siegfried:
             IdentificationError: If Siegfried exits with a non-zero status code.
         """
         return _check_process(run([self.binary, *args], capture_output=True, encoding="utf-8"))
+
+    def update(self, signature: TSignature, *, set_signature: bool = True):
+        """
+        Update or fetch signature files.
+
+        Args:
+            signature: The name of signatures provider; one of: "pronom", "loc", "tika", "freedesktop",
+            "pronom-tika-loc", "deluxe", "archivematica".
+            set_signature: Set to True to automatically change the signature to the newly updated one.
+
+        Raises:
+            IdentificationError: If Siegfried exits with a non-zero status code.
+        """
+        signature = signature.lower()
+
+        self.run("-sig", f"{signature}.sig", "-update", signature)
+
+        if set_signature:
+            self.signature = f"{signature}.sig"
 
     def identify(self, path: Union[str, PathLike]) -> SiegfriedResult:
         """
