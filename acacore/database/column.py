@@ -1,4 +1,6 @@
 from datetime import datetime
+from json import dumps
+from json import loads
 from pathlib import Path
 from typing import Callable
 from typing import Generic
@@ -59,9 +61,12 @@ def _schema_to_column(name: str, schema: dict, defs: Optional[dict[str, dict]] =
         else:
             raise TypeError(f"Cannot recognize type from schema {schema!r}")
     elif schema_any_of:
-        if (schema_any_of[-1].get("type", None) != "null" and len(schema_any_of) > 1) or len(schema_any_of) > 2:
+        if not schema_any_of[0]:
+            sql_type, to_entry, from_entry = "text", lambda x: dumps(x, default=str), lambda x: loads(x, default=str)
+        elif (schema_any_of[-1].get("type", None) != "null" and len(schema_any_of) > 1) or len(schema_any_of) > 2:
             raise TypeError(f"Cannot recognize type from schema {schema!r}")
-        return _schema_to_column(name, {**schema_any_of[0], **schema}, defs)
+        else:
+            return _schema_to_column(name, {**schema_any_of[0], **schema}, defs)
     else:
         raise TypeError(f"Cannot recognize type from schema {schema!r}")
 
