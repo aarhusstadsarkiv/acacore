@@ -1,6 +1,4 @@
-from typing import Callable
-from typing import Optional
-from typing import TypeVar
+from typing import Callable, Optional, TypeVar
 
 T = TypeVar("T")
 R = TypeVar("R")

@@ -2,11 +2,9 @@ from datetime import datetime
 from os import PathLike
 from pathlib import Path
 from re import compile as re_compile
-from subprocess import CompletedProcess
-from subprocess import run
+from subprocess import CompletedProcess, run
 from typing import Literal
-from typing import Optional
-from typing import Union
+from typing import Optional, Union
 
 from pydantic import BaseModel
 from pydantic import ConfigDict
@@ -26,8 +24,8 @@ TSignature = Literal["pronom", "loc", "tika", "freedesktop", "pronom-tika-loc", 
 def _check_process(process: CompletedProcess) -> CompletedProcess:
     """
     Raises:
-        IdentificationError: if the process ends with a return code other than 0
-    """
+        IdentificationError: if the process ends with a return code other than 0.
+    """  # noqa: D205
     if process.returncode != 0:
         raise IdentificationError(
             process.stderr or process.stdout or f"Unknown siegfried error code {process.returncode}"
@@ -67,8 +65,8 @@ class SiegfriedMatch(BaseModel):
     """
 
     ns: str
-    id: Optional[str]
-    format: str
+    id: Optional[str]  # noqa: A003
+    format: str  # noqa: A003
     version: Optional[str] = None
     mime: str
     match_class: Optional[str] = Field(None, alias="class")
