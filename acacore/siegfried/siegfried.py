@@ -95,6 +95,9 @@ class SiegfriedFile(BaseModel):
         matches.sort(key=SiegfriedMatch.sort_tuple)
         return matches[-1] if matches else None
 
+    def best_matches(self) -> list[SiegfriedMatch]:
+        return sorted([m for m in self.matches if m.id], key=SiegfriedMatch.sort_tuple, reverse=True)
+
 
 class SiegfriedResult(BaseModel):
     siegfried: str
