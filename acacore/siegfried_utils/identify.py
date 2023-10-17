@@ -3,13 +3,10 @@ import re
 import subprocess
 from logging import Logger
 from pathlib import Path
-from typing import Any
-from typing import Optional
-from typing import Tuple
+from typing import Any, Optional, Tuple
 
 from acacore.models.identification import Identification
-from acacore.reference_files.ref_files import costum_sigs
-from acacore.reference_files.ref_files import to_re_identify
+from acacore.reference_files.ref_files import costum_sigs, to_re_identify
 
 
 def aca_id_for_file_id(path: Path, file_id: Identification) -> Identification:
@@ -101,29 +98,6 @@ def get_aca_signature(bof: str, eof: str) -> Optional[dict]:
             if eof_pattern.search(eof):
                 return sig
     return None
-
-
-def sf_id_puid(path: Path) -> Optional[str]:
-    """Identify a file and return only its PUID using siegfried.
-
-    Args:
-        path (`Path`): Path to the file to identify.
-
-    Returns:
-        Optional[str]: The PUID of the file, or `None` if none is found
-    """
-    id_result = run_sf_and_get_results_json(path)
-
-    puid: Optional[str] = None
-    for file_result in id_result.get("files", []):
-        match: dict = {}
-        for id_match in file_result.get("matches"):
-            if id_match.get("ns") == "pronom":
-                match = id_match
-        if match:
-            puid = None if match.get("id", "").lower() == "unknown" else match.get("id")
-            break
-    return puid
 
 
 def sf_id_full(path: Path, log: Optional[Logger] = None) -> dict[Path, Identification]:
