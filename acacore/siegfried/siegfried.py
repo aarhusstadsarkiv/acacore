@@ -1,6 +1,7 @@
 from datetime import datetime
 from os import PathLike
 from pathlib import Path
+from re import compile as re_compile
 from subprocess import CompletedProcess
 from subprocess import run
 from typing import Literal
@@ -14,6 +15,8 @@ from pydantic import field_validator
 
 from acacore.exceptions.files import IdentificationError
 
+_byte_match_regexp = re_compile(r"^(.*; )?byte match at (\d+), *(\d+)(;.*)?$")
+_extension_match = re_compile(r"^(.*; )?extension match ([^;]+)(;.*)?$")
 TSignature = Literal["pronom", "loc", "tika", "freedesktop", "pronom-tika-loc", "deluxe", "archivematica"]
 
 
@@ -44,6 +47,20 @@ class SiegfriedMatch(BaseModel):
     match_class: Optional[str] = Field(None, alias="class")
     basis: str
     warning: str
+
+    def byte_match(self) -> Optional[int]:
+        match = _byte_match_regexp.match(self.basis)
+        return (int(match.group(3)) - int(match.group(2))) if match else None
+
+    def extension_match(self) -> Optional[str]:
+        match = _extension_match.match(self.basis)
+        return match.group(2) if match else None
+
+    def extension_mismatch(self) -> bool:
+        return "extension mismatch" in self.warning
+
+    def filename_mismatch(self) -> bool:
+        return "filename mismatch" in self.warning
 
     # noinspection PyNestedDecorators
     @field_validator("id")
