@@ -1,15 +1,12 @@
 from datetime import datetime
 from os import PathLike
 from sqlite3 import Connection
-from typing import Optional
-from typing import Type
-from typing import Union
+from typing import Optional, Type, Union
 from uuid import UUID
 
 from acacore.utils.functions import or_none
-from .base import Column
-from .base import FileDBBase
-from .base import SelectColumn
+
+from .base import Column, FileDBBase, SelectColumn
 
 
 class FileDB(FileDBBase):
@@ -44,8 +41,7 @@ class FileDB(FileDBBase):
                 to avoid parsing overhead.
             uri: If set to True, database is interpreted as a URI with a file path and an optional query string.
         """
-        from acacore.models.file import ConvertedFile
-        from acacore.models.file import File
+        from acacore.models.file import ConvertedFile, File
         from acacore.models.history import HistoryEntry
         from acacore.models.identification import SignatureCount
         from acacore.models.metadata import Metadata
@@ -148,6 +144,6 @@ class FileDB(FileDBBase):
                 operation=operation,
                 data=data,
                 reason=reason,
-                time=time or datetime.utcnow(),
-            )
+                time=time or datetime.now(),  # noqa: DTZ005
+            ),
         )

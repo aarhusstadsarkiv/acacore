@@ -1,8 +1,4 @@
-from logging import FileHandler
-from logging import Formatter
-from logging import INFO
-from logging import Logger
-from logging import getLogger
+from logging import INFO, FileHandler, Formatter, Logger, getLogger
 from pathlib import Path
 
 
@@ -20,7 +16,6 @@ def setup_logger(log_name: str, log_path: Path) -> Logger:
     Returns:
         A Logger instance.
     """
-
     if not log_path.parent.exists():
         Path.mkdir(log_path.parent, parents=True, exist_ok=True)
 
