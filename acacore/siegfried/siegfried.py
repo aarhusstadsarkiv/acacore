@@ -141,7 +141,7 @@ class SiegfriedMatch(BaseModel):
     # noinspection PyNestedDecorators
     @model_validator(mode="before")
     @classmethod
-    def unknown_id(cls, data: dict | object):
+    def unknown_id(cls, data: object):
         if isinstance(data, dict):
             return {
                 **data,
