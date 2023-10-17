@@ -76,7 +76,7 @@ class Siegfried:
         https://github.com/richardlehane/siegfried
     """
 
-    def __init__(self, binary: Union[str, PathLike] = "sf"):
+    def __init__(self, binary: Union[str, PathLike] = "sf", signature: str = "default.sig"):
         """
         Args:
             binary: The path to the Siegfried binary, or the program name if it is included in the PATH variable
@@ -85,6 +85,7 @@ class Siegfried:
             IdentificationError: If Siegfried is not configured properly
         """
         self.binary: str = str(binary)
+        self.signature: str = signature
         _check_process(run([self.binary, "-v"], capture_output=True, encoding="utf-8"))
 
     def run(self, *args: str) -> CompletedProcess:
@@ -115,7 +116,7 @@ class Siegfried:
         Raises:
             IdentificationError: If there is an error calling Siegfried or processing its results
         """
-        process: CompletedProcess = self.run("-json", "-multi", "1024", str(path))
+        process: CompletedProcess = self.run("-sig", self.signature, "-json", "-multi", "1024", str(path))
         try:
             return SiegfriedResult.model_validate_json(process.stdout)
         except ValueError as err:
@@ -134,7 +135,7 @@ class Siegfried:
         Raises:
             IdentificationError: If there is an error calling Siegfried or processing its results
         """
-        process: CompletedProcess = self.run("-json", "-multi", "1024", *map(str, paths))
+        process: CompletedProcess = self.run("-sig", self.signature, "-json", "-multi", "1024", *map(str, paths))
         try:
             result = SiegfriedResult.model_validate_json(process.stdout)
             return tuple(zip(paths, result.files))
