@@ -11,7 +11,7 @@ from typing import Union
 from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
-from pydantic import field_validator
+from pydantic import model_validator
 from pydantic.networks import AnyUrl
 from pydantic.networks import HttpUrl
 
@@ -48,8 +48,8 @@ class SiegfriedMatch(BaseModel):
     version: Optional[str] = None
     mime: str
     match_class: Optional[str] = Field(None, alias="class")
-    basis: str
-    warning: str
+    basis: list[str]
+    warning: list[str]
     URI: Optional[AnyUrl] = None
     permalink: Optional[HttpUrl] = None
 
@@ -60,8 +60,10 @@ class SiegfriedMatch(BaseModel):
         Returns:
             The length of the byte match or None, if the match was not on the basis of bytes.
         """
-        match = _byte_match_regexp_single.match(self.basis) or _byte_match_regexp_multi.match(self.basis)
-        return (int(match.group(3)) - int(match.group(2))) if match else None
+        for basis in self.basis:
+            match = _byte_match_regexp_single.match(basis) or _byte_match_regexp_multi.match(basis)
+            return (int(match.group(3)) - int(match.group(2))) if match else None
+        return None
 
     def extension_match(self) -> Optional[str]:
         """
@@ -70,8 +72,10 @@ class SiegfriedMatch(BaseModel):
         Returns:
             The matched extension or None, if the match was not on the basis of the extension.
         """
-        match = _extension_match.match(self.basis)
-        return match.group(2) if match else None
+        for basis in self.basis:
+            match = _extension_match.match(basis)
+            return match.group(2) if match else None
+        return None
 
     def extension_mismatch(self) -> bool:
         """
@@ -108,11 +112,17 @@ class SiegfriedMatch(BaseModel):
         )
 
     # noinspection PyNestedDecorators
-    @field_validator("id")
+    @model_validator(mode="before")
     @classmethod
-    def unknown_id(cls, _id: Optional[str]):
-        _id = (_id or "").strip()
-        return None if _id.lower() == "unknown" else _id or None
+    def unknown_id(cls, data: dict | object):
+        if isinstance(data, dict):
+            return {
+                **data,
+                "id": None if data["id"].lower().strip() == "unknown" else data["id"].strip() or None,
+                "basis": data["basis"].strip().split(";"),
+                "warning": data["warning"].strip().split(";"),
+            }
+        return data
 
 
 class SiegfriedFile(BaseModel):
