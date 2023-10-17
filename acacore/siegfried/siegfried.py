@@ -15,9 +15,9 @@ from pydantic.networks import HttpUrl
 
 from acacore.exceptions.files import IdentificationError
 
-_byte_match_regexp_single = re_compile(r"^(.*; )?byte match at (\d+), *(\d+) *(\([^)]*\))?(;.*)?$")
-_byte_match_regexp_multi = re_compile(r"^(.*; )?byte match at \[\[(\d+) +(\d+)]( \[\d+ +\d+])*] *(\([^)]*\))?(;.*)?$")
-_extension_match = re_compile(r"^(.*; )?extension match ([^;]+)(;.*)?$")
+_byte_match_regexp_single = re_compile(r"^byte match at (\d+), *(\d+)( *\([^)]*\))?$")
+_byte_match_regexp_multi = re_compile(r"^byte match at \[\[(\d+) +(\d+)]( \[\d+ +\d+])*]( \([^)]*\))?$")
+_extension_match = re_compile(r"^extension match (.+)$")
 TSignature = Literal["pronom", "loc", "tika", "freedesktop", "pronom-tika-loc", "deluxe", "archivematica"]
 
 
@@ -84,7 +84,8 @@ class SiegfriedMatch(BaseModel):
         """
         for basis in self.basis:
             match = _byte_match_regexp_single.match(basis) or _byte_match_regexp_multi.match(basis)
-            return (int(match.group(3)) - int(match.group(2))) if match else None
+            if match:
+                return (int(match.group(2)) - int(match.group(1))) if match else None
         return None
 
     def extension_match(self) -> Optional[str]:
@@ -96,7 +97,8 @@ class SiegfriedMatch(BaseModel):
         """
         for basis in self.basis:
             match = _extension_match.match(basis)
-            return match.group(2) if match else None
+            if match:
+                return match.group(1) if match else None
         return None
 
     def extension_mismatch(self) -> bool:
@@ -141,8 +143,8 @@ class SiegfriedMatch(BaseModel):
             return {
                 **data,
                 "id": None if data["id"].lower().strip() == "unknown" else data["id"].strip() or None,
-                "basis": data["basis"].strip().split(";"),
-                "warning": data["warning"].strip().split(";"),
+                "basis": filter(bool, map(str.strip, data["basis"].strip().split(";"))),
+                "warning": filter(bool, map(str.strip, data["warning"].strip().split(";"))),
             }
         return data
 
