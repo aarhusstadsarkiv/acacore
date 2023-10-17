@@ -17,7 +17,8 @@ from pydantic.networks import HttpUrl
 
 from acacore.exceptions.files import IdentificationError
 
-_byte_match_regexp = re_compile(r"^(.*; )?byte match at (\d+), *(\d+)(;.*)?$")
+_byte_match_regexp_single = re_compile(r"^(.*; )?byte match at (\d+), *(\d+) *(\([^)]*\))?(;.*)?$")
+_byte_match_regexp_multi = re_compile(r"^(.*; )?byte match at \[\[(\d+) +(\d+)]( \[\d+ +\d+])*] *(\([^)]*\))?(;.*)?$")
 _extension_match = re_compile(r"^(.*; )?extension match ([^;]+)(;.*)?$")
 TSignature = Literal["pronom", "loc", "tika", "freedesktop", "pronom-tika-loc", "deluxe", "archivematica"]
 
@@ -59,7 +60,7 @@ class SiegfriedMatch(BaseModel):
         Returns:
             The length of the byte match or None, if the match was not on the basis of bytes.
         """
-        match = _byte_match_regexp.match(self.basis)
+        match = _byte_match_regexp_single.match(self.basis) or _byte_match_regexp_multi.match(self.basis)
         return (int(match.group(3)) - int(match.group(2))) if match else None
 
     def extension_match(self) -> Optional[str]:
