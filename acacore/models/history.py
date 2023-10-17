@@ -1,6 +1,5 @@
 from datetime import datetime
 from typing import Optional
-from typing import Union
 
 from pydantic import UUID4
 
@@ -11,5 +10,5 @@ class HistoryEntry(ACABase):
     uuid: UUID4
     time: datetime
     operation: str
-    data: Optional[Union[dict, list, str, int, float, bool, datetime]] = None
+    data: Optional[object] = None
     reason: Optional[str] = None
