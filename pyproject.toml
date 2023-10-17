@@ -8,7 +8,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.9"
-pydantic = "^2.2.1"
+pydantic = "^2.4.2"
 tqdm = "^4.66.1"
 
 
@@ -113,6 +113,9 @@ exclude = [
     "__init__.py"
 ]
 
+[tool.ruff.isort]
+combine-as-imports = false
+force-single-line = true
 
 [tool.ruff.pydocstyle]
 convention = "google"

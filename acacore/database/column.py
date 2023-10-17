@@ -1,6 +1,11 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, Generic, Optional, Type, TypeVar, Union
+from typing import Callable
+from typing import Generic
+from typing import Optional
+from typing import Type
+from typing import TypeVar
+from typing import Union
 from uuid import UUID
 
 from pydantic import BaseModel

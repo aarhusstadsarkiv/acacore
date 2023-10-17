@@ -1,4 +1,5 @@
-from typing import Any, Optional
+from typing import Any
+from typing import Optional
 
 from pydantic import model_validator
 
@@ -11,6 +12,7 @@ class Identification(ACABase):
     puid: Optional[str]
     signature: Optional[str]
     warning: Optional[str]
+    file_size: Optional[int]
 
     # noinspection PyNestedDecorators
     @model_validator(mode="before")
