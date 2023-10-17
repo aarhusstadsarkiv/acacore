@@ -36,9 +36,9 @@ class SiegfriedMatch(BaseModel):
     ns: str
     id: Optional[str]
     format: str
-    version: str
+    version: Optional[str] = None
     mime: str
-    match_class: str = Field(alias="class")
+    match_class: Optional[str] = Field(None, alias="class")
     basis: str
     warning: str
 
