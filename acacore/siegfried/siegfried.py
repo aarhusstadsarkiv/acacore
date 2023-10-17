@@ -12,6 +12,8 @@ from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
 from pydantic import field_validator
+from pydantic.networks import AnyUrl
+from pydantic.networks import HttpUrl
 
 from acacore.exceptions.files import IdentificationError
 
@@ -47,6 +49,8 @@ class SiegfriedMatch(BaseModel):
     match_class: Optional[str] = Field(None, alias="class")
     basis: str
     warning: str
+    URI: Optional[AnyUrl] = None
+    permalink: Optional[HttpUrl] = None
 
     def byte_match(self) -> Optional[int]:
         match = _byte_match_regexp.match(self.basis)
