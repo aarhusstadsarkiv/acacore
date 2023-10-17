@@ -53,20 +53,51 @@ class SiegfriedMatch(BaseModel):
     permalink: Optional[HttpUrl] = None
 
     def byte_match(self) -> Optional[int]:
+        """
+        Get the length of the byte match, if any, or None.
+
+        Returns:
+            The length of the byte match or None, if the match was not on the basis of bytes.
+        """
         match = _byte_match_regexp.match(self.basis)
         return (int(match.group(3)) - int(match.group(2))) if match else None
 
     def extension_match(self) -> Optional[str]:
+        """
+        Get the matched extension.
+
+        Returns:
+            The matched extension or None, if the match was not on the basis of the extension.
+        """
         match = _extension_match.match(self.basis)
         return match.group(2) if match else None
 
     def extension_mismatch(self) -> bool:
+        """
+        Check whether the match has an extension mismatch warning.
+
+        Returns:
+            True if the match has an extension mismatch warning, False otherwise
+        """
         return "extension mismatch" in self.warning
 
     def filename_mismatch(self) -> bool:
+        """
+        Check whether the match has a filename mismatch warning.
+
+        Returns:
+            True if the match has a filename mismatch warning, False otherwise
+        """
         return "filename mismatch" in self.warning
 
     def sort_tuple(self) -> tuple[int, int, int, int, int]:
+        """
+        Get a tuple of integers useful for sorting matches. The fields used for the tuple are: byte match,
+        extension match, format, version, and mime.
+
+        Returns:
+            A tuple of 5 integers.
+        """
         return (
             self.byte_match() or 0,
             1 if self.extension_match() else 0,
@@ -91,11 +122,23 @@ class SiegfriedFile(BaseModel):
     matches: list[SiegfriedMatch]
 
     def best_match(self) -> Optional[SiegfriedMatch]:
+        """
+        Get the best match for the file.
+
+        Returns:
+            A SiegfriedMatch object or None if there are no known matches.
+        """
         matches: list[SiegfriedMatch] = [m for m in self.matches if m.id]
         matches.sort(key=SiegfriedMatch.sort_tuple)
         return matches[-1] if matches else None
 
     def best_matches(self) -> list[SiegfriedMatch]:
+        """
+        Get the matches for the file sorted by how good they are; best are first.
+
+        Returns:
+            A list of SiegfriedMatch objects.
+        """
         return sorted([m for m in self.matches if m.id], key=SiegfriedMatch.sort_tuple, reverse=True)
 
 
@@ -120,10 +163,8 @@ class Siegfried:
     def __init__(self, binary: Union[str, PathLike] = "sf", signature: str = "default.sig"):
         """
         Args:
-            binary: The path to the Siegfried binary, or the program name if it is included in the PATH variable
-
-        Raises:
-            IdentificationError: If Siegfried is not configured properly
+            binary: The path to the Siegfried binary, or the program name if it is included in the PATH variable.
+            signature: The signature file to use with Siegfried.
         """
         self.binary: str = str(binary)
         self.signature: str = signature
