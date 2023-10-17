@@ -3,8 +3,8 @@ from functools import lru_cache
 from http.client import HTTPResponse
 from urllib import request
 
-from models.reference_files import CustomSignature
-from models.reference_files import ReIdentifyModel
+from acacore.models.reference_files import CustomSignature
+from acacore.models.reference_files import ReIdentifyModel
 
 
 @lru_cache
