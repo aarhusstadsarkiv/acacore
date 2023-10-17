@@ -66,6 +66,15 @@ class SiegfriedMatch(BaseModel):
     def filename_mismatch(self) -> bool:
         return "filename mismatch" in self.warning
 
+    def sort_tuple(self) -> tuple[int, int, int, int, int]:
+        return (
+            self.byte_match() or 0,
+            1 if self.extension_match() else 0,
+            1 if self.format else 0,
+            1 if self.version else 0,
+            1 if self.mime else 0,
+        )
+
     # noinspection PyNestedDecorators
     @field_validator("id")
     @classmethod
