@@ -1,13 +1,23 @@
 from datetime import datetime
 from os import PathLike
 from pathlib import Path
-from sqlite3 import Connection, OperationalError
+from sqlite3 import Connection
 from sqlite3 import Cursor as SQLiteCursor
-from typing import Any, Generator, Generic, Optional, Type, TypeVar, Union, overload
+from sqlite3 import OperationalError
+from typing import Any
+from typing import Generator
+from typing import Generic
+from typing import Optional
+from typing import Type
+from typing import TypeVar
+from typing import Union
+from typing import overload
 
 from pydantic.main import BaseModel
 
-from .column import Column, SelectColumn, model_to_columns
+from .column import Column
+from .column import SelectColumn
+from .column import model_to_columns
 
 T = TypeVar("T")
 R = TypeVar("R")

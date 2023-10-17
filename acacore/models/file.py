@@ -3,12 +3,15 @@
 # -----------------------------------------------------------------------------
 import re
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional
+from typing import Tuple
 
-from pydantic import UUID4, Field
+from pydantic import UUID4
+from pydantic import Field
 
 from acacore.models.reference_files import CustomSignature
-from acacore.siegfried.siegfried import Siegfried, SiegfriedFile
+from acacore.siegfried.siegfried import Siegfried
+from acacore.siegfried.siegfried import SiegfriedFile
 from acacore.utils.io import size_fmt
 
 from .base import ACABase
