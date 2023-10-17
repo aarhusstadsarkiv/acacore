@@ -90,6 +90,11 @@ class SiegfriedFile(BaseModel):
     errors: str
     matches: list[SiegfriedMatch]
 
+    def best_match(self) -> Optional[SiegfriedMatch]:
+        matches: list[SiegfriedMatch] = [m for m in self.matches if m.id]
+        matches.sort(key=SiegfriedMatch.sort_tuple)
+        return matches[-1] if matches else None
+
 
 class SiegfriedResult(BaseModel):
     siegfried: str
