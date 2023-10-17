@@ -252,7 +252,7 @@ class Siegfried:
         Raises:
             IdentificationError: If Siegfried exits with a non-zero status code.
         """
-        return _check_process(run([self.binary, *args], capture_output=True, encoding="utf-8"))
+        return _check_process(run([self.binary, *args], capture_output=True, encoding="utf-8"))  # noqa: PLW1510
 
     def update(self, signature: TSignature, *, set_signature: bool = True):
         """
