@@ -14,7 +14,7 @@ from pydantic import field_validator
 from acacore.exceptions.files import IdentificationError
 
 
-def _check_process(process: CompletedProcess):
+def _check_process(process: CompletedProcess) -> CompletedProcess:
     """
     Raises:
         IdentificationError: if the process ends with a return code other than 0
@@ -23,6 +23,8 @@ def _check_process(process: CompletedProcess):
         raise IdentificationError(
             process.stderr or process.stdout or f"Unknown siegfried error code {process.returncode}"
         )
+
+    return process
 
 
 class SiegfriedIdentifier(BaseModel):
@@ -85,6 +87,21 @@ class Siegfried:
         self.binary: str = str(binary)
         _check_process(run([self.binary, "-v"], capture_output=True, encoding="utf-8"))
 
+    def run(self, *args: str) -> CompletedProcess:
+        """
+        Run the Siegfried command
+
+        Args:
+            *args: The arguments to be given to Siegfried (excluding the binary path/name).
+
+        Returns:
+            A subprocess.CompletedProcess object.
+
+        Raises:
+            IdentificationError: If Siegfried exits with a non-zero status code.
+        """
+        return _check_process(run([self.binary, *args], capture_output=True, encoding="utf-8"))
+
     def identify(self, path: Union[str, PathLike]) -> SiegfriedResult:
         """
         Identify a file.
@@ -98,12 +115,7 @@ class Siegfried:
         Raises:
             IdentificationError: If there is an error calling Siegfried or processing its results
         """
-        process: CompletedProcess = run(
-            [self.binary, "-json", "-multi", "1024", str(path)],
-            capture_output=True,
-            encoding="utf-8",
-        )
-        _check_process(process)
+        process: CompletedProcess = self.run("-json", "-multi", "1024", str(path))
         try:
             return SiegfriedResult.model_validate_json(process.stdout)
         except ValueError as err:
@@ -122,12 +134,7 @@ class Siegfried:
         Raises:
             IdentificationError: If there is an error calling Siegfried or processing its results
         """
-        process: CompletedProcess = run(
-            [self.binary, "-json", "-multi", "1024", *map(str, paths)],
-            capture_output=True,
-            encoding="utf-8",
-        )
-        _check_process(process)
+        process: CompletedProcess = self.run("-json", "-multi", "1024", *map(str, paths))
         try:
             result = SiegfriedResult.model_validate_json(process.stdout)
             return tuple(zip(paths, result.files))
