@@ -19,33 +19,32 @@ class TestFileActionEnum(unittest.TestCase):
         )
 
     def test_action_enum_values(self):
-        self.assertEqual(Action.CONVERT.value, "Convertool: To convert.")
-        self.assertEqual(Action.REPLACE.value, "Convertool: Replace with template. File is not preservable.")
-        self.assertEqual(
-            Action.MANUAL.value,
-            "Manual: File should be converted manually. [info about the manual conversion from reference_files].",
+        assert Action.CONVERT.value == "Convertool: To convert."
+        assert Action.REPLACE.value == "Convertool: Replace with template. File is not preservable."
+        assert Action.MANUAL.value == (
+            "Manual: File should be converted manually. [info about the manual conversion " "from reference_files]."
         )
-        self.assertEqual(Action.RENAME.value, "Renamer: File has extension mismatch. Should be renamed")
+        assert Action.RENAME.value == "Renamer: File has extension mismatch. Should be renamed"
 
     def test_file_action(self):
         self.file.action = Action.CONVERT
-        self.assertEqual(self.file.action, Action.CONVERT)
-        self.assertEqual(self.file.action.value, "Convertool: To convert.")
+        assert self.file.action == Action.CONVERT
+        assert self.file.action.value == "Convertool: To convert."
 
         self.file.action = Action.REPLACE
-        self.assertEqual(self.file.action, Action.REPLACE)
-        self.assertEqual(self.file.action.value, "Convertool: Replace with template. File is not preservable.")
+        assert self.file.action == Action.REPLACE
+        assert self.file.action.value == "Convertool: Replace with template. File is not preservable."
 
         self.file.action = Action.MANUAL
-        self.assertEqual(self.file.action, Action.MANUAL)
-        self.assertEqual(
-            self.file.action.value,
-            "Manual: File should be converted manually. [info about the manual conversion from reference_files].",
+        assert self.file.action == Action.MANUAL
+        assert (
+            self.file.action.value
+            == "Manual: File should be converted manually. [info about the manual conversion from reference_files]."
         )
 
         self.file.action = Action.RENAME
-        self.assertEqual(self.file.action, Action.RENAME)
-        self.assertEqual(self.file.action.value, "Renamer: File has extension mismatch. Should be renamed")
+        assert self.file.action == Action.RENAME
+        assert self.file.action.value == "Renamer: File has extension mismatch. Should be renamed"
 
 
 if __name__ == "__main__":
