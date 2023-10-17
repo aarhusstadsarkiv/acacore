@@ -1,15 +1,10 @@
 from datetime import datetime
 from os import PathLike
 from pathlib import Path
-from subprocess import CompletedProcess
-from subprocess import run
-from typing import Optional
-from typing import Union
+from subprocess import CompletedProcess, run
+from typing import Optional, Union
 
-from pydantic import BaseModel
-from pydantic import ConfigDict
-from pydantic import Field
-from pydantic import field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from acacore.exceptions.files import IdentificationError
 
@@ -17,11 +12,11 @@ from acacore.exceptions.files import IdentificationError
 def _check_process(process: CompletedProcess):
     """
     Raises:
-        IdentificationError: if the process ends with a return code other than 0
-    """
+        IdentificationError: if the process ends with a return code other than 0.
+    """  # noqa: D205
     if process.returncode != 0:
         raise IdentificationError(
-            process.stderr or process.stdout or f"Unknown siegfried error code {process.returncode}"
+            process.stderr or process.stdout or f"Unknown siegfried error code {process.returncode}",
         )
 
 
@@ -32,8 +27,8 @@ class SiegfriedIdentifier(BaseModel):
 
 class SiegfriedMatch(BaseModel):
     ns: str
-    id: Optional[str]
-    format: str
+    id: Optional[str]  # noqa: A003
+    format: str  # noqa: A003
     version: str
     mime: str
     match_class: str = Field(alias="class")
@@ -74,16 +69,16 @@ class Siegfried:
         https://github.com/richardlehane/siegfried
     """
 
-    def __init__(self, binary: Union[str, PathLike] = "sf"):
+    def __init__(self, binary: Union[str, PathLike] = "sf") -> None:
         """
         Args:
-            binary: The path to the Siegfried binary, or the program name if it is included in the PATH variable
+            binary: The path to the Siegfried binary, or the program name if it is included in the PATH variable.
 
         Raises:
-            IdentificationError: If Siegfried is not configured properly
-        """
+            IdentificationError: If Siegfried is not configured properly.
+        """  # noqa: D205
         self.binary: str = str(binary)
-        _check_process(run([self.binary, "-v"], capture_output=True, encoding="utf-8"))
+        _check_process(run([self.binary, "-v"], capture_output=True, encoding="utf-8"))  # noqa: PLW1510
 
     def identify(self, path: Union[str, PathLike]) -> SiegfriedResult:
         """
@@ -102,6 +97,7 @@ class Siegfried:
             [self.binary, "-json", "-multi", "1024", str(path)],
             capture_output=True,
             encoding="utf-8",
+            check=False,
         )
         _check_process(process)
         try:
@@ -117,7 +113,7 @@ class Siegfried:
             paths: The paths to the files
 
         Returns:
-            A tuple of tuples joining the paths with their SiegfriedFile result
+            tuple[tuple[Path, SiegfriedFile]: A tuple of tuples joining the paths with their SiegfriedFile result
 
         Raises:
             IdentificationError: If there is an error calling Siegfried or processing its results
@@ -126,6 +122,7 @@ class Siegfried:
             [self.binary, "-json", "-multi", "1024", *map(str, paths)],
             capture_output=True,
             encoding="utf-8",
+            check=False,
         )
         _check_process(process)
         try:

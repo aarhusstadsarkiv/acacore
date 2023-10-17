@@ -3,9 +3,11 @@ from functools import lru_cache
 from http.client import HTTPResponse
 from urllib import request
 
+from models.reference_files import CustomSignature, ReIdentifyModel
+
 
 @lru_cache
-def to_re_identify() -> dict[str, str]:
+def to_re_identify() -> list[ReIdentifyModel]:
     """Gets the json file with the different formats that we wish to reidentify.
 
     Is kept updated on the reference-files repo. The function caches the result,
@@ -22,11 +24,16 @@ def to_re_identify() -> dict[str, str]:
     if re_identify_map is None:
         raise ConnectionError
 
-    return re_identify_map
+    result_list: list[ReIdentifyModel] = []
+    for key, values in re_identify_map.items():
+        result = ReIdentifyModel(puid=key, **values)
+        result_list.append(result)
+
+    return result_list
 
 
 @lru_cache
-def costum_sigs() -> list[dict]:
+def costum_sigs() -> list[CustomSignature]:
     """Gets the json file with our own costum formats in a list.
 
     Is kept updated on the reference-files repo. The function caches the result,
@@ -38,9 +45,15 @@ def costum_sigs() -> list[dict]:
     if response.getcode() != 200:
         raise ConnectionError
 
-    re_identify_map: dict[str, str] = json.loads(response.read())
+    custom_list: list[dict] = json.loads(response.read())
 
-    if re_identify_map is None:
+    if custom_list is None:
         raise ConnectionError
 
-    return re_identify_map
+    result_list: list[CustomSignature] = []
+
+    for values in custom_list:
+        result = CustomSignature(**values)
+        result_list.append(result)
+
+    return result_list
