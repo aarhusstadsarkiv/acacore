@@ -38,7 +38,10 @@ _sql_schema_type_converters: dict[
 }
 
 
-def _schema_to_column(name: str, schema: dict) -> "Column":
+def _schema_to_column(name: str, schema: dict, defs: Optional[dict[str, dict]] = None) -> "Column":
+    defs = defs or {}
+    if schema.get("$ref"):
+        schema.update(defs[schema.get("$ref", "").removeprefix("#/$defs/")])
     schema_type: Optional[str] = schema.get("type", None)
     schema_any_of: list[dict] = schema.get("anyOf", [])
 
@@ -58,7 +61,7 @@ def _schema_to_column(name: str, schema: dict) -> "Column":
     elif schema_any_of:
         if (schema_any_of[-1].get("type", None) != "null" and len(schema_any_of) > 1) or len(schema_any_of) > 2:
             raise TypeError(f"Cannot recognize type from schema {schema!r}")
-        return _schema_to_column(name, {**schema_any_of[0], **schema})
+        return _schema_to_column(name, {**schema_any_of[0], **schema}, defs)
     else:
         raise TypeError(f"Cannot recognize type from schema {schema!r}")
 
@@ -75,7 +78,8 @@ def _schema_to_column(name: str, schema: dict) -> "Column":
 
 
 def model_to_columns(model: Type[BaseModel]) -> list["Column"]:
-    return [_schema_to_column(p, s) for p, s in model.model_json_schema()["properties"].items()]
+    schema: dict = model.model_json_schema()
+    return [_schema_to_column(p, s, schema.get("$defs")) for p, s in schema["properties"].items()]
 
 
 class Column(Generic[T]):
