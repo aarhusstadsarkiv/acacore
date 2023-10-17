@@ -20,7 +20,7 @@ def to_re_identify() -> list[ReIdentifyModel]:
     if response.getcode() != 200:
         raise ConnectionError
 
-    re_identify_map: dict[str, str] = json.loads(response.read())
+    re_identify_map: dict[str, dict[str, str]] = json.loads(response.read())
 
     if re_identify_map is None:
         raise ConnectionError
