@@ -56,7 +56,9 @@ def _schema_to_column(name: str, schema: dict, defs: Optional[dict[str, dict]] =
         sql_type = _sql_schema_types.get(schema_type, None)
         type_name: str = schema.get("format", schema_type)
 
-        if type_name in _sql_schema_type_converters:
+        if schema.get("enum"):
+            to_entry, from_entry = lambda e: e.value, str
+        elif type_name in _sql_schema_type_converters:
             to_entry, from_entry = _sql_schema_type_converters[type_name]
         else:
             raise TypeError(f"Cannot recognize type from schema {schema!r}")
