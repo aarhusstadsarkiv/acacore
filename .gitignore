@@ -162,3 +162,5 @@ cython_debug/
 /*.db
 
 .ruff_cache/
+
+/tests/tmp/
