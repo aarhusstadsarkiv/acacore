@@ -1,13 +1,15 @@
 # -----------------------------------------------------------------------------
 # Imports
 # -----------------------------------------------------------------------------
-from enum import Enum
 from pathlib import Path
 from re import compile as re_compile
+from typing import Literal
 from typing import Optional
+from typing import Union
 
 from pydantic import Field
 from pydantic import UUID4
+from typing_extensions import TypedDict
 
 from acacore.models.reference_files import CustomSignature
 from acacore.siegfried.siegfried import Siegfried
@@ -19,12 +21,40 @@ from ..utils.functions import get_bof
 from ..utils.functions import get_eof
 
 
-class Action(Enum):
-    CONVERT = "CONVERT"  # To convert.
-    REPLACE = "REPLACE"  # Replace with template. File is not preservable.
-    MANUAL = "MANUAL"  # File should be converted manually. [info about the manual conversion from reference_files].
-    RENAME = "RENAME"  # File has extension mismatch. Should be renamed
-    IGNORE = "IGNORE"  # File should be ignored
+class ActionConvert(TypedDict):
+    type: Literal["CONVERT"]
+    converter: str
+    outputs: list[str]
+
+
+class ActionExtract(TypedDict):
+    type: Literal["EXTRACT"]
+    tool: str
+    output: str
+
+
+class ActionReplace(TypedDict):
+    type: Literal["REPLACE"]
+    template: str
+
+
+class ActionManual(TypedDict):
+    type: Literal["MANUAL"]
+    reasoning: str
+    process: str
+
+
+class ActionRename(TypedDict):
+    type: Literal["RENAME"]
+    new_name: str
+
+
+class ActionIgnore(TypedDict):
+    type: Literal["IGNORE"]
+    reasoning: str
+
+
+TAction = Union[ActionConvert, ActionExtract, ActionReplace, ActionManual, ActionRename, ActionIgnore]
 
 
 # -----------------------------------------------------------------------------
@@ -41,7 +71,7 @@ class File(ACABase):
     file_size_in_bytes: int
     signature: Optional[str]
     warning: Optional[str] = None
-    action: Optional[Action] = None
+    action: Optional[TAction] = None
     root: Optional[Path] = Field(None, ignore=True)
 
     def get_checksum(self) -> str:
