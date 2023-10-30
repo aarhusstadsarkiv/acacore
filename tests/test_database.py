@@ -1,6 +1,5 @@
 from hashlib import sha256
 from pathlib import Path
-from random import randint
 from uuid import uuid4
 
 import pytest
@@ -27,7 +26,6 @@ def test_file(test_files: Path, test_files_data: dict[str, dict]) -> File:
     filename, filedata = next(iter(test_files_data.items()))
     file: Path = test_files / filename
     return File(
-        id=randint(1, 10000),
         uuid=uuid4(),
         checksum=sha256(file.read_bytes()).hexdigest(),
         puid=filedata["matches"]["id"],

@@ -34,7 +34,6 @@ class Action(Enum):
 class File(ACABase):
     """File data model."""
 
-    id: int = Field(primary_key=True)  # noqa: A003
     uuid: UUID4 = Field(primary_key=True)
     checksum: str
     puid: Optional[str]
