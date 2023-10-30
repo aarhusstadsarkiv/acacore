@@ -23,8 +23,8 @@ jobs:
           poetry-version: ${{ env.POETRY_VERSION }}
       - uses: actions/setup-go@v4
       - run: poetry install
-      - run: eval $(go env)
       - name: Unit test
         run: |
+          eval $(go env)
           poetry run coverage run -m pytest
           poetry run coverage report -m --fail-under=80 --skip-empty --skip-covered
