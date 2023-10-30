@@ -42,24 +42,24 @@ class File(ACABase):
     signature: Optional[str]
     warning: Optional[str] = None
     action: Optional[Action] = None
+    root: Optional[Path] = Field(None, ignore=True)
 
-    def get_checksum(self, root: Optional[Path] = None) -> str:
-        self.checksum = file_checksum(self.get_absolute_path(root))
+    def get_checksum(self) -> str:
+        self.checksum = file_checksum(self.get_absolute_path(self.root))
         return self.checksum
 
-    def identify(self, sf: Siegfried, root: Optional[Path] = None) -> SiegfriedFile:
+    def identify(self, sf: Siegfried) -> SiegfriedFile:
         """Identify the file using `siegfried`.
 
         Args:
             sf (Siegfried): A Siegfried class object
-            root: Root for relative path
 
         Returns:
             SiegfriedFile: A dataclass object containing the results from the identification
         """
-        return sf.identify(self.get_absolute_path(root)).files[0]
+        return sf.identify(self.get_absolute_path(self.root)).files[0]
 
-    def identify_custom(self, custom_sigs: list[CustomSignature], root: Optional[Path] = None) -> CustomSignature:
+    def identify_custom(self, custom_sigs: list[CustomSignature]) -> CustomSignature:
         """Uses the BOF and EOF to try to determine a ACAUID for the file.
 
         The custom_sigs list should be found on the `reference_files` repo.
@@ -67,10 +67,9 @@ class File(ACABase):
 
         Args:
             custom_sigs: A list of the custom_signatures that the file should be checked against
-            root: Root for relative path
         """
-        bof = get_bof(self.get_absolute_path(root)).hex()
-        eof = get_eof(self.get_absolute_path(root)).hex()
+        bof = get_bof(self.get_absolute_path(self.root)).hex()
+        eof = get_eof(self.get_absolute_path(self.root)).hex()
         signature: Optional[CustomSignature] = None
 
         # We have to go through all the signatures in order to check their BOF en EOF with the file.
@@ -102,7 +101,7 @@ class File(ACABase):
         """
         return self.relative_path.name
 
-    def ext(self) -> str:
+    def suffix(self) -> str:
         """
         Get the file extension.
 
