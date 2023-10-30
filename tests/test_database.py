@@ -1,8 +1,9 @@
-from pathlib import Path
-from uuid import uuid4
 from hashlib import sha256
+from pathlib import Path
+from random import randint
+from uuid import uuid4
 
-from pytest import fixture
+import pytest
 
 from acacore.database import FileDB
 from acacore.database import model_to_columns
@@ -14,17 +15,16 @@ from acacore.models.file import File
 from acacore.models.history import HistoryEntry
 from acacore.models.identification import SignatureCount
 from acacore.models.metadata import Metadata
-from random import randint
 
 
-@fixture(scope="session")
+@pytest.fixture(scope="session")
 def database_path(temp_folder: Path) -> Path:
     return temp_folder / "files.db"
 
 
-@fixture(scope="session")
+@pytest.fixture(scope="session")
 def test_file(test_files: Path, test_files_data: dict[str, dict]) -> File:
-    filename, filedata = list(test_files_data.items())[0]
+    filename, filedata = next(iter(test_files_data.items()))
     file: Path = test_files / filename
     return File(
         id=randint(1, 10000),
@@ -44,15 +44,22 @@ def test_database_classes(database_path: Path):
     db: FileDB = FileDB(database_path)
 
     # Check tables classes
-    assert isinstance(db.files, ModelTable) and issubclass(db.files.model, File)
-    assert isinstance(db.metadata, ModelTable) and issubclass(db.metadata.model, Metadata)
-    assert isinstance(db.converted_files, ModelTable) and issubclass(db.converted_files.model, ConvertedFile)
-    assert isinstance(db.history, ModelTable) and issubclass(db.history.model, HistoryEntry)
+    assert isinstance(db.files, ModelTable)
+    assert issubclass(db.files.model, File)
+    assert isinstance(db.metadata, ModelTable)
+    assert issubclass(db.metadata.model, Metadata)
+    assert isinstance(db.converted_files, ModelTable)
+    assert issubclass(db.converted_files.model, ConvertedFile)
+    assert isinstance(db.history, ModelTable)
+    assert issubclass(db.history.model, HistoryEntry)
 
     # Check views classes
-    assert isinstance(db.not_converted, ModelView) and issubclass(db.not_converted.model, File)
-    assert isinstance(db.identification_warnings, ModelView) and issubclass(db.identification_warnings.model, File)
-    assert isinstance(db.signature_count, ModelView) and issubclass(db.signature_count.model, SignatureCount)
+    assert isinstance(db.not_converted, ModelView)
+    assert issubclass(db.not_converted.model, File)
+    assert isinstance(db.identification_warnings, ModelView)
+    assert issubclass(db.identification_warnings.model, File)
+    assert isinstance(db.signature_count, ModelView)
+    assert issubclass(db.signature_count.model, SignatureCount)
 
 
 # noinspection SqlResolve,SqlNoDataSourceInspection

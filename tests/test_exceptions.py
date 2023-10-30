@@ -1,4 +1,4 @@
-from pytest import raises
+import pytest
 
 from acacore.exceptions.base import ACAException
 from acacore.exceptions.files import FileCollectionError
@@ -7,14 +7,14 @@ from acacore.exceptions.files import IdentificationError
 
 
 def test_subclasses():
-    with raises(ACAException):
-        raise ACAException()
+    with pytest.raises(ACAException):
+        raise ACAException
 
-    with raises(ACAException):
-        raise IdentificationError()
+    with pytest.raises(ACAException):
+        raise IdentificationError
 
-    with raises(ACAException):
-        raise FileCollectionError()
+    with pytest.raises(ACAException):
+        raise FileCollectionError
 
-    with raises(ACAException):
-        raise FileParseError()
+    with pytest.raises(ACAException):
+        raise FileParseError

@@ -1,24 +1,24 @@
 from os import environ
 from pathlib import Path
 
-from pytest import fixture, raises
+import pytest
 
-from acacore.siegfried import Siegfried
 from acacore.exceptions.files import IdentificationError
+from acacore.siegfried import Siegfried
 
 
-@fixture
+@pytest.fixture()
 def siegfried() -> Siegfried:
     return Siegfried(Path(environ["GOPATH"], "bin", "sf"), "pronom.sig")
 
 
-@fixture
+@pytest.fixture()
 def siegfried_folder() -> Path:
     return Path.home() / "siegfried"
 
 
 def test_fail(siegfried: Siegfried):
-    with raises(IdentificationError):
+    with pytest.raises(IdentificationError):
         siegfried.run("-version")
 
 
@@ -60,7 +60,7 @@ def test_identify(siegfried: Siegfried, test_files: Path, test_files_data: dict[
 
 
 def test_identify_many(siegfried: Siegfried, test_files: Path, test_files_data: dict[str, dict]):
-    results = siegfried.identify_many([test_files / name for name in test_files_data.keys()])
+    results = siegfried.identify_many([test_files / name for name in test_files_data])
     for [_, result], [filename, filedata] in zip(results, test_files_data.items()):
         assert result.filename == str(test_files / filename)
         assert result.filesize == filedata["filesize"]

@@ -8,7 +8,7 @@ from acacore.utils.log import setup_logger
 
 def test_functions():
     # or_none
-    func = or_none(lambda x: 5)
+    func = or_none(lambda _: 5)
     assert func(1) == 5
     assert func(None) is None
 
