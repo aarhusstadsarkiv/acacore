@@ -23,8 +23,9 @@ jobs:
           poetry-version: ${{ env.POETRY_VERSION }}
       - uses: actions/setup-go@v4
       - run: poetry install
-      - run: go env
       - name: Unit test
+        env:
+          GOPATH: /home/runner/go
         run: |
           eval $(go env)
           poetry run coverage run -m pytest
