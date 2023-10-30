@@ -64,7 +64,7 @@ class File(ACABase):
         Returns:
             SiegfriedFile: A dataclass object containing the results from the identification
         """
-        return sf.identify(self.get_absolute_path())[0]
+        return sf.identify(self.get_absolute_path()).files[0]
 
     def re_identify_with_aca(self, costum_sigs: list[CustomSignature]) -> None:
         """Uses the BOF and EOF to try to determine a ACAUID for the file.
