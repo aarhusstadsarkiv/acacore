@@ -149,13 +149,10 @@ class File(ACABase):
         str
             File size in human-readable format.
         """
-        return str(size_fmt(self.get_absolute_path().stat().st_size))
+        return size_fmt(self.get_absolute_path().stat().st_size)
 
     def get_bof_and_eof(self) -> Tuple[str, str]:
         """Get the first and last kilobyte of the file.
-
-        Args:
-            file (Path): Path to file
 
         Returns:
             Tuple[str,str]: BOF and then EOF as `str`.
