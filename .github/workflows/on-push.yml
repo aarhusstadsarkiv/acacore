@@ -3,6 +3,10 @@ name: Linting & Test
 on:
     push
 
+env:
+  PYTHON_VERSION: 3.10.13
+  POETRY_VERSION: 1.6.1
+
 jobs:
     linting:
         uses: aarhusstadsarkiv/acautils/.github/workflows/linting_ruff-mypy.yml@main
