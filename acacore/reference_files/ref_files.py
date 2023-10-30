@@ -34,8 +34,8 @@ def to_re_identify() -> list[ReIdentifyModel]:
 
 
 @lru_cache
-def costum_sigs() -> list[CustomSignature]:
-    """Gets the json file with our own costum formats in a list.
+def custom_sigs() -> list[CustomSignature]:
+    """Gets the json file with our own custom formats in a list.
 
     Is kept updated on the reference-files repo. The function caches the result,
     soo multiple calls in the same run should not be an issue.
