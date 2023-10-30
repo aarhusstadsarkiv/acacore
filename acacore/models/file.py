@@ -3,7 +3,6 @@
 # -----------------------------------------------------------------------------
 import re
 from enum import Enum
-from hashlib import sha256
 from pathlib import Path
 from typing import Optional
 from typing import Tuple
@@ -14,6 +13,7 @@ from pydantic import Field
 from acacore.models.reference_files import CustomSignature
 from acacore.siegfried.siegfried import Siegfried
 from acacore.siegfried.siegfried import SiegfriedFile
+from acacore.utils.functions import file_checksum
 from acacore.utils.io import size_fmt
 
 from .base import ACABase
@@ -45,13 +45,7 @@ class File(ACABase):
     action: Optional[Action] = None
 
     def get_checksum(self) -> str:
-        file_hash = sha256()
-        with self.get_absolute_path().open("rb") as f:
-            chunk = f.read(2**20)
-            while chunk:
-                file_hash.update(chunk)
-                chunk = f.read(2**20)
-        self.checksum = file_hash.hexdigest()
+        self.checksum = file_checksum(self.get_absolute_path())
         return self.checksum
 
     def identify(self, sf: Siegfried) -> SiegfriedFile:
