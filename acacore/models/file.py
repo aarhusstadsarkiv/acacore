@@ -168,7 +168,7 @@ class File(ACABase):
                 # File too small :)
                 file_bytes.seek(-file_bytes.tell(), 2)
             eof = file_bytes.read(1024).hex()
-        return (bof, eof)
+        return bof, eof
 
 
 class ArchiveFile(Identification, File):
