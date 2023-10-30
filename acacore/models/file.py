@@ -7,18 +7,19 @@ from typing import Literal
 from typing import Optional
 from typing import Union
 
-from pydantic import Field
 from pydantic import UUID4
+from pydantic import Field
 from typing_extensions import TypedDict
 
 from acacore.models.reference_files import CustomSignature
 from acacore.siegfried.siegfried import Siegfried
 from acacore.siegfried.siegfried import SiegfriedFile
 from acacore.utils.functions import file_checksum
+from acacore.utils.functions import get_bof
+from acacore.utils.functions import get_eof
+
 from .base import ACABase
 from .identification import Identification
-from ..utils.functions import get_bof
-from ..utils.functions import get_eof
 
 
 class ActionConvert(TypedDict):
