@@ -1,0 +1,98 @@
+{
+  "json.json": {
+    "filesize": 355,
+    "errors": "",
+    "matches": {
+      "ns": "pronom",
+      "id": "fmt/817",
+      "format": "JSON Data Interchange Format",
+      "version": "",
+      "mime": "application/json",
+      "match_class": "",
+      "basis": ["extension match json"],
+      "warning": ["match on extension only"],
+      "URI": null,
+      "permalink": null
+    }
+  },
+  "lwp.lwp": {
+    "filesize": 19172,
+    "errors": "",
+    "matches": {
+      "ns": "pronom",
+      "id": "x-fmt/340",
+      "format": "Lotus WordPro Document",
+      "version": "96",
+      "mime": "application/lwp",
+      "match_class": "Word Processor",
+      "basis": ["extension match lwp", "byte match at 0, 32"],
+      "warning": [],
+      "URI":  null,
+      "permalink": null
+    }
+  },
+  "mp3.mp3": {
+    "filesize": 109374,
+    "errors": "",
+    "matches": {
+      "ns": "pronom",
+      "id": "fmt/134",
+      "format": "MPEG 1/2 Audio Layer 3",
+      "version": "",
+      "mime": "audio/mpeg",
+      "match_class": "Audio",
+      "basis": ["extension match mp3", "byte match at 0, 1521 (signature 5/9)"],
+      "warning": [],
+      "URI":  null,
+      "permalink": null
+    }
+  },
+  "mp4.mp4": {
+    "filesize": 146693,
+    "errors": "",
+    "matches": {
+      "ns": "pronom",
+      "id": "fmt/199",
+      "format": "MPEG-4 Media File",
+      "version": "",
+      "mime": "application/mp4",
+      "match_class": "Audio, Video",
+      "basis": ["extension match mp4", "byte match at [[4 8] [135072 4]]"],
+      "warning": [],
+      "URI":  null,
+      "permalink": null
+    }
+  },
+  "pdf.pdf": {
+    "filesize": 38468,
+    "errors": "",
+    "matches": {
+      "ns": "pronom",
+      "id": "fmt/276",
+      "format": "Acrobat PDF 1.7 - Portable Document Format",
+      "version": "1.7",
+      "mime": "application/pdf",
+      "match_class": "Page Description",
+      "basis": ["extension match pdf", "byte match at [[0 8] [38463 5]]"],
+      "warning": [],
+      "URI":  null,
+      "permalink": null
+    }
+  },
+  "txt.txt": {
+    "filesize": 2136,
+    "errors": "",
+    "matches": {
+      "ns": "pronom",
+      "id": "x-fmt/111",
+      "format": "Plain Text File",
+      "version": "",
+      "mime": "text/plain",
+      "match_class": "",
+      "basis": ["extension match txt", "text match UTF-8 Unicode"],
+      "warning": [],
+      "URI":  null,
+      "permalink": null
+    }
+  }
+}

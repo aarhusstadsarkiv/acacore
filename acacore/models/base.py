@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 from typing import Any
 
@@ -12,4 +11,4 @@ class ACABase(BaseModel):
         to_file.write_text(super().model_dump_json(), encoding="utf-8")
 
     def encode(self) -> Any:  # noqa: ANN401
-        return json.loads(super().model_dump_json())
+        return super().model_dump(mode="json")

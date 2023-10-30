@@ -20,10 +20,10 @@ from .identification import Identification
 
 
 class Action(Enum):
-    CONVERT = "Convertool: To convert."
-    REPLACE = "Convertool: Replace with template. File is not preservable."
-    MANUAL = "Manual: File should be converted manually. [info about the manual conversion from reference_files]."
-    RENAME = "Renamer: File has extension mismatch. Should be renamed"
+    CONVERT = "CONVERT"  # To convert.
+    REPLACE = "REPLACE"  # Replace with template. File is not preservable.
+    MANUAL = "MANUAL"  # File should be converted manually. [info about the manual conversion from reference_files].
+    RENAME = "RENAME"  # File has extension mismatch. Should be renamed
 
 
 # -----------------------------------------------------------------------------
@@ -150,13 +150,10 @@ class File(ACABase):
         str
             File size in human-readable format.
         """
-        return str(size_fmt(self.get_absolute_path().stat().st_size))
+        return size_fmt(self.get_absolute_path().stat().st_size)
 
     def get_bof_and_eof(self) -> Tuple[str, str]:
         """Get the first and last kilobyte of the file.
-
-        Args:
-            file (Path): Path to file
 
         Returns:
             Tuple[str,str]: BOF and then EOF as `str`.
@@ -172,7 +169,7 @@ class File(ACABase):
                 # File too small :)
                 file_bytes.seek(-file_bytes.tell(), 2)
             eof = file_bytes.read(1024).hex()
-        return (bof, eof)
+        return bof, eof
 
 
 class ArchiveFile(Identification, File):

@@ -126,6 +126,7 @@ class FileDB(FileDBBase):
         self.files.create(True)
         self.metadata.create(True)
         self.converted_files.create(True)
+        self.history.create(True)
         self.not_converted.create(True)
         self.identification_warnings.create(True)
         self.signature_count.create(True)

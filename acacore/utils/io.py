@@ -9,13 +9,12 @@ def size_fmt(size: float) -> str:
 
     Parameters
     ----------
-    size: float
+    size:
         The file size in bytes.
 
     Returns:
     -------
-    str
-        Human readable string representing size in binary multiples.
+    Human readable string representing size in binary multiples.
     """
     unit: int = int(log2(size) // 10)
     unit = unit if unit < len(binary_units) else len(binary_units) - 1

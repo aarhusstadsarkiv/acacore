@@ -1,8 +1,32 @@
 name: Linting & Test
 
 on:
-    push
+  push
+
+env:
+  PYTHON_VERSION: 3.9.18
+  POETRY_VERSION: 1.6.1
 
 jobs:
-    call-linting-from-utils:
-        uses: aarhusstadsarkiv/acautils/.github/workflows/linting_ruff-mypy.yml@main
+  linting:
+    uses: aarhusstadsarkiv/acautils/.github/workflows/linting_ruff-mypy.yml@main
+  pytest:
+    name: pytest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - uses: abatilo/actions-poetry@v2
+        with:
+          poetry-version: ${{ env.POETRY_VERSION }}
+      - uses: actions/setup-go@v4
+      - run: poetry install
+      - run: go install github.com/richardlehane/siegfried/cmd/sf@latest
+      - name: Unit test
+        env:
+          GOPATH: /home/runner/go
+        run: |
+          poetry run coverage run -m pytest
+          poetry run coverage report -m --fail-under=80 --skip-empty --skip-covered
