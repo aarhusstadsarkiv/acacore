@@ -8,7 +8,6 @@ from acacore.database import FileDB
 from acacore.database import model_to_columns
 from acacore.database.base import ModelTable
 from acacore.database.base import ModelView
-from acacore.models.file import Action
 from acacore.models.file import ConvertedFile
 from acacore.models.file import File
 from acacore.models.history import HistoryEntry
@@ -34,7 +33,7 @@ def test_file(test_files: Path, test_files_data: dict[str, dict]) -> File:
         file_size_in_bytes=file.stat().st_size,
         signature=filedata["matches"]["format"],
         warning="; ".join(filedata["matches"]["warning"]),
-        action=Action.CONVERT,
+        action={"type": "CONVERT", "converter": "convertool", "outputs": ["odt", "pdf"]},
     )
 
 
@@ -118,7 +117,6 @@ def test_insert_select(database_path: Path, test_file: File):
 
     db: FileDB = FileDB(database_path)
     test_file2 = test_file.model_copy(deep=True)
-    test_file2.id = test_file.id // 2
     test_file2.uuid = uuid4()
 
     db.files.insert(test_file)
@@ -132,13 +130,7 @@ def test_insert_select(database_path: Path, test_file: File):
     assert cursor.table.name == db.files.name
     assert test_file.model_dump() == result_file.model_dump()
 
-    cursor = db.files.select(order_by=[("ID", "asc")])
-    result_files = list(cursor)
-    assert len(result_files) == 2
-    assert result_files[0].uuid == test_file2.uuid
-    assert result_files[1].uuid == test_file.uuid
-
-    cursor = db.files.select(order_by=[("ID", "desc")])
+    cursor = db.files.select(order_by=[("ROWID", "asc")])
     result_files = list(cursor)
     assert len(result_files) == 2
     assert result_files[0].uuid == test_file.uuid
