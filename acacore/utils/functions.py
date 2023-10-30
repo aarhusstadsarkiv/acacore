@@ -1,3 +1,4 @@
+from hashlib import sha256
 from pathlib import Path
 from typing import Callable
 from typing import Optional
@@ -30,3 +31,13 @@ def rm_tree(path: Path):
         rm_tree(item) if item.is_dir() else item.unlink(missing_ok=True)
 
     path.rmdir()
+
+
+def file_checksum(path: Path) -> str:
+    file_hash = sha256()
+    with path.open("rb") as f:
+        chunk = f.read(2**20)
+        while chunk:
+            file_hash.update(chunk)
+            chunk = f.read(2**20)
+    return file_hash.hexdigest()
