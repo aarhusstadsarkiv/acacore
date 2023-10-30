@@ -93,7 +93,7 @@ class Cursor:
         if model:
             return (
                 model.model_validate(
-                    {c.alias or c.name: v for c, v in zip(select_columns, vs)},
+                    {c.alias or c.name: c.from_entry(v) for c, v in zip(select_columns, vs)},
                 )
                 for vs in self.cursor.fetchall()
             )
