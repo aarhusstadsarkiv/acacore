@@ -3,6 +3,8 @@ from functools import lru_cache
 from http.client import HTTPResponse
 from urllib import request
 
+from pydantic import TypeAdapter
+
 from acacore.models.reference_files import CustomSignature
 from acacore.models.reference_files import ReIdentifyModel
 
@@ -53,10 +55,4 @@ def get_custom_signatures() -> list[CustomSignature]:
     if custom_list is None:
         raise ConnectionError
 
-    result_list: list[CustomSignature] = []
-
-    for values in custom_list:
-        result = CustomSignature(**values)
-        result_list.append(result)
-
-    return result_list
+    return TypeAdapter(list[CustomSignature]).validate_python(custom_list)
