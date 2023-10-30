@@ -9,7 +9,8 @@ from acacore.models.reference_files import ReIdentifyModel
 
 @lru_cache
 def get_to_re_identify() -> list[ReIdentifyModel]:
-    """Gets the json file with the different formats that we wish to reidentify.
+    """
+    Gets the json file with the different formats that we wish to re-identify.
 
     Is kept updated on the reference-files repo. The function caches the result,
     soo multiple calls in the same run should not be an issue.
@@ -35,7 +36,8 @@ def get_to_re_identify() -> list[ReIdentifyModel]:
 
 @lru_cache
 def get_custom_signatures() -> list[CustomSignature]:
-    """Gets the json file with our own custom formats in a list.
+    """
+    Gets the json file with our own custom formats in a list.
 
     Is kept updated on the reference-files repo. The function caches the result,
     soo multiple calls in the same run should not be an issue.
