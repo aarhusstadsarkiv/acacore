@@ -24,6 +24,7 @@ class Action(Enum):
     REPLACE = "REPLACE"  # Replace with template. File is not preservable.
     MANUAL = "MANUAL"  # File should be converted manually. [info about the manual conversion from reference_files].
     RENAME = "RENAME"  # File has extension mismatch. Should be renamed
+    IGNORE = "IGNORE"  # File should be ignored
 
 
 # -----------------------------------------------------------------------------
