@@ -23,6 +23,7 @@ jobs:
           poetry-version: ${{ env.POETRY_VERSION }}
       - uses: actions/setup-go@v4
       - run: poetry install
+      - run: go install github.com/richardlehane/siegfried/cmd/sf@latest
       - name: Unit test
         env:
           GOPATH: /home/runner/go
