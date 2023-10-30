@@ -4,7 +4,7 @@ on:
     push
 
 jobs:
-    call-linting-from-utils:
+    linting:
         uses: aarhusstadsarkiv/acautils/.github/workflows/linting_ruff-mypy.yml@main
     pytest:
         name: pytest
