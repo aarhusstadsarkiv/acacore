@@ -61,15 +61,17 @@ def _schema_to_column(name: str, schema: dict, defs: Optional[dict[str, dict]] =
 
         if schema.get("enum"):
             to_entry, from_entry = lambda e: e.value, str
+        elif schema_type == "object":
+            to_entry, from_entry = lambda o: o.model_dump_json(), lambda o: loads(o)
         elif type_name in _sql_schema_type_converters:
             to_entry, from_entry = _sql_schema_type_converters[type_name]
         else:
             raise TypeError(f"Cannot recognize type from schema {schema!r}")
     elif schema_any_of:
         if not schema_any_of[0]:
-            sql_type, to_entry, from_entry = "text", lambda x: dumps(x, default=str), lambda x: loads(x, default=str)
-        elif (schema_any_of[-1].get("type", None) != "null" and len(schema_any_of) > 1) or len(schema_any_of) > 2:
-            raise TypeError(f"Cannot recognize type from schema {schema!r}")
+            sql_type, to_entry, from_entry = "text", lambda x: dumps(x, default=str), lambda x: loads(x)
+        elif len(schema_any_of) > 2:
+            sql_type, to_entry, from_entry = "text", lambda x: dumps(x, default=str), lambda x: loads(x)
         else:
             return _schema_to_column(name, {**schema_any_of[0], **schema}, defs)
     else:
