@@ -27,6 +27,5 @@ jobs:
         env:
           GOPATH: /home/runner/go
         run: |
-          eval $(go env)
           poetry run coverage run -m pytest
           poetry run coverage report -m --fail-under=80 --skip-empty --skip-covered
