@@ -40,7 +40,10 @@ _sql_schema_type_converters: dict[
 }
 
 
-def _schema_to_column(name: str, schema: dict, defs: Optional[dict[str, dict]] = None) -> "Column":
+def _schema_to_column(name: str, schema: dict, defs: Optional[dict[str, dict]] = None) -> Optional["Column"]:
+    if schema.get("ignore"):
+        return None
+
     defs = defs or {}
     if schema.get("$ref"):
         schema.update(defs[schema.get("$ref", "").removeprefix("#/$defs/")])
@@ -86,7 +89,8 @@ def _schema_to_column(name: str, schema: dict, defs: Optional[dict[str, dict]] =
 
 def model_to_columns(model: Type[BaseModel]) -> list["Column"]:
     schema: dict = model.model_json_schema()
-    return [_schema_to_column(p, s, schema.get("$defs")) for p, s in schema["properties"].items()]
+    columns = [_schema_to_column(p, s, schema.get("$defs")) for p, s in schema["properties"].items()]
+    return [c for c in columns if c]
 
 
 class Column(Generic[T]):
