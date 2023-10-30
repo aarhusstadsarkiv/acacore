@@ -59,7 +59,7 @@ class File(ACABase):
         """
         return sf.identify(self.get_absolute_path(self.root)).files[0]
 
-    def identify_custom(self, custom_sigs: list[CustomSignature]) -> CustomSignature:
+    def identify_custom(self, custom_sigs: list[CustomSignature]) -> Optional[CustomSignature]:
         """Uses the BOF and EOF to try to determine a ACAUID for the file.
 
         The custom_sigs list should be found on the `reference_files` repo.
