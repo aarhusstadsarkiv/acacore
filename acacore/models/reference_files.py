@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 
 class ReIdentifyModel(BaseModel):
-    """Data model for the `to_reidentify` from reference_files."""
+    """Data model for the `to_re-identify` from reference_files."""
 
     puid: Optional[str] = None
     name: Optional[str] = None
@@ -14,7 +14,7 @@ class ReIdentifyModel(BaseModel):
 
 
 class CustomSignature(BaseModel):
-    """Data model for the `costum_signatures` from reference_files."""
+    """Data model for the `custom_signatures` from reference_files."""
 
     bof: Optional[str] = None
     eof: Optional[str] = None
