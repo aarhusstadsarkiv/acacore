@@ -66,18 +66,18 @@ class File(ACABase):
         """
         return sf.identify(self.get_absolute_path()).files[0]
 
-    def re_identify_with_aca(self, costum_sigs: list[CustomSignature]) -> None:
+    def re_identify_with_aca(self, custom_sigs: list[CustomSignature]) -> None:
         """Uses the BOF and EOF to try to determine a ACAUID for the file.
 
-        The costum_sigs list should be found on the `reference_files` repo.
+        The custom_sigs list should be found on the `reference_files` repo.
         If no match can be found, the method does nothing.
 
         Args:
-            costum_sigs: A list of the costum_signatures that the file should be checked against
+            custom_sigs: A list of the custom_signatures that the file should be checked against
         """
         bof, eof = self.get_bof_and_eof()
         # We have to go through all of the signatures in order to check their BOF en EOF with the file.
-        for sig in costum_sigs:
+        for sig in custom_sigs:
             if sig.bof and sig.eof:
                 bof_pattern = re.compile(sig.bof)
                 eof_pattern = re.compile(sig.eof)
