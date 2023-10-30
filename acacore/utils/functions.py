@@ -8,6 +8,9 @@ T = TypeVar("T")
 R = TypeVar("R")
 
 
+_text_bytes: bytes = bytes([7, 8, 9, 10, 12, 13, 27, *range(0x20, 0x7F), *range(0x80, 0x100)])
+
+
 def or_none(func: Callable[[T], R]) -> Callable[[T], Optional[R]]:
     """Create a lambda function of arity one that will return None if its argument is None.
 
@@ -41,3 +44,8 @@ def file_checksum(path: Path) -> str:
             file_hash.update(chunk)
             chunk = f.read(2**20)
     return file_hash.hexdigest()
+
+
+def is_binary(path: Path, chunk_size: int = 1024):
+    with path.open("rb") as f:
+        return bool(f.read(chunk_size).translate(None, _text_bytes))
