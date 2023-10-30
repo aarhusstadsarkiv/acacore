@@ -7,23 +7,22 @@ from pathlib import Path
 from typing import Optional
 from typing import Tuple
 
-from pydantic import UUID4
 from pydantic import Field
+from pydantic import UUID4
 
 from acacore.models.reference_files import CustomSignature
 from acacore.siegfried.siegfried import Siegfried
 from acacore.siegfried.siegfried import SiegfriedFile
 from acacore.utils.io import size_fmt
-
 from .base import ACABase
 from .identification import Identification
 
 
 class Action(Enum):
-    CONVERT = "Convertool: To convert."
-    REPLACE = "Convertool: Replace with template. File is not preservable."
-    MANUAL = "Manual: File should be converted manually. [info about the manual conversion from reference_files]."
-    RENAME = "Renamer: File has extension mismatch. Should be renamed"
+    CONVERT = "CONVERT"  # To convert.
+    REPLACE = "REPLACE"  # Replace with template. File is not preservable.
+    MANUAL = "MANUAL"  # File should be converted manually. [info about the manual conversion from reference_files].
+    RENAME = "RENAME"  # File has extension mismatch. Should be renamed
 
 
 # -----------------------------------------------------------------------------
