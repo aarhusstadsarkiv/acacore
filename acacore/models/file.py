@@ -1,23 +1,22 @@
 # -----------------------------------------------------------------------------
 # Imports
 # -----------------------------------------------------------------------------
-import re
 from enum import Enum
 from pathlib import Path
+from re import compile as re_compile
 from typing import Optional
-from typing import Tuple
 
-from pydantic import UUID4
 from pydantic import Field
+from pydantic import UUID4
 
 from acacore.models.reference_files import CustomSignature
 from acacore.siegfried.siegfried import Siegfried
 from acacore.siegfried.siegfried import SiegfriedFile
 from acacore.utils.functions import file_checksum
-from acacore.utils.io import size_fmt
-
 from .base import ACABase
 from .identification import Identification
+from ..utils.functions import get_bof
+from ..utils.functions import get_eof
 
 
 class Action(Enum):
@@ -48,18 +47,19 @@ class File(ACABase):
         self.checksum = file_checksum(self.get_absolute_path(root))
         return self.checksum
 
-    def identify(self, sf: Siegfried) -> SiegfriedFile:
+    def identify(self, sf: Siegfried, root: Optional[Path] = None) -> SiegfriedFile:
         """Identify the file using `siegfried`.
 
         Args:
             sf (Siegfried): A Siegfried class object
+            root: Root for relative path
 
         Returns:
             SiegfriedFile: A dataclass object containing the results from the identification
         """
-        return sf.identify(self.get_absolute_path()).files[0]
+        return sf.identify(self.get_absolute_path(root)).files[0]
 
-    def re_identify_with_aca(self, custom_sigs: list[CustomSignature]) -> None:
+    def identify_custom(self, custom_sigs: list[CustomSignature], root: Optional[Path] = None) -> CustomSignature:
         """Uses the BOF and EOF to try to determine a ACAUID for the file.
 
         The custom_sigs list should be found on the `reference_files` repo.
@@ -67,58 +67,33 @@ class File(ACABase):
 
         Args:
             custom_sigs: A list of the custom_signatures that the file should be checked against
+            root: Root for relative path
         """
-        bof, eof = self.get_bof_and_eof()
-        # We have to go through all of the signatures in order to check their BOF en EOF with the file.
+        bof = get_bof(self.get_absolute_path(root)).hex()
+        eof = get_eof(self.get_absolute_path(root)).hex()
+        signature: Optional[CustomSignature] = None
+
+        # We have to go through all the signatures in order to check their BOF en EOF with the file.
         for sig in custom_sigs:
             if sig.bof and sig.eof:
-                bof_pattern = re.compile(sig.bof)
-                eof_pattern = re.compile(sig.eof)
+                bof_pattern, eof_pattern = re_compile(sig.bof), re_compile(sig.eof)
                 if sig.operator == "OR":
-                    if bof_pattern.search(bof) or eof_pattern.search(eof):
-                        self.puid = sig.puid
-                        self.signature = sig.signature
-                elif sig.operator == "AND" and bof_pattern.search(bof) and eof_pattern.search(eof):
-                    self.puid = sig.puid
-                    self.signature = sig.signature
+                    signature = sig if bof_pattern.search(bof) or eof_pattern.search(eof) else signature
+                elif sig.operator == "AND":
+                    signature = sig if bof_pattern.search(bof) and eof_pattern.search(eof) else signature
             elif sig.bof:
-                bof_pattern = re.compile(sig.bof)
-                if bof_pattern.search(bof):
-                    self.puid = sig.puid
-                    self.signature = sig.signature
+                signature = sig if re_compile(sig.bof).search(bof) else signature
             elif sig.eof:
-                eof_pattern = re.compile(sig.eof)
-                if eof_pattern.search(eof):
-                    self.puid = sig.puid
-                    self.signature = sig.signature
+                signature = sig if re_compile(sig.eof).search(eof) else signature
+
+        return signature
 
     def get_absolute_path(self, root: Optional[Path] = None) -> Path:
         return root.joinpath(self.relative_path) if root else self.relative_path.resolve()
 
-    def read_text(self) -> str:
-        """Expose read text functionality from pathlib.
-
-        Encoding is set to UTF-8.
-
-        Returns:
-        -------
-        str
-            File text data.
-        """
-        return self.get_absolute_path().read_text(encoding="utf-8")
-
-    def read_bytes(self) -> bytes:
-        """Expose read_bytes() functionality from pathlib.
-
-        Returns:
-        -------
-        bytes
-            File byte data.
-        """  # noqa: D402
-        return self.get_absolute_path().read_bytes()
-
     def name(self) -> str:
-        """Get the file name.
+        """
+        Get the file name.
 
         Returns:
         -------
@@ -128,7 +103,8 @@ class File(ACABase):
         return self.relative_path.name
 
     def ext(self) -> str:
-        """Get the file extension.
+        """
+        Get the file extension.
 
         Returns:
         -------
@@ -136,45 +112,6 @@ class File(ACABase):
             File extension.
         """
         return self.relative_path.suffix.lower()
-
-    def size(self) -> int:
-        """Get the file size in bytes.
-
-        Returns:
-        -------
-        int
-            File size in bytes.
-        """
-        return self.get_absolute_path().stat().st_size
-
-    def size_fmt(self) -> str:
-        """Get the file size in a human-readable string format.
-
-        Returns:
-        -------
-        str
-            File size in human-readable format.
-        """
-        return size_fmt(self.get_absolute_path().stat().st_size)
-
-    def get_bof_and_eof(self) -> Tuple[str, str]:
-        """Get the first and last kilobyte of the file.
-
-        Returns:
-            Tuple[str,str]: BOF and then EOF as `str`.
-        """
-        file = self.get_absolute_path()
-        with file.open("rb") as file_bytes:
-            # BOF
-            bof = file_bytes.read(1024).hex()
-            # Navigate to EOF
-            try:
-                file_bytes.seek(-1024, 2)
-            except OSError:
-                # File too small :)
-                file_bytes.seek(-file_bytes.tell(), 2)
-            eof = file_bytes.read(1024).hex()
-        return bof, eof
 
 
 class ArchiveFile(Identification, File):
