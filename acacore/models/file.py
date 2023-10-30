@@ -44,8 +44,8 @@ class File(ACABase):
     warning: Optional[str] = None
     action: Optional[Action] = None
 
-    def get_checksum(self) -> str:
-        self.checksum = file_checksum(self.get_absolute_path())
+    def get_checksum(self, root: Optional[Path] = None) -> str:
+        self.checksum = file_checksum(self.get_absolute_path(root))
         return self.checksum
 
     def identify(self, sf: Siegfried) -> SiegfriedFile:
