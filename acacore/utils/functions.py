@@ -49,3 +49,14 @@ def file_checksum(path: Path) -> str:
 def is_binary(path: Path, chunk_size: int = 1024):
     with path.open("rb") as f:
         return bool(f.read(chunk_size).translate(None, _text_bytes))
+
+
+def get_bof(path: Path, chunk_size: int = 1024) -> bytes:
+    with path.open("rb") as f:
+        return f.read(chunk_size)
+
+
+def get_eof(path: Path, chunk_size: int = 1024) -> bytes:
+    with path.open("rb") as f:
+        f.seek(path.stat().st_size - chunk_size)
+        return f.read(chunk_size)
