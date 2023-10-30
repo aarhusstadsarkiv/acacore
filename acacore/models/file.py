@@ -3,6 +3,7 @@
 # -----------------------------------------------------------------------------
 import re
 from enum import Enum
+from hashlib import sha256
 from pathlib import Path
 from typing import Optional
 from typing import Tuple
@@ -43,6 +44,16 @@ class File(ACABase):
     signature: Optional[str]
     warning: Optional[str] = None
     action: Optional[Action] = None
+
+    def get_checksum(self) -> str:
+        file_hash = sha256()
+        with self.get_absolute_path().open("rb") as f:
+            chunk = f.read(2**20)
+            while chunk:
+                file_hash.update(chunk)
+                chunk = f.read(2**20)
+        self.checksum = file_hash.hexdigest()
+        return self.checksum
 
     def identify(self, sf: Siegfried) -> SiegfriedFile:
         """Identify the file using `siegfried`.
