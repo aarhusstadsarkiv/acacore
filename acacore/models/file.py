@@ -138,6 +138,8 @@ class File(ACABase):
     @property
     def name(self) -> str:
         """
+        Get file name.
+
         Returns:
             str: File name.
         """
@@ -150,6 +152,8 @@ class File(ACABase):
     @property
     def suffix(self) -> str:
         """
+        Get file suffix.
+
         Returns:
             str: File extension.
         """
