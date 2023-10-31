@@ -102,19 +102,28 @@ class File(ACABase):
         bof = get_bof(self.get_absolute_path(self.root)).hex()
         eof = get_eof(self.get_absolute_path(self.root)).hex()
         signature: Optional[CustomSignature] = None
+        signature_length: int = 0
 
         # We have to go through all the signatures in order to check their BOF en EOF with the file.
         for sig in custom_sigs:
             if sig.bof and sig.eof:
                 bof_pattern, eof_pattern = re_compile(sig.bof), re_compile(sig.eof)
-                if sig.operator == "OR":
-                    signature = sig if bof_pattern.search(bof) or eof_pattern.search(eof) else signature
-                elif sig.operator == "AND":
-                    signature = sig if bof_pattern.search(bof) and eof_pattern.search(eof) else signature
+                match_bof = bof_pattern.search(bof)
+                match_eof = eof_pattern.search(eof)
+                match_length = (match_bof.end() - match_bof.start()) if match_bof else 0
+                match_length += (match_eof.end() - match_eof.start()) if match_eof else 0
+                if sig.operator == "OR" and (match_bof or match_eof) and match_length > signature_length:
+                    signature = sig
+                elif sig.operator == "AND" and match_bof and match_eof and match_length > signature_length:
+                    signature = sig
             elif sig.bof:
-                signature = sig if re_compile(sig.bof).search(bof) else signature
+                match_bof = re_compile(sig.bof).search(bof)
+                match_length = (match_bof.end() - match_bof.start()) if match_bof else 0
+                signature = sig if match_bof and match_length > signature_length else signature
             elif sig.eof:
-                signature = sig if re_compile(sig.eof).search(eof) else signature
+                match_eof = re_compile(sig.eof).search(eof)
+                match_length = (match_eof.end() - match_eof.start()) if match_eof else 0
+                signature = sig if match_eof and match_length > signature_length else signature
 
         return signature
 
