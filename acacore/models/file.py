@@ -18,10 +18,10 @@ from acacore.siegfried.siegfried import SiegfriedFile
 from acacore.utils.functions import file_checksum
 from acacore.utils.functions import get_bof
 from acacore.utils.functions import get_eof
+from acacore.utils.functions import is_binary
 
 from .base import ACABase
 from .identification import Identification
-from ..utils.functions import is_binary
 
 
 class ActionConvert(TypedDict):
@@ -91,18 +91,27 @@ class File(ACABase):
             root=root,
         )
 
-    def identify(self, sf: Siegfried) -> SiegfriedFile:
+    def identify(self, sf: Siegfried, *, set_match: bool = False) -> SiegfriedFile:
         """Identify the file using `siegfried`.
 
         Args:
             sf (Siegfried): A Siegfried class object
+            set_match (bool): Set results of Siegfried match if True
 
         Returns:
             SiegfriedFile: A dataclass object containing the results from the identification
         """
-        return sf.identify(self.get_absolute_path(self.root)).files[0]
+        result = sf.identify(self.get_absolute_path(self.root)).files[0]
+        match = result.best_match()
+        if set_match:
+            self.puid = match.id if match else None
+            self.signature = match.format if match else None
+            self.warning = "; ".join(match.warning) if match else None
+        return result
 
-    def identify_custom(self, custom_sigs: list[CustomSignature]) -> Optional[CustomSignature]:
+    def identify_custom(
+        self, custom_sigs: list[CustomSignature], *, set_match: bool = False,
+    ) -> Optional[CustomSignature]:
         """Uses the BOF and EOF to try to determine a ACAUID for the file.
 
         The custom_sigs list should be found on the `reference_files` repo.
@@ -110,6 +119,7 @@ class File(ACABase):
 
         Args:
             custom_sigs: A list of the custom_signatures that the file should be checked against
+            set_match (bool): Set results of match if True
         """
         bof = get_bof(self.get_absolute_path(self.root)).hex()
         eof = get_eof(self.get_absolute_path(self.root)).hex()
@@ -136,6 +146,11 @@ class File(ACABase):
                 match_eof = re_compile(sig.eof).search(eof)
                 match_length = (match_eof.end() - match_eof.start()) if match_eof else 0
                 signature = sig if match_eof and match_length > signature_length else signature
+
+        if set_match:
+            self.puid = signature.puid if signature else None
+            self.signature = signature.signature if signature else None
+            self.warning = None
 
         return signature
 
