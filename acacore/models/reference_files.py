@@ -2,6 +2,7 @@
 from typing import Optional
 
 from pydantic import BaseModel
+from pydantic import field_validator
 
 
 class ReIdentifyModel(BaseModel):
@@ -22,3 +23,34 @@ class CustomSignature(BaseModel):
     puid: Optional[str] = None
     signature: Optional[str] = None
     extension: Optional[str] = None
+
+
+class ConversionInstruction(BaseModel):
+    puid: str
+    converter: str
+    outputs: list[str]
+
+
+class ManualConversionInstruction(BaseModel):
+    puid: str
+    reasoning: str
+    process: str
+
+
+class ExtractionInstruction(BaseModel):
+    puid: str
+    tool: str
+    dir_suffix: str
+
+
+class IgnoreInstruction(BaseModel):
+    puid: str
+    description: str = ""
+    extensions: list[str]
+    reasoning: str
+
+    # noinspection PyNestedDecorators
+    @field_validator("extensions", mode="before")
+    @classmethod
+    def extensions_validator(cls, data: str):
+        return list(filter(bool, map(str.strip, data.strip().split(","))))
