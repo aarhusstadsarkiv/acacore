@@ -131,6 +131,10 @@ class File(ACABase):
         self.checksum = file_checksum(self.get_absolute_path(self.root))
         return self.checksum
 
+    def get_size(self) -> int:
+        self.size = self.get_absolute_path(self.root).stat().st_size
+        return self.size
+
     @property
     def name(self) -> str:
         """
