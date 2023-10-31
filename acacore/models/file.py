@@ -76,10 +76,6 @@ class File(ACABase):
     action: list[TAction] = Field(default_factory=list)
     root: Optional[Path] = Field(None, ignore=True)
 
-    def get_checksum(self) -> str:
-        self.checksum = file_checksum(self.get_absolute_path(self.root))
-        return self.checksum
-
     def identify(self, sf: Siegfried) -> SiegfriedFile:
         """Identify the file using `siegfried`.
 
@@ -130,6 +126,10 @@ class File(ACABase):
 
     def get_absolute_path(self, root: Optional[Path] = None) -> Path:
         return root.joinpath(self.relative_path) if root else self.relative_path.resolve()
+
+    def get_checksum(self) -> str:
+        self.checksum = file_checksum(self.get_absolute_path(self.root))
+        return self.checksum
 
     @property
     def name(self) -> str:
