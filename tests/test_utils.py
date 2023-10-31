@@ -1,16 +1,34 @@
 from pathlib import Path
 from re import match
 
+from acacore.utils.functions import file_checksum
+from acacore.utils.functions import is_binary
 from acacore.utils.functions import or_none
+from acacore.utils.functions import rm_tree
 from acacore.utils.io import size_fmt
 from acacore.utils.log import setup_logger
 
 
-def test_functions():
+def test_functions(test_files: Path, test_files_data: dict[str, dict], temp_folder: Path):
     # or_none
     func = or_none(lambda _: 5)
     assert func(1) == 5
     assert func(None) is None
+
+    # file_checksum
+    for filename, filedata in test_files_data.items():
+        assert file_checksum(test_files / filename) == filedata["checksum"]
+
+    # is_binary
+    for filename, filedata in test_files_data.items():
+        assert is_binary(test_files / filename) == filedata["binary"]
+
+    # rm_tree
+    test_folder = temp_folder.joinpath("1")
+    test_folder.joinpath("2", "3").mkdir(parents=True, exist_ok=True)
+    rm_tree(test_folder)
+    assert not test_folder.is_dir()
+    assert temp_folder.is_dir()
 
 
 def test_io():
