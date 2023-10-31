@@ -6,6 +6,7 @@ from re import compile as re_compile
 from typing import Literal
 from typing import Optional
 from typing import Union
+from uuid import uuid4
 
 from pydantic import Field
 from pydantic import UUID4
@@ -63,7 +64,7 @@ TAction = Union[ActionConvert, ActionExtract, ActionReplace, ActionManual, Actio
 class File(ACABase):
     """File data model."""
 
-    uuid: UUID4
+    uuid: UUID4 = Field(default_factory=lambda: uuid4())
     checksum: str
     puid: Optional[str]
     relative_path: Path = Field(primary_key=True)
