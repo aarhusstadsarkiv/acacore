@@ -21,6 +21,7 @@ from acacore.utils.functions import get_eof
 
 from .base import ACABase
 from .identification import Identification
+from ..utils.functions import is_binary
 
 
 class ActionConvert(TypedDict):
@@ -75,6 +76,20 @@ class File(ACABase):
     warning: Optional[str] = None
     action: list[TAction] = Field(default_factory=list)
     root: Optional[Path] = Field(None, ignore=True)
+
+    @classmethod
+    def from_file(cls, path: Path, root: Optional[Path] = None):
+        return cls(
+            checksum=file_checksum(path),
+            puid=None,
+            relative_path=path.relative_to(root) if root else path,
+            is_binary=is_binary(path),
+            size=path.stat().st_size,
+            signature=None,
+            warning=None,
+            action=[],
+            root=root,
+        )
 
     def identify(self, sf: Siegfried) -> SiegfriedFile:
         """Identify the file using `siegfried`.
