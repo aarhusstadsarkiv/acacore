@@ -254,7 +254,7 @@ class Siegfried:
         """
         return _check_process(run([self.binary, *args], capture_output=True, encoding="utf-8"))  # noqa: PLW1510
 
-    def update(self, signature: TSignature, *, set_signature: bool = True):
+    def update(self, signature: Optional[TSignature] = None, *, set_signature: bool = True):
         """
         Update or fetch signature files.
 
@@ -266,12 +266,13 @@ class Siegfried:
         Raises:
             IdentificationError: If Siegfried exits with a non-zero status code.
         """
-        signature = signature.lower()
+        signature = signature.lower() if signature else self.signature.removesuffix(".sig")
+        signature_file = f"{signature}.sig" if signature else self.signature
 
-        self.run("-sig", f"{signature}.sig", "-update", signature)
+        self.run("-sig", signature_file, "-update", signature)
 
         if set_signature:
-            self.signature = f"{signature}.sig"
+            self.signature = signature_file
 
     def identify(self, path: Union[str, PathLike]) -> SiegfriedResult:
         """
