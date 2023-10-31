@@ -72,7 +72,7 @@ class File(ACABase):
     file_size_in_bytes: int
     signature: Optional[str]
     warning: Optional[str] = None
-    action: Optional[TAction] = None
+    action: list[TAction] = Field(default_factory=lambda: [])
     root: Optional[Path] = Field(None, ignore=True)
 
     def get_checksum(self) -> str:
