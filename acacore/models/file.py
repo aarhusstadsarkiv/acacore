@@ -131,27 +131,29 @@ class File(ACABase):
     def get_absolute_path(self, root: Optional[Path] = None) -> Path:
         return root.joinpath(self.relative_path) if root else self.relative_path.resolve()
 
+    @property
     def name(self) -> str:
         """
-        Get the file name.
-
         Returns:
-        -------
-        str
-            File name.
+            str: File name.
         """
         return self.relative_path.name
 
+    @name.setter
+    def name(self, new_name: str):
+        self.relative_path = self.relative_path.with_name(new_name).with_suffix(self.suffix)
+
+    @property
     def suffix(self) -> str:
         """
-        Get the file extension.
-
         Returns:
-        -------
-        str
-            File extension.
+            str: File extension.
         """
         return self.relative_path.suffix.lower()
+
+    @suffix.setter
+    def suffix(self, new_suffix: str):
+        self.relative_path = self.relative_path.with_suffix(new_suffix)
 
 
 class ArchiveFile(Identification, File):
