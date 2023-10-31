@@ -64,7 +64,21 @@ TAction = Union[ActionConvert, ActionExtract, ActionReplace, ActionManual, Actio
 # Model
 # -----------------------------------------------------------------------------
 class File(ACABase):
-    """File data model."""
+    """
+    File model containing all information used by the rest of the archival suite of tools.
+
+    Attributes:
+        uuid (UUID4): The UUID of the file.
+        checksum (str): The checksum of the file.
+        puid (Optional[str]): The PUID (PRONOM Unique Identifier) of the file.
+        relative_path (Path): The relative path to the file.
+        is_binary (bool): Indicates whether the file is binary.
+        size (int): The size of the file.
+        signature (Optional[str]): The signature of the file.
+        warning (Optional[str]): Any warning associated with the file PUID.
+        action (list[TAction]): A list of actions related to the file.
+        root (Optional[Path]): The root directory for the file.
+    """
 
     uuid: UUID4 = Field(default_factory=uuid4)
     checksum: str
@@ -79,6 +93,16 @@ class File(ACABase):
 
     @classmethod
     def from_file(cls, path: Path, root: Optional[Path] = None):
+        """
+        Create a File object from a given file.
+
+        Args:
+            path: The path to the file.
+            root: Optionally, the root to be used to compute the relative path to the file
+
+        Returns:
+            File: A File object.
+        """
         return cls(
             checksum=file_checksum(path),
             puid=None,
@@ -92,7 +116,8 @@ class File(ACABase):
         )
 
     def identify(self, sf: Siegfried, *, set_match: bool = False) -> SiegfriedFile:
-        """Identify the file using `siegfried`.
+        """
+        Identify the file using `siegfried`.
 
         Args:
             sf (Siegfried): A Siegfried class object
@@ -110,9 +135,13 @@ class File(ACABase):
         return result
 
     def identify_custom(
-        self, custom_sigs: list[CustomSignature], *, set_match: bool = False,
+        self,
+        custom_sigs: list[CustomSignature],
+        *,
+        set_match: bool = False,
     ) -> Optional[CustomSignature]:
-        """Uses the BOF and EOF to try to determine a ACAUID for the file.
+        """
+        Uses the BOF and EOF to try to determine a ACAUID for the file.
 
         The custom_sigs list should be found on the `reference_files` repo.
         If no match can be found, the method does nothing.
