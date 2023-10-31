@@ -1,5 +1,6 @@
 from hashlib import sha256
 from pathlib import Path
+from sqlite3 import IntegrityError
 from uuid import uuid4
 
 import pytest
@@ -123,7 +124,13 @@ def test_insert_select(database_path: Path, test_file: File):
     test_file2.uuid = uuid4()
 
     db.files.insert(test_file)
+
+    with pytest.raises(IntegrityError):
+        db.files.insert(test_file2)
+
+    test_file2.relative_path = test_file2.relative_path.with_suffix(".new")
     db.files.insert(test_file2)
+
     db.commit()
 
     cursor = db.files.select(where="uuid = ?", parameters=[str(test_file.uuid)])
