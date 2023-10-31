@@ -109,10 +109,10 @@ class File(ACABase):
                 match_eof = eof_pattern.search(eof)
                 match_length = (match_bof.end() - match_bof.start()) if match_bof else 0
                 match_length += (match_eof.end() - match_eof.start()) if match_eof else 0
-                if sig.operator == "OR" and (match_bof or match_eof) and match_length > signature_length:
-                    signature = sig
-                elif sig.operator == "AND" and match_bof and match_eof and match_length > signature_length:
-                    signature = sig
+                if sig.operator == "OR":
+                    signature = sig if (match_bof or match_eof) and match_length > signature_length else signature
+                elif sig.operator == "AND":
+                    signature = sig if match_bof and match_eof and match_length > signature_length else signature
             elif sig.bof:
                 match_bof = re_compile(sig.bof).search(bof)
                 match_length = (match_bof.end() - match_bof.start()) if match_bof else 0
