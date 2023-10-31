@@ -47,6 +47,15 @@ def test_update(siegfried: Siegfried, siegfried_folder: Path):
     assert siegfried_folder.joinpath("deluxe.sig").is_file()
     assert siegfried.signature == "deluxe.sig"
 
+    siegfried_folder.joinpath("pronom.sig").unlink(missing_ok=True)
+
+    siegfried.signature = "pronom"
+    siegfried.update()
+    assert siegfried_folder.joinpath("pronom.sig").is_file()
+
+    siegfried.update("loc", set_signature=False)
+    assert siegfried.signature == "pronom.sig"
+
     # TODO: add archivematica
 
 
