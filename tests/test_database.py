@@ -33,7 +33,10 @@ def test_file(test_files: Path, test_files_data: dict[str, dict]) -> File:
         file_size_in_bytes=file.stat().st_size,
         signature=filedata["matches"]["format"],
         warning="; ".join(filedata["matches"]["warning"]),
-        action={"type": "CONVERT", "converter": "convertool", "outputs": ["odt", "pdf"]},
+        action=[
+            {"type": "RENAME", "new_name": file.with_suffix(".new").name},
+            {"type": "CONVERT", "converter": "convertool", "outputs": ["odt", "pdf"]},
+        ],
     )
 
 
