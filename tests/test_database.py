@@ -31,7 +31,7 @@ def test_file(test_files: Path, test_files_data: dict[str, dict]) -> File:
         puid=filedata["matches"]["id"],
         relative_path=file.relative_to(test_files),
         is_binary=True,
-        file_size_in_bytes=file.stat().st_size,
+        size=file.stat().st_size,
         signature=filedata["matches"]["format"],
         warning="; ".join(filedata["matches"]["warning"]),
         action=[
