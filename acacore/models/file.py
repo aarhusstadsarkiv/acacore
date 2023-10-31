@@ -70,7 +70,7 @@ class File(ACABase):
     puid: Optional[str]
     relative_path: Path = Field(primary_key=True)
     is_binary: bool
-    file_size_in_bytes: int
+    size: int
     signature: Optional[str]
     warning: Optional[str] = None
     action: list[TAction] = Field(default_factory=list)
