@@ -5,8 +5,71 @@ from urllib import request
 
 from pydantic import TypeAdapter
 
+from acacore.models.reference_files import ConversionInstruction
 from acacore.models.reference_files import CustomSignature
+from acacore.models.reference_files import ExtractionInstruction
+from acacore.models.reference_files import IgnoreInstruction
+from acacore.models.reference_files import ManualConversionInstruction
 from acacore.models.reference_files import ReIdentifyModel
+
+
+@lru_cache
+def get_conversion_instructions() -> list[ConversionInstruction]:
+    response: HTTPResponse = request.urlopen(
+        "https://raw.githubusercontent.com/aarhusstadsarkiv/reference-files/main/to_convert.json",
+    )
+
+    if response.getcode() != 200:
+        raise ConnectionError
+
+    instructions: dict[str, dict] = json.loads(response.read())
+
+    response = request.urlopen(
+        "https://raw.githubusercontent.com/aarhusstadsarkiv/reference-files/main/to_convert_symphovert.json",
+    )
+
+    if response.getcode() != 200:
+        raise ConnectionError
+
+    instructions.update(json.loads(response.read()))
+
+    return [ConversionInstruction(puid=puid, **value) for puid, value in instructions]
+
+
+@lru_cache
+def get_manual_conversion_instructions() -> list[ManualConversionInstruction]:
+    response: HTTPResponse = request.urlopen(
+        "https://raw.githubusercontent.com/aarhusstadsarkiv/reference-files/main/manual_convert.json",
+    )
+
+    if response.getcode() != 200:
+        raise ConnectionError
+
+    return [ManualConversionInstruction(puid=puid, **value) for puid, value in json.loads(response.read()).items()]
+
+
+@lru_cache
+def get_extraction_instructions() -> list[ExtractionInstruction]:
+    response: HTTPResponse = request.urlopen(
+        "https://raw.githubusercontent.com/aarhusstadsarkiv/reference-files/main/to_extract.json",
+    )
+
+    if response.getcode() != 200:
+        raise ConnectionError
+
+    return [ExtractionInstruction(puid=puid, **value) for puid, value in json.loads(response.read()).items()]
+
+
+@lru_cache
+def get_ignore_instructions() -> list[IgnoreInstruction]:
+    response: HTTPResponse = request.urlopen(
+        "https://raw.githubusercontent.com/aarhusstadsarkiv/reference-files/main/to_ignore.json",
+    )
+
+    if response.getcode() != 200:
+        raise ConnectionError
+
+    return [IgnoreInstruction(puid=puid, **value) for puid, value in json.loads(response.read()).items()]
 
 
 @lru_cache
