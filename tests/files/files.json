@@ -2,6 +2,7 @@
   "json.json": {
     "filesize": 355,
     "checksum": "c334b60758bd581c1d3cffcfe55cd3532a7190fa99b1b04ef6ccad8c56d149f4",
+    "binary": false,
     "errors": "",
     "matches": {
       "ns": "pronom",
@@ -19,6 +20,7 @@
   "lwp.lwp": {
     "filesize": 19172,
     "checksum": "f95071443311e672958ae19c6d289faa2dd87fd76320619f761e57413021a8fe",
+    "binary": true,
     "errors": "",
     "matches": {
       "ns": "pronom",
@@ -36,6 +38,7 @@
   "mp3.mp3": {
     "filesize": 109374,
     "checksum": "93dcfdddbdcac6f56678693501622f9935d40ca3297e2f634adf0471f0689949",
+    "binary": true,
     "errors": "",
     "matches": {
       "ns": "pronom",
@@ -53,6 +56,7 @@
   "mp4.mp4": {
     "filesize": 146693,
     "checksum": "8905c33ea2d727453d7f990db5316468fa5a5a4a755c010816ea04a541925a39",
+    "binary": true,
     "errors": "",
     "matches": {
       "ns": "pronom",
@@ -70,6 +74,7 @@
   "pdf.pdf": {
     "filesize": 38468,
     "checksum": "8306dbaddfeeafc301eefa8b72ebece3ebbd88b0c5aae9c8361d2501c7f35786",
+    "binary": true,
     "errors": "",
     "matches": {
       "ns": "pronom",
@@ -87,6 +92,7 @@
   "txt.txt": {
     "filesize": 2136,
     "checksum": "49f2d2950bde4442a43aabf23e9c58ee33ef0a91a559dcf33863dd34b6ba009d",
+    "binary": false,
     "errors": "",
     "matches": {
       "ns": "pronom",
