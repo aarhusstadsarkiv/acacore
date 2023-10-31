@@ -1,4 +1,3 @@
-from hashlib import sha256
 from pathlib import Path
 from sqlite3 import IntegrityError
 from uuid import uuid4
@@ -24,21 +23,16 @@ def database_path(temp_folder: Path) -> Path:
 @pytest.fixture(scope="session")
 def test_file(test_files: Path, test_files_data: dict[str, dict]) -> File:
     filename, filedata = next(iter(test_files_data.items()))
-    file: Path = test_files / filename
-    return File(
-        uuid=uuid4(),
-        checksum=sha256(file.read_bytes()).hexdigest(),
-        puid=filedata["matches"]["id"],
-        relative_path=file.relative_to(test_files),
-        is_binary=True,
-        size=file.stat().st_size,
-        signature=filedata["matches"]["format"],
-        warning="; ".join(filedata["matches"]["warning"]),
-        action=[
-            {"type": "RENAME", "new_name": file.with_suffix(".new").name},
-            {"type": "CONVERT", "converter": "convertool", "outputs": ["odt", "pdf"]},
-        ],
-    )
+    file_path: Path = test_files / filename
+    file = File.from_file(file_path)
+    file.puid = filedata["matches"]["id"]
+    file.signature = filedata["matches"]["format"]
+    file.warning = "; ".join(filedata["matches"]["warning"])
+    file.action = [
+        {"type": "RENAME", "new_name": file_path.with_suffix(".new").name},
+        {"type": "CONVERT", "converter": "convertool", "outputs": ["odt", "pdf"]},
+    ]
+    return file
 
 
 def test_database_classes(database_path: Path):
