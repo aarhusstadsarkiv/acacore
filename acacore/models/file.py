@@ -8,8 +8,8 @@ from typing import Optional
 from typing import Union
 from uuid import uuid4
 
-from pydantic import Field
 from pydantic import UUID4
+from pydantic import Field
 from typing_extensions import TypedDict
 
 from acacore.models.reference_files import CustomSignature
@@ -18,6 +18,7 @@ from acacore.siegfried.siegfried import SiegfriedFile
 from acacore.utils.functions import file_checksum
 from acacore.utils.functions import get_bof
 from acacore.utils.functions import get_eof
+
 from .base import ACABase
 from .identification import Identification
 
@@ -64,7 +65,7 @@ TAction = Union[ActionConvert, ActionExtract, ActionReplace, ActionManual, Actio
 class File(ACABase):
     """File data model."""
 
-    uuid: UUID4 = Field(default_factory=lambda: uuid4())
+    uuid: UUID4 = Field(default_factory=uuid4)
     checksum: str
     puid: Optional[str]
     relative_path: Path = Field(primary_key=True)
@@ -72,7 +73,7 @@ class File(ACABase):
     file_size_in_bytes: int
     signature: Optional[str]
     warning: Optional[str] = None
-    action: list[TAction] = Field(default_factory=lambda: [])
+    action: list[TAction] = Field(default_factory=list)
     root: Optional[Path] = Field(None, ignore=True)
 
     def get_checksum(self) -> str:
