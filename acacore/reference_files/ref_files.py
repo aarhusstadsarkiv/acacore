@@ -33,7 +33,7 @@ def _get_conversion_instructions() -> list[ConversionInstruction]:
 
     instructions.update(json.loads(response.read()))
 
-    return [ConversionInstruction(puid=puid, **value) for puid, value in instructions]
+    return [ConversionInstruction(puid=puid, **value) for puid, value in instructions.items()]
 
 
 @lru_cache
