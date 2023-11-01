@@ -14,7 +14,7 @@ from acacore.models.reference_files import ReIdentifyModel
 
 
 @lru_cache
-def get_conversion_instructions() -> list[ConversionInstruction]:
+def _get_conversion_instructions() -> list[ConversionInstruction]:
     response: HTTPResponse = request.urlopen(
         "https://raw.githubusercontent.com/aarhusstadsarkiv/reference-files/main/to_convert.json",
     )
@@ -37,7 +37,7 @@ def get_conversion_instructions() -> list[ConversionInstruction]:
 
 
 @lru_cache
-def get_manual_conversion_instructions() -> list[ManualConversionInstruction]:
+def _get_manual_conversion_instructions() -> list[ManualConversionInstruction]:
     response: HTTPResponse = request.urlopen(
         "https://raw.githubusercontent.com/aarhusstadsarkiv/reference-files/main/manual_convert.json",
     )
@@ -49,7 +49,7 @@ def get_manual_conversion_instructions() -> list[ManualConversionInstruction]:
 
 
 @lru_cache
-def get_extraction_instructions() -> list[ExtractionInstruction]:
+def _get_extraction_instructions() -> list[ExtractionInstruction]:
     response: HTTPResponse = request.urlopen(
         "https://raw.githubusercontent.com/aarhusstadsarkiv/reference-files/main/to_extract.json",
     )
@@ -61,7 +61,7 @@ def get_extraction_instructions() -> list[ExtractionInstruction]:
 
 
 @lru_cache
-def get_ignore_instructions() -> list[IgnoreInstruction]:
+def _get_ignore_instructions() -> list[IgnoreInstruction]:
     response: HTTPResponse = request.urlopen(
         "https://raw.githubusercontent.com/aarhusstadsarkiv/reference-files/main/to_ignore.json",
     )
@@ -73,13 +73,7 @@ def get_ignore_instructions() -> list[IgnoreInstruction]:
 
 
 @lru_cache
-def get_to_re_identify() -> list[ReIdentifyModel]:
-    """
-    Gets the json file with the different formats that we wish to re-identify.
-
-    Is kept updated on the reference-files repo. The function caches the result,
-    soo multiple calls in the same run should not be an issue.
-    """
+def _get_to_re_identify() -> list[ReIdentifyModel]:
     response: HTTPResponse = request.urlopen(
         "https://raw.githubusercontent.com/aarhusstadsarkiv/reference-files/main/to_reidentify.json",
     )
@@ -100,13 +94,7 @@ def get_to_re_identify() -> list[ReIdentifyModel]:
 
 
 @lru_cache
-def get_custom_signatures() -> list[CustomSignature]:
-    """
-    Gets the json file with our own custom formats in a list.
-
-    Is kept updated on the reference-files repo. The function caches the result,
-    soo multiple calls in the same run should not be an issue.
-    """
+def _get_custom_signatures() -> list[CustomSignature]:
     response: HTTPResponse = request.urlopen(
         "https://raw.githubusercontent.com/aarhusstadsarkiv/reference-files/main/custom_signatures.json",
     )
@@ -119,3 +107,39 @@ def get_custom_signatures() -> list[CustomSignature]:
         raise ConnectionError
 
     return TypeAdapter(list[CustomSignature]).validate_python(custom_list)
+
+
+def get_conversion_instructions(use_cache: bool = True) -> list[ConversionInstruction]:
+    return _get_conversion_instructions() if use_cache else _get_conversion_instructions.__wrapped__()
+
+
+def get_manual_conversion_instructions(use_cache: bool = True) -> list[ManualConversionInstruction]:
+    return _get_manual_conversion_instructions() if use_cache else _get_manual_conversion_instructions.__wrapped__()
+
+
+def get_extraction_instructions(use_cache: bool = True) -> list[ExtractionInstruction]:
+    return _get_extraction_instructions() if use_cache else _get_extraction_instructions.__wrapped__()
+
+
+def get_ignore_instructions(use_cache: bool = True) -> list[IgnoreInstruction]:
+    return _get_ignore_instructions() if use_cache else _get_ignore_instructions.__wrapped__()
+
+
+def get_to_re_identify(use_cache: bool = True) -> list[ReIdentifyModel]:
+    """
+    Gets the json file with the different formats that we wish to re-identify.
+
+    Is kept updated on the reference-files repo. The function caches the result,
+    soo multiple calls in the same run should not be an issue.
+    """
+    return _get_to_re_identify() if use_cache else _get_to_re_identify.__wrapped__()
+
+
+def get_custom_signatures(use_cache: bool = True) -> list[CustomSignature]:
+    """
+    Gets the json file with our own custom formats in a list.
+
+    Is kept updated on the reference-files repo. The function caches the result,
+    soo multiple calls in the same run should not be an issue.
+    """
+    return _get_custom_signatures() if use_cache else _get_custom_signatures.__wrapped__()
