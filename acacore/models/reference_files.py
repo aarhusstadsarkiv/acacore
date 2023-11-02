@@ -102,11 +102,14 @@ class RenameAction(BaseModel):
     new_name: str
 
 
-class Action(BaseModel):
-    name: str
-    action: Literal["convert", "extract", "manual", "ignore", "reidentify"]
+class ActionData(BaseModel):
     convert: Optional[list[ConvertAction]] = None
     extract: Optional[ExtractAction] = None
     manual: Optional[ManualAction] = None
     ignore: Optional[IgnoreAction] = None
     reidentify: Optional[ReIdentifyAction] = None
+
+
+class Action(ActionData):
+    name: str
+    action: Literal["convert", "extract", "manual", "ignore", "reidentify"]
