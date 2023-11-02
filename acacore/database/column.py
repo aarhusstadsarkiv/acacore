@@ -40,6 +40,17 @@ _sql_schema_type_converters: dict[
 }
 
 
+def dump_object(obj: Union[list, tuple, dict, BaseModel]) -> Union[list, dict]:
+    if isinstance(obj, dict):
+        return obj
+    elif issubclass(type(obj), BaseModel):
+        return obj.model_dump(mode="json")
+    elif isinstance(obj, (list, tuple)):
+        return list(map(dump_object, obj))
+    else:
+        return obj
+
+
 def _schema_to_column(name: str, schema: dict, defs: Optional[dict[str, dict]] = None) -> Optional["Column"]:
     if schema.get("ignore"):
         return None
@@ -63,17 +74,17 @@ def _schema_to_column(name: str, schema: dict, defs: Optional[dict[str, dict]] =
             to_entry, from_entry = lambda e: e.value, str
         elif schema_type == "object":
             sql_type = "text"
-            to_entry, from_entry = lambda o: o.model_dump_json(), lambda o: loads(o)
+            to_entry, from_entry = lambda o: dumps(dump_object(o), default=str), lambda o: loads(o)
         elif schema_type == "array":
             sql_type = "text"
-            to_entry, from_entry = lambda o: dumps(o, default=str), lambda o: loads(o)
+            to_entry, from_entry = lambda o: dumps(dump_object(o), default=str), lambda o: loads(o)
         elif type_name in _sql_schema_type_converters:
             to_entry, from_entry = _sql_schema_type_converters[type_name]
         else:
             raise TypeError(f"Cannot recognize type from schema {schema!r}")
     elif schema_any_of:
         if not schema_any_of[0] or len(schema_any_of) > 2:
-            sql_type, to_entry, from_entry = "text", lambda x: dumps(x, default=str), lambda x: loads(x)
+            sql_type, to_entry, from_entry = "text", lambda o: dumps(dump_object(o), default=str), lambda x: loads(x)
         else:
             return _schema_to_column(name, {**schema_any_of[0], **schema}, defs)
     else:
