@@ -43,7 +43,7 @@ class File(ACABase):
     is_binary: bool
     size: int
     signature: Optional[str]
-    warning: Optional[str] = None
+    warning: Optional[list[str]] = None
     action: Optional[Action] = None
     root: Optional[Path] = Field(None, ignore=True)
 
@@ -87,7 +87,7 @@ class File(ACABase):
         if set_match:
             self.puid = match.id if match else None
             self.signature = match.format if match else None
-            self.warning = "; ".join(match.warning) if match else None
+            self.warning = match.warning
         return result
 
     def identify_custom(
