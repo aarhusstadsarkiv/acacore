@@ -1,5 +1,6 @@
 import json
 from functools import lru_cache
+from http.client import HTTPException
 from http.client import HTTPResponse
 from urllib import request
 
@@ -17,7 +18,7 @@ def _get_actions() -> dict[str, Action]:
         "https://raw.githubusercontent.com/aarhusstadsarkiv/reference-files/main/actions.yml",
     )
     if response.getcode() != 200:
-        raise ConnectionError
+        raise HTTPException(response.getcode())
 
     return TypeAdapter(dict[str, Action]).validate_python(load(response.read(), Loader))
 
@@ -28,14 +29,9 @@ def _get_custom_signatures() -> list[CustomSignature]:
         "https://raw.githubusercontent.com/aarhusstadsarkiv/reference-files/main/custom_signatures.json",
     )
     if response.getcode() != 200:
-        raise ConnectionError
+        raise HTTPException(response.getcode())
 
-    custom_list: list[dict] = json.loads(response.read())
-
-    if custom_list is None:
-        raise ConnectionError
-
-    return TypeAdapter(list[CustomSignature]).validate_python(custom_list)
+    return TypeAdapter(list[CustomSignature]).validate_python(json.loads(response.read()))
 
 
 def get_actions(use_cache: bool = True) -> dict[str, Action]:
