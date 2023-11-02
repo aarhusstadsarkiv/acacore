@@ -13,6 +13,7 @@ from acacore.models.file import File
 from acacore.models.history import HistoryEntry
 from acacore.models.identification import SignatureCount
 from acacore.models.metadata import Metadata
+from acacore.models.reference_files import Action
 
 
 @pytest.fixture(scope="session")
@@ -28,13 +29,19 @@ def test_file(test_files: Path, test_files_data: dict[str, dict]) -> File:
     file.puid = filedata["matches"]["id"]
     file.signature = filedata["matches"]["format"]
     file.warning = "; ".join(filedata["matches"]["warning"])
-    file.action = [
-        {"type": "RENAME", "new_name": file_path.with_suffix(".new").name},
-        {"type": "CONVERT", "converter": "convertool", "outputs": ["odt", "pdf"]},
-    ]
+    file.action = Action(
+        puid=file.puid,
+        name=file.signature,
+        action="convert",
+        convert=[
+            {"converter": "convertool", "converter_type": "master", "outputs": ["odt", "pdf"]},
+            {"converter": "convertool", "converter_type": "statutory", "outputs": ["tiff"]},
+        ],
+    )
     return file
 
 
+# noinspection DuplicatedCode
 def test_database_classes(database_path: Path):
     db: FileDB = FileDB(database_path)
 
