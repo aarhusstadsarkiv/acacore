@@ -1,4 +1,3 @@
-import json
 from functools import lru_cache
 from http.client import HTTPException
 from http.client import HTTPResponse
@@ -31,7 +30,7 @@ def _get_custom_signatures() -> list[CustomSignature]:
     if response.getcode() != 200:
         raise HTTPException(response.getcode())
 
-    return TypeAdapter(list[CustomSignature]).validate_python(json.loads(response.read()))
+    return TypeAdapter(list[CustomSignature]).validate_json(response.read())
 
 
 def get_actions(use_cache: bool = True) -> dict[str, Action]:
