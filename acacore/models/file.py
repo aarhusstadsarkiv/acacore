@@ -187,7 +187,7 @@ class File(ACABase):
 
     def identify_custom(
         self,
-        custom_sigs: list[CustomSignature],
+        custom_signatures: list[CustomSignature],
         *,
         set_match: bool = False,
     ) -> Optional[CustomSignature]:
@@ -198,7 +198,7 @@ class File(ACABase):
         If no match can be found, the method does nothing.
 
         Args:
-            custom_sigs: A list of the custom_signatures that the file should be checked against
+            custom_signatures: A list of the custom_signatures that the file should be checked against
             set_match (bool): Set results of match if True
         """
         bof = get_bof(self.get_absolute_path(self.root)).hex()
@@ -207,7 +207,7 @@ class File(ACABase):
         signature_length: int = 0
 
         # We have to go through all the signatures in order to check their BOF en EOF with the file.
-        for sig in custom_sigs:
+        for sig in custom_signatures:
             if sig.bof and sig.eof:
                 bof_pattern, eof_pattern = re_compile(sig.bof), re_compile(sig.eof)
                 match_bof = bof_pattern.search(bof)
