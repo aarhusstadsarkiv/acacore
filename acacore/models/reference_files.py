@@ -88,7 +88,7 @@ class ReIdentifyAction(BaseModel):
     """
 
     reasoning: str
-    onfail: Optional[Literal["convert", "extract", "manual", "ignore"]] = None
+    onfail: Optional[Literal["convert", "extract", "manual", "rename", "ignore"]] = None
 
 
 class RenameAction(BaseModel):
@@ -106,10 +106,11 @@ class ActionData(BaseModel):
     convert: Optional[list[ConvertAction]] = None
     extract: Optional[ExtractAction] = None
     manual: Optional[ManualAction] = None
+    rename: Optional[RenameAction] = None
     ignore: Optional[IgnoreAction] = None
     reidentify: Optional[ReIdentifyAction] = None
 
 
 class Action(ActionData):
     name: str
-    action: Literal["convert", "extract", "manual", "ignore", "reidentify"]
+    action: Literal["convert", "extract", "manual", "rename", "ignore", "reidentify"]
