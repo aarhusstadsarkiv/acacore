@@ -72,10 +72,7 @@ def _schema_to_column(name: str, schema: dict, defs: Optional[dict[str, dict]] =
 
         if schema.get("enum"):
             to_entry, from_entry = lambda e: e.value, str
-        elif schema_type == "object":
-            sql_type = "text"
-            to_entry, from_entry = lambda o: dumps(dump_object(o), default=str), lambda o: loads(o)
-        elif schema_type == "array":
+        elif schema_type in ("object", "array"):
             sql_type = "text"
             to_entry, from_entry = lambda o: dumps(dump_object(o), default=str), lambda o: loads(o)
         elif type_name in _sql_schema_type_converters:
