@@ -28,7 +28,7 @@ def test_file(test_files: Path, test_files_data: dict[str, dict]) -> File:
     file = File.from_file(file_path)
     file.puid = filedata["matches"]["id"]
     file.signature = filedata["matches"]["format"]
-    file.warning = "; ".join(filedata["matches"]["warning"])
+    file.warning = filedata["matches"]["warning"]
     file.action = Action(
         puid=file.puid,
         name=file.signature,
