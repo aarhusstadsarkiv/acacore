@@ -1,16 +1,10 @@
-# -----------------------------------------------------------------------------
-# Imports
-# -----------------------------------------------------------------------------
 from pathlib import Path
 from re import compile as re_compile
-from typing import Literal
 from typing import Optional
-from typing import Union
 from uuid import uuid4
 
 from pydantic import UUID4
 from pydantic import Field
-from typing_extensions import TypedDict
 
 from acacore.models.reference_files import CustomSignature
 from acacore.siegfried.siegfried import Siegfried
@@ -22,98 +16,9 @@ from acacore.utils.functions import is_binary
 
 from .base import ACABase
 from .identification import Identification
+from .reference_files import Action
 
 
-class ActionConvert(TypedDict):
-    """
-    Class representing an action to convert a file to a different format.
-
-    Attributes:
-        type (Literal["CONVERT"]): The type of action, which is always "CONVERT".
-        converter (str): The converter to use for the conversion.
-        outputs (list[str]): The list of file types to convert to.
-    """
-
-    type: Literal["CONVERT"]
-    converter: str
-    outputs: list[str]
-
-
-class ActionExtract(TypedDict):
-    """
-    Class representing an action to extract data from a file.
-
-    Attributes:
-        type (Literal["EXTRACT"]): The type of action, which is always "EXTRACT".
-        tool (str): The name of the tool used for extraction.
-        output (str): The output directory where the extracted data will be saved.
-    """
-
-    type: Literal["EXTRACT"]
-    tool: str
-    output: str
-
-
-class ActionReplace(TypedDict):
-    """
-    Class representing a replacement action.
-
-    Attributes:
-        type (Literal["REPLACE"]): The type of action (always "REPLACE").
-        template (str): The replacement template.
-    """
-
-    type: Literal["REPLACE"]
-    template: str
-
-
-class ActionManual(TypedDict):
-    """
-    Class representing a manual action in a workflow.
-
-    Attributes:
-        type (Literal["MANUAL"]): The type of the action, which is "MANUAL".
-        reasoning (str): The reasoning behind the manual action.
-        process (str): The process for performing the manual action.
-    """
-
-    type: Literal["MANUAL"]
-    reasoning: str
-    process: str
-
-
-class ActionRename(TypedDict):
-    """
-    Class representing an action to rename a file. It is a dictionary-based class with the following fields.
-
-    Attributes:
-        type (str): A literal string with the value "RENAME", indicating the type of the action.
-        new_name (str): A string representing the new name for the file.
-    """
-
-    type: Literal["RENAME"]
-    new_name: str
-
-
-class ActionIgnore(TypedDict):
-    """
-    Class representing an action to ignore a specific file based on the given reasoning.
-
-    Attributes:
-        type (Literal["IGNORE"]): The action type, which is set to "IGNORE".
-        reasoning (str): The reasoning for ignoring the file.
-    """
-
-    type: Literal["IGNORE"]
-    reasoning: str
-
-
-TAction = Union[ActionConvert, ActionExtract, ActionReplace, ActionManual, ActionRename, ActionIgnore]
-
-
-# -----------------------------------------------------------------------------
-# Model
-# -----------------------------------------------------------------------------
 class File(ACABase):
     """
     File model containing all information used by the rest of the archival suite of tools.
@@ -139,7 +44,7 @@ class File(ACABase):
     size: int
     signature: Optional[str]
     warning: Optional[str] = None
-    action: list[TAction] = Field(default_factory=list)
+    action: Optional[Action] = None
     root: Optional[Path] = Field(None, ignore=True)
 
     @classmethod
@@ -162,7 +67,7 @@ class File(ACABase):
             size=path.stat().st_size,
             signature=None,
             warning=None,
-            action=[],
+            action=None,
             root=root,
         )
 
