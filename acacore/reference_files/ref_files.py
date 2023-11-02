@@ -4,93 +4,22 @@ from http.client import HTTPResponse
 from urllib import request
 
 from pydantic import TypeAdapter
+from yaml import Loader
+from yaml import load
 
-from acacore.models.reference_files import ConversionInstruction
+from acacore.models.reference_files import Action
 from acacore.models.reference_files import CustomSignature
-from acacore.models.reference_files import ExtractionInstruction
-from acacore.models.reference_files import IgnoreInstruction
-from acacore.models.reference_files import ManualConversionInstruction
-from acacore.models.reference_files import ReIdentifyModel
 
 
 @lru_cache
-def _get_conversion_instructions() -> list[ConversionInstruction]:
+def _get_actions() -> dict[str, Action]:
     response: HTTPResponse = request.urlopen(
-        "https://raw.githubusercontent.com/aarhusstadsarkiv/reference-files/main/to_convert.json",
-    )
-
-    if response.getcode() != 200:
-        raise ConnectionError
-
-    instructions: dict[str, dict] = json.loads(response.read())
-
-    response = request.urlopen(
-        "https://raw.githubusercontent.com/aarhusstadsarkiv/reference-files/main/to_convert_symphovert.json",
-    )
-
-    if response.getcode() != 200:
-        raise ConnectionError
-
-    instructions.update(json.loads(response.read()))
-
-    return [ConversionInstruction(puid=puid, **value) for puid, value in instructions.items()]
-
-
-@lru_cache
-def _get_manual_conversion_instructions() -> list[ManualConversionInstruction]:
-    response: HTTPResponse = request.urlopen(
-        "https://raw.githubusercontent.com/aarhusstadsarkiv/reference-files/main/manual_convert.json",
-    )
-
-    if response.getcode() != 200:
-        raise ConnectionError
-
-    return [ManualConversionInstruction(puid=puid, **value) for puid, value in json.loads(response.read()).items()]
-
-
-@lru_cache
-def _get_extraction_instructions() -> list[ExtractionInstruction]:
-    response: HTTPResponse = request.urlopen(
-        "https://raw.githubusercontent.com/aarhusstadsarkiv/reference-files/main/to_extract.json",
-    )
-
-    if response.getcode() != 200:
-        raise ConnectionError
-
-    return [ExtractionInstruction(puid=puid, **value) for puid, value in json.loads(response.read()).items()]
-
-
-@lru_cache
-def _get_ignore_instructions() -> list[IgnoreInstruction]:
-    response: HTTPResponse = request.urlopen(
-        "https://raw.githubusercontent.com/aarhusstadsarkiv/reference-files/main/to_ignore.json",
-    )
-
-    if response.getcode() != 200:
-        raise ConnectionError
-
-    return [IgnoreInstruction(puid=puid, **value) for puid, value in json.loads(response.read()).items()]
-
-
-@lru_cache
-def _get_to_re_identify() -> list[ReIdentifyModel]:
-    response: HTTPResponse = request.urlopen(
-        "https://raw.githubusercontent.com/aarhusstadsarkiv/reference-files/main/to_reidentify.json",
+        "https://raw.githubusercontent.com/aarhusstadsarkiv/reference-files/main/actions.yml",
     )
     if response.getcode() != 200:
         raise ConnectionError
 
-    re_identify_map: dict[str, dict[str, str]] = json.loads(response.read())
-
-    if re_identify_map is None:
-        raise ConnectionError
-
-    result_list: list[ReIdentifyModel] = []
-    for key, values in re_identify_map.items():
-        result = ReIdentifyModel(puid=key, **values)
-        result_list.append(result)
-
-    return result_list
+    return TypeAdapter(dict[str, Action]).validate_python(load(response.read(), Loader))
 
 
 @lru_cache
@@ -109,37 +38,37 @@ def _get_custom_signatures() -> list[CustomSignature]:
     return TypeAdapter(list[CustomSignature]).validate_python(custom_list)
 
 
-def get_conversion_instructions(use_cache: bool = True) -> list[ConversionInstruction]:
-    return _get_conversion_instructions() if use_cache else _get_conversion_instructions.__wrapped__()
-
-
-def get_manual_conversion_instructions(use_cache: bool = True) -> list[ManualConversionInstruction]:
-    return _get_manual_conversion_instructions() if use_cache else _get_manual_conversion_instructions.__wrapped__()
-
-
-def get_extraction_instructions(use_cache: bool = True) -> list[ExtractionInstruction]:
-    return _get_extraction_instructions() if use_cache else _get_extraction_instructions.__wrapped__()
-
-
-def get_ignore_instructions(use_cache: bool = True) -> list[IgnoreInstruction]:
-    return _get_ignore_instructions() if use_cache else _get_ignore_instructions.__wrapped__()
-
-
-def get_to_re_identify(use_cache: bool = True) -> list[ReIdentifyModel]:
+def get_actions(use_cache: bool = True) -> dict[str, Action]:
     """
-    Gets the json file with the different formats that we wish to re-identify.
+    Get the actions for each of the supported PUIDs.
 
-    Is kept updated on the reference-files repo. The function caches the result,
-    soo multiple calls in the same run should not be an issue.
+    The data is fetched from the repository with a cached web request.
+
+    Args:
+        use_cache (bool): Use cached data if True, otherwise fetch data regardless of cache status.
+
+    Returns:
+        dict[str, Action]: A dictionary with PUID keys and Action values.
+
+    See Also:
+        https://github.com/aarhusstadsarkiv/reference-files/blob/main/actions.yml
     """
-    return _get_to_re_identify() if use_cache else _get_to_re_identify.__wrapped__()
+    return _get_actions() if use_cache else _get_actions.__wrapped__()
 
 
 def get_custom_signatures(use_cache: bool = True) -> list[CustomSignature]:
     """
-    Gets the json file with our own custom formats in a list.
+    Gets list of custom formats with their signatures.
 
-    Is kept updated on the reference-files repo. The function caches the result,
-    soo multiple calls in the same run should not be an issue.
+    The data is fetched from the repository with a cached web request.
+
+    Args:
+        use_cache (bool): Use cached data if True, otherwise fetch data regardless of cache status
+
+    Returns:
+        list[CustomSignature]: A list of CustomSignature objects
+
+    See Also:
+        https://github.com/aarhusstadsarkiv/reference-files/blob/main/custom_signatures.json
     """
     return _get_custom_signatures() if use_cache else _get_custom_signatures.__wrapped__()
