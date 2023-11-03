@@ -35,3 +35,10 @@ class SignatureCount(ACABase):
     puid: Optional[str]
     signature: Optional[str]
     count: Optional[int]
+
+
+class ChecksumCount(ACABase):
+    """Signature count datamodel."""
+
+    checksum: str
+    count: int
