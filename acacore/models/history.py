@@ -7,7 +7,7 @@ from .base import ACABase
 
 
 class HistoryEntry(ACABase):
-    uuid: UUID4
+    uuid: Optional[UUID4] = None
     time: datetime
     operation: str
     data: Optional[object] = None

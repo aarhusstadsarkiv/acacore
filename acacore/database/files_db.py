@@ -137,7 +137,7 @@ class FileDB(FileDBBase):
 
     def add_history(
         self,
-        uuid: UUID,
+        uuid: Optional[UUID],
         operation: str,
         data: Optional[Union[dict, list, str, int, float, bool, datetime]],
         reason: Optional[str] = None,
