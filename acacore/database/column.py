@@ -170,6 +170,11 @@ class Column(Generic[T]):
     def check(self, check: Optional[str]):
         self._check = check
 
+    def default_value(self) -> V:
+        if self.default is Ellipsis:
+            raise ValueError("Column does not have a default value")
+        return self.to_entry(self.default)
+
     def create_statement(self) -> str:
         """
         Generate the statement that creates the column.
