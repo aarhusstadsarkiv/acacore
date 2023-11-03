@@ -1,6 +1,8 @@
 """Data models for the data on saved to different .json files on the `reference_files` repo."""
+from typing import Any
 from typing import Literal
 from typing import Optional
+from typing import Union
 
 from pydantic import BaseModel
 from pydantic import Field
@@ -111,6 +113,31 @@ class ActionData(BaseModel):
     rename: Optional[RenameAction] = None
     ignore: Optional[IgnoreAction] = None
     reidentify: Optional[ReIdentifyAction] = None
+
+    def model_dump(
+        self,
+        *,
+        mode: Literal["json", "python"] | str = "python",
+        include: Optional[Union[set[int], set[str], dict[int, Any], dict[str, Any]]] = None,
+        exclude: Optional[Union[set[int], set[str], dict[int, Any], dict[str, Any]]] = None,
+        by_alias: bool = False,
+        exclude_unset: bool = False,
+        exclude_defaults: bool = True,  # noqa: ARG002
+        exclude_none: bool = False,
+        round_trip: bool = False,
+        warnings: bool = True,
+    ) -> dict[str, Any]:
+        return super().model_dump(
+            mode=mode,
+            include=include,
+            exclude=exclude,
+            by_alias=by_alias,
+            exclude_unset=exclude_unset,
+            exclude_defaults=True,
+            exclude_none=exclude_none,
+            round_trip=round_trip,
+            warnings=warnings,
+        )
 
 
 class Action(ActionData):
