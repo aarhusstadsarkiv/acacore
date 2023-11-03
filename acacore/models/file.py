@@ -189,6 +189,7 @@ class File(ACABase):
         return action
 
     def get_absolute_path(self, root: Optional[Path] = None) -> Path:
+        root = root or self.root
         return root.joinpath(self.relative_path) if root else self.relative_path.resolve()
 
     def get_checksum(self) -> str:
