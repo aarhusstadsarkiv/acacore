@@ -17,6 +17,7 @@ from acacore.utils.functions import is_binary
 from .base import ACABase
 from .identification import Identification
 from .reference_files import Action
+from .reference_files import ActionData
 from .reference_files import CustomSignature
 from .reference_files import TActionType
 
@@ -47,7 +48,7 @@ class File(ACABase):
     signature: Optional[str]
     warning: Optional[list[str]] = None
     action: Optional[TActionType] = None
-    action_data: Optional[Action] = None
+    action_data: Optional[ActionData] = None
     root: Optional[Path] = Field(None, ignore=True)
 
     @classmethod
@@ -184,7 +185,7 @@ class File(ACABase):
 
     def get_action(self, actions: dict[str, Action]) -> Optional[Action]:
         action: Optional[Action] = actions.get(self.puid)
-        self.action, self.action_data = action.action if action else None, action
+        self.action, self.action_data = action.action if action else None, action.action_data if action else None
         return action
 
     def get_absolute_path(self, root: Optional[Path] = None) -> Path:
