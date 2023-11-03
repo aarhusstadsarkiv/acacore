@@ -142,13 +142,13 @@ class FileDB(FileDBBase):
         reason: Optional[str] = None,
         *,
         time: Optional[datetime] = None,
-    ):
-        self.history.insert(
-            self.history.model(
-                uuid=uuid,
-                operation=operation,
-                data=data,
-                reason=reason,
-                time=time or datetime.now(),  # noqa: DTZ005
-            ),
+    ) -> HistoryEntry:
+        entry = self.history.model(
+            uuid=uuid,
+            operation=operation,
+            data=data,
+            reason=reason,
+            time=time or datetime.now(),  # noqa: DTZ005
         )
+        self.history.insert(entry)
+        return entry
