@@ -6,6 +6,11 @@ from typing import Type
 from typing import Union
 from uuid import UUID
 
+from acacore.models.file import ConvertedFile
+from acacore.models.file import File
+from acacore.models.history import HistoryEntry
+from acacore.models.identification import SignatureCount
+from acacore.models.metadata import Metadata
 from acacore.utils.functions import or_none
 
 from .base import Column
@@ -45,12 +50,6 @@ class FileDB(FileDBBase):
                 to avoid parsing overhead.
             uri: If set to True, database is interpreted as a URI with a file path and an optional query string.
         """
-        from acacore.models.file import ConvertedFile
-        from acacore.models.file import File
-        from acacore.models.history import HistoryEntry
-        from acacore.models.identification import SignatureCount
-        from acacore.models.metadata import Metadata
-
         super().__init__(
             database,
             timeout=timeout,
