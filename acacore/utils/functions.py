@@ -1,6 +1,7 @@
 from hashlib import sha256
 from pathlib import Path
 from typing import Callable
+from typing import Generator
 from typing import Optional
 from typing import TypeVar
 
@@ -34,6 +35,17 @@ def rm_tree(path: Path):
         rm_tree(item) if item.is_dir() else item.unlink(missing_ok=True)
 
     path.rmdir()
+
+
+def find_files(*root: Path, exclude: list[Path] = None) -> Generator[Path, None, None]:
+    exclude = exclude or []
+    for f in root:
+        if f in exclude:
+            continue
+        elif f.is_file():
+            yield f
+        elif f.is_dir():
+            yield from find_files(*f.iterdir(), exclude=exclude)
 
 
 def file_checksum(path: Path) -> str:
