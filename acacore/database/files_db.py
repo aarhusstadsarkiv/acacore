@@ -9,6 +9,7 @@ from uuid import UUID
 from acacore.models.file import ConvertedFile
 from acacore.models.file import File
 from acacore.models.history import HistoryEntry
+from acacore.models.identification import ChecksumCount
 from acacore.models.identification import SignatureCount
 from acacore.models.metadata import Metadata
 from acacore.utils.functions import or_none
@@ -77,6 +78,34 @@ class FileDB(FileDBBase):
             self.files,
             self.files.model,
             f'"{self.files.name}".warning IS NOT null',
+        )
+        self.checksum_count = self.create_view(
+            "_ChecksumCount",
+            self.files,
+            ChecksumCount,
+            None,
+            [
+                Column("checksum", "varchar", str, str, False, False, False),
+            ],
+            [
+                (Column("count", "int", str, str), "ASC"),
+            ],
+            select_columns=[
+                Column(
+                    "checksum",
+                    "varchar",
+                    or_none(str),
+                    or_none(str),
+                    False,
+                    False,
+                    False,
+                ),
+                SelectColumn(
+                    f'count("{self.files.name}.checksum")',
+                    int,
+                    "count",
+                ),
+            ],
         )
         self.signature_count = self.create_view(
             "_SignatureCount",
