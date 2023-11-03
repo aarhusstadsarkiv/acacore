@@ -115,6 +115,7 @@ class ActionData(BaseModel):
 
 class Action(ActionData):
     name: str
+    description: Optional[str] = None
     action: TActionType
 
     @property
