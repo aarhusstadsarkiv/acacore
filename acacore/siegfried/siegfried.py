@@ -228,16 +228,23 @@ class Siegfried:
         https://github.com/richardlehane/siegfried
     """
 
-    def __init__(self, binary: Union[str, PathLike] = "sf", signature: str = "default.sig") -> None:
+    def __init__(
+        self,
+        binary: Union[str, PathLike] = "sf",
+        signature: str = "default.sig",
+        home: Optional[Union[str, PathLike]] = None,
+    ) -> None:
         """
         Initializes a new instance of the Siegfried class.
 
         Args:
             binary: The path or name of the Siegfried binary. Defaults to "sf".
             signature: The name of the signature file to use. Defaults to "default.sig".
+            home: The location of the Siegfried home folder. Defaults to $HOME/siegfried.
         """
         self.binary: str = str(binary)
         self.signature: str = signature
+        self.home: Optional[Path] = Path(home) if home else None
 
     def run(self, *args: str) -> CompletedProcess:
         """
@@ -252,6 +259,8 @@ class Siegfried:
         Raises:
             IdentificationError: If Siegfried exits with a non-zero status code.
         """
+        if self.home:
+            args = ("-home", str(self.home), *args)
         return _check_process(run([self.binary, *args], capture_output=True, encoding="utf-8"))  # noqa: PLW1510
 
     def update(self, signature: Optional[TSignature] = None, *, set_signature: bool = True):
