@@ -6,7 +6,7 @@ from uuid import uuid4
 from pydantic import UUID4
 from pydantic import Field
 
-from acacore.models.reference_files import CustomSignature
+from acacore.exceptions.files import IdentificationError
 from acacore.siegfried.siegfried import Siegfried
 from acacore.siegfried.siegfried import SiegfriedFile
 from acacore.utils.functions import file_checksum
@@ -17,6 +17,7 @@ from acacore.utils.functions import is_binary
 from .base import ACABase
 from .identification import Identification
 from .reference_files import Action
+from .reference_files import CustomSignature
 from .reference_files import TActionType
 
 
@@ -50,18 +51,34 @@ class File(ACABase):
     root: Optional[Path] = Field(None, ignore=True)
 
     @classmethod
-    def from_file(cls, path: Path, root: Optional[Path] = None):
+    def from_file(
+        cls,
+        path: Path,
+        root: Optional[Path] = None,
+        siegfried: Optional[Siegfried] = None,
+        actions: Optional[dict[str, Action]] = None,
+        custom_signatures: Optional[list[CustomSignature]] = None,
+    ):
         """
         Create a File object from a given file.
 
+        Given a Siegfried object, the file will be identified.
+
+        Given a dictionary of Actions, the file action properties will be set.
+
+        Given a list of CustomSignatures, the file identification will be refined.
+
         Args:
             path: The path to the file.
-            root: Optionally, the root to be used to compute the relative path to the file
+            root: Optionally, the root to be used to compute the relative path to the file.
+            siegfried: A Siegfried class object to identify the file.
+            actions: A dictionary with PUID keys and Action values to assign an action.
+            custom_signatures: A list of CustomSignature objects to refine the identification.
 
         Returns:
             File: A File object.
         """
-        return cls(
+        file = cls(
             checksum=file_checksum(path),
             puid=None,
             relative_path=path.relative_to(root) if root else path,
@@ -72,6 +89,30 @@ class File(ACABase):
             action=None,
             root=root,
         )
+
+        if siegfried:
+            file.identify(siegfried, set_match=True)
+
+        if custom_signatures and not file.puid:
+            file.identify_custom(custom_signatures, set_match=True)
+
+        if actions:
+            file.get_action(actions)
+
+        if custom_signatures and file.action == "reidentify":
+            custom_match = file.identify_custom(custom_signatures)
+            if custom_match:
+                file.puid = custom_match.puid
+                file.signature = custom_match.signature
+                file.warning = None
+                file.get_action(actions)
+            elif file.action_data.reidentify and file.action_data.reidentify.onfail:
+                file.action = file.action_data.reidentify.onfail
+            else:
+                file.action.action = "manual"
+                file.warning = [*(file.warning or []), repr(IdentificationError("Re-identify failure"))]
+
+        return file
 
     def identify(self, sf: Siegfried, *, set_match: bool = False) -> SiegfriedFile:
         """
