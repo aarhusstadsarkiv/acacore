@@ -302,7 +302,7 @@ class Table:
             exist_ok: True if existing rows with the same keys should be ignored, False otherwise
             replace: True if existing rows with the same keys should be replaced, False otherwise.
         """
-        values: list[V] = [c.to_entry(entry[c.name]) for c in self.columns]
+        values: list[V] = [c.to_entry(entry[c.name]) if c.name in entry else c.default_value() for c in self.columns]
 
         elements: list[str] = ["INSERT"]
 
