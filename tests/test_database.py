@@ -25,20 +25,21 @@ def database_path(temp_folder: Path) -> Path:
 def test_file(test_files: Path, test_files_data: dict[str, dict]) -> File:
     filename, filedata = next(iter(test_files_data.items()))
     file_path: Path = test_files / filename
-    file = File.from_file(file_path)
-    file.puid = filedata["matches"]["id"]
-    file.signature = filedata["matches"]["format"]
-    file.warning = filedata["matches"]["warning"]
-    file.action_data = Action(
-        puid=file.puid,
-        name=file.signature,
+    action: Action = Action(
+        name=filedata["matches"]["format"],
         action="convert",
         convert=[
             {"converter": "convertool", "converter_type": "master", "outputs": ["odt", "pdf"]},
             {"converter": "convertool", "converter_type": "statutory", "outputs": ["tiff"]},
         ],
     )
-    file.action = file.action_data.action
+    file: File = File.from_file(file_path)
+
+    file.puid = filedata["matches"]["id"]
+    file.signature = filedata["matches"]["format"]
+    file.warning = filedata["matches"]["warning"]
+    file.get_action({file.puid: action})
+
     return file
 
 
