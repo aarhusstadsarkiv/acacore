@@ -171,6 +171,15 @@ class Column(Generic[T]):
         self._check = check
 
     def default_value(self) -> V:
+        """
+        Get the default value of the column formatted as an SQL parameter.
+
+        Returns:
+            An object of the return type of the column's to_entry function.
+
+        Raises:
+            ValueError: If the column does not have a set default value.
+        """
         if self.default is Ellipsis:
             raise ValueError("Column does not have a default value")
         return self.to_entry(self.default)
