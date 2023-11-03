@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import pytest
 
+from acacore.__version__ import __version__
 from acacore.database import FileDB
 from acacore.database import model_to_columns
 from acacore.database.base import ModelTable
@@ -148,3 +149,16 @@ def test_insert_select(database_path: Path, test_file: File):
     assert len(result_files) == 2
     assert result_files[0].uuid == test_file.uuid
     assert result_files[1].uuid == test_file2.uuid
+
+
+def test_history(database_path: Path):
+    assert database_path.is_file()
+
+    db: FileDB = FileDB(database_path)
+
+    history = db.add_history(None, "DIGIARCH START", {"version": __version__})
+    db.commit()
+
+    history2 = db.history.select(where="TIME = ?", parameters=[history.time.isoformat()]).fetchone()
+
+    assert history == history2
