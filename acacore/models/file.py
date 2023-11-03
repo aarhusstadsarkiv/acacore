@@ -17,6 +17,7 @@ from acacore.utils.functions import is_binary
 from .base import ACABase
 from .identification import Identification
 from .reference_files import Action
+from .reference_files import TActionType
 
 
 class File(ACABase):
@@ -44,7 +45,8 @@ class File(ACABase):
     size: int
     signature: Optional[str]
     warning: Optional[list[str]] = None
-    action: Optional[Action] = None
+    action: Optional[TActionType] = None
+    action_data: Optional[Action] = None
     root: Optional[Path] = Field(None, ignore=True)
 
     @classmethod
