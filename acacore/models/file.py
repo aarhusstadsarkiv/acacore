@@ -131,7 +131,7 @@ class File(ACABase):
         if set_match:
             self.puid = match.id if match else None
             self.signature = match.format if match else None
-            self.warning = match.warning if match else None
+            self.warning = (match.warning or None) if match else None
         return result
 
     def identify_custom(
