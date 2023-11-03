@@ -10,6 +10,22 @@ env:
 jobs:
   linting:
     uses: aarhusstadsarkiv/acautils/.github/workflows/linting_ruff-mypy.yml@main
+
+  version:
+    name: Test Version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          version_project="$(grep --color=never 'version *= *".*"' pyproject.toml)"
+          version_project="${version_project%\"}"
+          version_project="${version_project#*\"}"
+          version_package="$(grep --color=never '__version__ *= *".*"' acacore/__version__.py)"
+          version_package="${version_package%\"}"
+          version_package="${version_package#*\"}"
+          test "$version_project" = "$version_package"
+          echo $?
+
   pytest:
     name: pytest
     runs-on: ubuntu-latest
