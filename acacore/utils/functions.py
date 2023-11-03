@@ -33,7 +33,6 @@ def rm_tree(path: Path):
     Args:
         path (Path): The path to the directory.
     """
-
     if not path.is_dir():
         path.unlink(missing_ok=True)
         return
@@ -44,7 +43,7 @@ def rm_tree(path: Path):
     path.rmdir()
 
 
-def find_files(*root: Path, exclude: list[Path] = None) -> Generator[Path, None, None]:
+def find_files(*root: Path, exclude: Optional[list[Path]] = None) -> Generator[Path, None, None]:
     """
     Find files in the specified root directories, excluding any files or directories included in the `exclude` list.
 
@@ -57,7 +56,6 @@ def find_files(*root: Path, exclude: list[Path] = None) -> Generator[Path, None,
     Returns:
         Generator[Path, None, None]: A generator that yields paths of found files.
     """
-
     exclude = exclude or []
     for f in root:
         if f in exclude:
@@ -78,7 +76,6 @@ def file_checksum(path: Path) -> str:
     Returns:
         str: The SHA256 checksum of the file in hex digest form.
     """
-
     file_hash = sha256()
     with path.open("rb") as f:
         chunk = f.read(2**20)
@@ -90,6 +87,8 @@ def file_checksum(path: Path) -> str:
 
 def is_binary(path: Path, chunk_size: int = 1024):
     """
+    Check if a file is a binary or plain text.
+
     Args:
         path (Path): The path to the file to be checked.
         chunk_size (int): The size of the chunk to be read from the file in bytes. Default is 1024.
@@ -97,7 +96,6 @@ def is_binary(path: Path, chunk_size: int = 1024):
     Returns:
         bool: True if the file is binary, False if it is not.
     """
-
     with path.open("rb") as f:
         return bool(f.read(chunk_size).translate(None, _text_bytes))
 
@@ -113,7 +111,6 @@ def get_bof(path: Path, chunk_size: int = 1024) -> bytes:
     Returns:
         bytes: The contents of the first chunk of the file as a bytes object.
     """
-
     with path.open("rb") as f:
         return f.read(chunk_size)
 
@@ -129,7 +126,6 @@ def get_eof(path: Path, chunk_size: int = 1024) -> bytes:
     Returns:
         bytes: The contents of the last chunk of the file as a bytes object.
     """
-
     with path.open("rb") as f:
         f.seek(path.stat().st_size - chunk_size)
         return f.read(chunk_size)
