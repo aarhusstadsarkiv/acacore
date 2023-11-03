@@ -10,7 +10,7 @@ from yaml import load
 from acacore.models.reference_files import Action
 from acacore.models.reference_files import CustomSignature
 
-actions_url: str = "https://raw.githubusercontent.com/aarhusstadsarkiv/reference-files/main/actions.yml"
+actions_url: str = "https://raw.githubusercontent.com/aarhusstadsarkiv/reference-files/main/fileformats.yml"
 custom_signatures_url: str = (
     "https://raw.githubusercontent.com/aarhusstadsarkiv/reference-files/main/custom_signatures.json"
 )
