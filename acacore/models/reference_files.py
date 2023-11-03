@@ -5,6 +5,8 @@ from typing import Optional
 from pydantic import BaseModel
 from pydantic import Field
 
+TActionType = Literal["convert", "extract", "manual", "rename", "ignore", "reidentify"]
+
 
 class CustomSignature(BaseModel):
     """Data model for the `custom_signatures` from reference_files."""
@@ -113,4 +115,4 @@ class ActionData(BaseModel):
 
 class Action(ActionData):
     name: str
-    action: Literal["convert", "extract", "manual", "rename", "ignore", "reidentify"]
+    action: TActionType
