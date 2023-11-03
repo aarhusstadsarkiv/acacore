@@ -141,6 +141,11 @@ class File(ACABase):
 
         return signature
 
+    def get_action(self, actions: dict[str, Action]) -> Optional[Action]:
+        action: Optional[Action] = actions.get(self.puid)
+        self.action, self.action_data = action.action if action else None, action
+        return action
+
     def get_absolute_path(self, root: Optional[Path] = None) -> Path:
         return root.joinpath(self.relative_path) if root else self.relative_path.resolve()
 
