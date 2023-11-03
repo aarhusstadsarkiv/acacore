@@ -116,3 +116,14 @@ class ActionData(BaseModel):
 class Action(ActionData):
     name: str
     action: TActionType
+
+    @property
+    def action_data(self) -> ActionData:
+        return ActionData(
+            convert=self.convert,
+            extract=self.extract,
+            manual=self.manual,
+            rename=self.rename,
+            ignore=self.ignore,
+            reidentify=self.reidentify,
+        )
