@@ -29,7 +29,7 @@ def test_file(test_files: Path, test_files_data: dict[str, dict]) -> File:
     file.puid = filedata["matches"]["id"]
     file.signature = filedata["matches"]["format"]
     file.warning = filedata["matches"]["warning"]
-    file.action = Action(
+    file.action_data = Action(
         puid=file.puid,
         name=file.signature,
         action="convert",
@@ -38,6 +38,7 @@ def test_file(test_files: Path, test_files_data: dict[str, dict]) -> File:
             {"converter": "convertool", "converter_type": "statutory", "outputs": ["tiff"]},
         ],
     )
+    file.action = file.action_data.action
     return file
 
 
