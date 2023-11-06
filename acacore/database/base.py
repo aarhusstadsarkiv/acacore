@@ -7,8 +7,10 @@ from sqlite3 import OperationalError
 from typing import Any
 from typing import Generator
 from typing import Generic
+from typing import Iterator
 from typing import Optional
 from typing import overload
+from typing import Sequence
 from typing import Type
 from typing import TypeVar
 from typing import Union
@@ -318,6 +320,24 @@ class Table:
 
         self.connection.execute(" ".join(elements), values)
 
+    def insert_many(
+        self,
+        entries: Union[Sequence[dict[str, Any]], Iterator[dict[str, Any]]],
+        exist_ok: bool = False,
+        replace: bool = False,
+    ):
+        """
+        Insert multiple rows in the table. Existing rows with matching keys can be ignored or replaced.
+
+        Args:
+            entries: The rows to be inserted as a list (or iterator) of dicts with keys matching the names of
+                the columns. The values need not be converted beforehand.
+            exist_ok: True if existing rows with the same keys should be ignored, False otherwise
+            replace: True if existing rows with the same keys should be replaced, False otherwise.
+        """
+        for entry in entries:
+            self.insert(entry, exist_ok, replace)
+
 
 class ModelTable(Table, Generic[M]):
     def __init__(self, connection: "FileDBBase", name: str, model: Type[M]) -> None:
@@ -384,6 +404,24 @@ class ModelTable(Table, Generic[M]):
             replace: True if existing rows with the same keys should be replaced, False otherwise.
         """
         super().insert(entry.model_dump(), exist_ok, replace)
+
+    def insert_many(
+        self,
+        entries: Union[Sequence[M], Iterator[M]],
+        exist_ok: bool = False,
+        replace: bool = False,
+    ):
+        """
+        Insert multiple rows in the table. Existing rows with matching keys can be ignored or replaced.
+
+        Args:
+            entries: The rows to be inserted as a list (or iterator) of model objects with attributes matching
+                the names of the columns.
+            exist_ok: True if existing rows with the same keys should be ignored, False otherwise
+            replace: True if existing rows with the same keys should be replaced, False otherwise.
+        """
+        for entry in entries:
+            self.insert(entry, exist_ok, replace)
 
 
 # noinspection SqlNoDataSourceInspection
@@ -513,6 +551,13 @@ class View(Table):
         return super().select(columns, where, order_by, limit, parameters)
 
     def insert(self, *_args, **_kwargs):
+        """
+        Raises:
+            OperationalError: Insert transactions are not allowed on views.
+        """  # noqa: D205
+        raise OperationalError("Cannot insert into view")
+
+    def insert_many(self, *_args, **_kwargs):
         """
         Raises:
             OperationalError: Insert transactions are not allowed on views.
