@@ -5,9 +5,10 @@ from typing import Generator
 from typing import Optional
 from typing import TypeVar
 
+from PIL import Image
+
 T = TypeVar("T")
 R = TypeVar("R")
-
 
 _text_bytes: bytes = bytes([7, 8, 9, 10, 12, 13, 27, *range(0x20, 0x7F), *range(0x80, 0x100)])
 
@@ -78,10 +79,10 @@ def file_checksum(path: Path) -> str:
     """
     file_hash = sha256()
     with path.open("rb") as f:
-        chunk = f.read(2**20)
+        chunk = f.read(2 ** 20)
         while chunk:
             file_hash.update(chunk)
-            chunk = f.read(2**20)
+            chunk = f.read(2 ** 20)
     return file_hash.hexdigest()
 
 
@@ -129,3 +130,22 @@ def get_eof(path: Path, chunk_size: int = 1024) -> bytes:
     with path.open("rb") as f:
         f.seek(path.stat().st_size - chunk_size)
         return f.read(chunk_size)
+
+
+def image_size(path: Path) -> tuple[int, int]:
+    """
+    Calculate the size of an image.
+
+    Args:
+        path (Path): The path to the image file.
+
+    Returns:
+        tuple[int, int]: A tuple representing the width and height of the image.
+
+    Raises:
+        FileNotFoundError: If the provided path does not exist.
+        IsADirectoryError: If the provided path points to a directory instead of a file.
+        PIL.UnidentifiedImageError: If the provided file is not a valid image file.
+    """
+    with Image.open(path) as i:
+        return i.size
