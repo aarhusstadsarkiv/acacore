@@ -1,8 +1,8 @@
-from logging import INFO
 from logging import FileHandler
 from logging import Formatter
-from logging import Logger
 from logging import getLogger
+from logging import INFO
+from logging import Logger
 from pathlib import Path
 
 

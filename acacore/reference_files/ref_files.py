@@ -4,8 +4,8 @@ from http.client import HTTPResponse
 from urllib import request
 
 from pydantic import TypeAdapter
-from yaml import Loader
 from yaml import load
+from yaml import Loader
 
 from acacore.models.reference_files import Action
 from acacore.models.reference_files import CustomSignature

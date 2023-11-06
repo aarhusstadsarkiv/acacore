@@ -8,16 +8,16 @@ from typing import Any
 from typing import Generator
 from typing import Generic
 from typing import Optional
+from typing import overload
 from typing import Type
 from typing import TypeVar
 from typing import Union
-from typing import overload
 
 from pydantic.main import BaseModel
 
 from .column import Column
-from .column import SelectColumn
 from .column import model_to_columns
+from .column import SelectColumn
 
 T = TypeVar("T")
 R = TypeVar("R")

@@ -3,8 +3,8 @@ from re import compile as re_compile
 from typing import Optional
 from uuid import uuid4
 
-from pydantic import UUID4
 from pydantic import Field
+from pydantic import UUID4
 
 from acacore.exceptions.files import IdentificationError
 from acacore.siegfried.siegfried import Siegfried
