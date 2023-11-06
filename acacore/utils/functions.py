@@ -79,10 +79,10 @@ def file_checksum(path: Path) -> str:
     """
     file_hash = sha256()
     with path.open("rb") as f:
-        chunk = f.read(2 ** 20)
+        chunk = f.read(2**20)
         while chunk:
             file_hash.update(chunk)
-            chunk = f.read(2 ** 20)
+            chunk = f.read(2**20)
     return file_hash.hexdigest()
 
 
