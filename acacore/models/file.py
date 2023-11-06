@@ -12,6 +12,7 @@ from acacore.siegfried.siegfried import SiegfriedFile
 from acacore.utils.functions import file_checksum
 from acacore.utils.functions import get_bof
 from acacore.utils.functions import get_eof
+from acacore.utils.functions import image_size
 from acacore.utils.functions import is_binary
 
 from .base import ACABase
@@ -112,6 +113,24 @@ class File(ACABase):
             else:
                 file.action.action = "manual"
                 file.warning = [*(file.warning or []), repr(IdentificationError("Re-identify failure"))]
+
+        if file.action_data and file.action_data.ignore and file.action_data.ignore.ignore_if:
+            for ignore_if in file.action_data.ignore.ignore_if:
+                if ignore_if.pixel_total or ignore_if.pixel_width or ignore_if.pixel_height:
+                    width, height = image_size(file.get_absolute_path())
+                    if (
+                        width * height < ignore_if.pixel_total
+                        or width < ignore_if.pixel_width
+                        or height < ignore_if.pixel_height
+                    ):
+                        file.action = "ignore"
+                        file.action_data.ignore.reasoning = ignore_if.reason or file.action_data.ignore.reasoning
+                elif file.is_binary and file.size < (ignore_if.binary_size or 0):  # noqa: SIM114
+                    file.action = "ignore"
+                    file.action_data.ignore.reasoning = ignore_if.reason or file.action_data.ignore.reasoning
+                elif file.size < (ignore_if.size or 0):
+                    file.action = "ignore"
+                    file.action_data.ignore.reasoning = ignore_if.reason or file.action_data.ignore.reasoning
 
         return file
 
