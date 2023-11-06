@@ -6,7 +6,6 @@ from uuid import uuid4
 from pydantic import Field
 from pydantic import UUID4
 
-from acacore.exceptions.files import IdentificationError
 from acacore.siegfried.siegfried import Siegfried
 from acacore.siegfried.siegfried import SiegfriedFile
 from acacore.utils.functions import file_checksum
@@ -111,8 +110,8 @@ class File(ACABase):
             elif file.action_data.reidentify and file.action_data.reidentify.onfail:
                 file.action = file.action_data.reidentify.onfail
             else:
-                file.action = "manual"
-                file.warning = [*(file.warning or []), repr(IdentificationError("Re-identify failure"))]
+                file.get_action({})
+                file.puid = file.signature = file.warning = None
 
         if file.action_data and file.action_data.ignore and file.action_data.ignore.ignore_if:
             for ignore_if in file.action_data.ignore.ignore_if:
