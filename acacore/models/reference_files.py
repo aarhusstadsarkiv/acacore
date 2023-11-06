@@ -70,15 +70,40 @@ class ManualAction(BaseModel):
     process: str
 
 
+class IgnoreIfAction(BaseModel):
+    """
+    Class representing conditions to ignore a file.
+
+    The pixel counts and sizes are considered as the minimum allowed value.
+
+    Attributes:
+        pixel_total (Optional[int]): Total amount of pixels (width times height) for images.
+        pixel_width (Optional[int]): Width for images.
+        pixel_height (Optional[int]): Height for images.
+        size (Optional[int]): Size for all files.
+        binary_size (Optional[int]): Size for binary files.
+        reason (Optional[int]): A reasoning for the specific condition.
+    """
+
+    pixel_total: Optional[int] = Field(None, gt=0)
+    pixel_width: Optional[int] = Field(None, gt=0)
+    pixel_height: Optional[int] = Field(None, gt=0)
+    size: Optional[int] = Field(None, gt=0)
+    binary_size: Optional[int] = Field(None, gt=0)
+    reason: Optional[str] = None
+
+
 class IgnoreAction(BaseModel):
     """
     Class representing an action to ignore a specific file based on the given reasoning.
 
     Attributes:
         reasoning (str): The reasoning for ignoring the file.
+        ignore_if (list[IgnoreIfAction]): An optional list of ignore conditions.
     """
 
     reasoning: str
+    ignore_if: list[IgnoreIfAction] = Field(default_factory=list)
 
 
 class ReIdentifyAction(BaseModel):
