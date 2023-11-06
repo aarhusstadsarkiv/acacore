@@ -144,6 +144,7 @@ class FileDB(FileDBBase):
         self.files.create(True)
         self.history.create(True)
         self.identification_warnings.create(True)
+        self.checksum_count.create(True)
         self.signature_count.create(True)
         self.commit()
 
