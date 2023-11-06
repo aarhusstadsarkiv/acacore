@@ -59,6 +59,8 @@ class File(ACABase):
         siegfried: Optional[Siegfried] = None,
         actions: Optional[dict[str, Action]] = None,
         custom_signatures: Optional[list[CustomSignature]] = None,
+        *,
+        uuid: Optional[UUID4] = None,
     ):
         """
         Create a File object from a given file.
@@ -75,11 +77,13 @@ class File(ACABase):
             siegfried: A Siegfried class object to identify the file.
             actions: A dictionary with PUID keys and Action values to assign an action.
             custom_signatures: A list of CustomSignature objects to refine the identification.
+            uuid: Optionally, a specific UUID to use for the file.
 
         Returns:
             File: A File object.
         """
         file = cls(
+            uuid=uuid or uuid4(),
             checksum=file_checksum(path),
             puid=None,
             relative_path=path.relative_to(root) if root else path,
