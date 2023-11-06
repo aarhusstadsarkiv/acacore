@@ -1,4 +1,23 @@
 {
+  "ico.ico": {
+    "filesize": 531,
+    "image_size": [16, 16],
+    "checksum": "36072bb5c2822fd97c344fb41d5d01ddf02cd6633f0867c53de798b15611b458",
+    "binary": true,
+    "errors": "",
+    "matches": {
+      "ns": "pronom",
+      "id": "fmt/11",
+      "format": "Portable Network Graphics",
+      "version": "1.0",
+      "mime": "image/png",
+      "match_class": "Image (Raster)",
+      "basis": ["byte match at [[0 16] [519 12]]"],
+      "warning": ["extension mismatch"],
+      "URI": null,
+      "permalink": null
+    }
+  },
   "json.json": {
     "filesize": 355,
     "checksum": "c334b60758bd581c1d3cffcfe55cd3532a7190fa99b1b04ef6ccad8c56d149f4",
