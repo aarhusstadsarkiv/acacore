@@ -122,9 +122,9 @@ class File(ACABase):
                 if ignore_if.pixel_total or ignore_if.pixel_width or ignore_if.pixel_height:
                     width, height = image_size(file.get_absolute_path())
                     if (
-                        width * height < ignore_if.pixel_total
-                        or width < ignore_if.pixel_width
-                        or height < ignore_if.pixel_height
+                        width * height < (ignore_if.pixel_total or 0)
+                        or width < (ignore_if.pixel_width or 0)
+                        or height < (ignore_if.pixel_height or 0)
                     ):
                         file.action = "ignore"
                         file.action_data.ignore.reasoning = ignore_if.reason or file.action_data.ignore.reasoning
