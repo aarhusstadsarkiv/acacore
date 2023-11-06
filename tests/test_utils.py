@@ -2,6 +2,7 @@ from pathlib import Path
 from re import match
 
 from acacore.utils.functions import file_checksum
+from acacore.utils.functions import image_size
 from acacore.utils.functions import is_binary
 from acacore.utils.functions import or_none
 from acacore.utils.functions import rm_tree
@@ -29,6 +30,11 @@ def test_functions(test_files: Path, test_files_data: dict[str, dict], temp_fold
     rm_tree(test_folder)
     assert not test_folder.is_dir()
     assert temp_folder.is_dir()
+
+    # image_size
+    for filename, filedata in test_files_data.items():
+        if filedata.get("image_size"):
+            assert image_size(test_files / filename) == tuple(filedata.get("image_size"))
 
 
 def test_io():
