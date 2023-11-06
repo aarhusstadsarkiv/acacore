@@ -132,6 +132,7 @@ class RenameAction(BaseModel):
 class ActionData(BaseModel):
     convert: Optional[list[ConvertAction]] = None
     extract: Optional[ExtractAction] = None
+    replace: Optional[ReplaceAction] = None
     manual: Optional[ManualAction] = None
     rename: Optional[RenameAction] = None
     ignore: Optional[IgnoreAction] = None
@@ -148,6 +149,7 @@ class Action(ActionData):
         return ActionData(
             convert=self.convert,
             extract=self.extract,
+            replace=self.replace,
             manual=self.manual,
             rename=self.rename,
             ignore=self.ignore,
