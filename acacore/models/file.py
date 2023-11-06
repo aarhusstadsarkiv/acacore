@@ -111,7 +111,7 @@ class File(ACABase):
             elif file.action_data.reidentify and file.action_data.reidentify.onfail:
                 file.action = file.action_data.reidentify.onfail
             else:
-                file.action.action = "manual"
+                file.action = "manual"
                 file.warning = [*(file.warning or []), repr(IdentificationError("Re-identify failure"))]
 
         if file.action_data and file.action_data.ignore and file.action_data.ignore.ignore_if:
