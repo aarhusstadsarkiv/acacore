@@ -78,7 +78,7 @@ class FileDB(FileDBBase):
                 Column("checksum", "varchar", str, str, False, False, False),
             ],
             [
-                (Column("count", "int", str, str), "ASC"),
+                (Column("count", "int", str, str), "DESC"),
             ],
             select_columns=[
                 Column(
