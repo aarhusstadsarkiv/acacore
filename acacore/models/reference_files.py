@@ -102,7 +102,7 @@ class IgnoreAction(BaseModel):
         ignore_if (list[IgnoreIfAction]): An optional list of ignore conditions.
     """
 
-    reasoning: str
+    reasoning: Optional[str] = None
     ignore_if: list[IgnoreIfAction] = Field(default_factory=list)
 
 
