@@ -41,10 +41,10 @@ class File(ACABase):
 
     uuid: UUID4 = Field(default_factory=uuid4)
     checksum: str
-    puid: Optional[str]
     relative_path: Path = Field(primary_key=True)
     is_binary: bool
     size: int
+    puid: Optional[str]
     signature: Optional[str]
     warning: Optional[list[str]] = None
     action: Optional[TActionType] = None
