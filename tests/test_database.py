@@ -9,11 +9,9 @@ from acacore.database import FileDB
 from acacore.database import model_to_columns
 from acacore.database.base import ModelTable
 from acacore.database.base import ModelView
-from acacore.models.file import ConvertedFile
 from acacore.models.file import File
 from acacore.models.history import HistoryEntry
 from acacore.models.identification import SignatureCount
-from acacore.models.metadata import Metadata
 from acacore.models.reference_files import Action
 
 
@@ -51,16 +49,10 @@ def test_database_classes(database_path: Path):
     # Check tables classes
     assert isinstance(db.files, ModelTable)
     assert issubclass(db.files.model, File)
-    assert isinstance(db.metadata, ModelTable)
-    assert issubclass(db.metadata.model, Metadata)
-    assert isinstance(db.converted_files, ModelTable)
-    assert issubclass(db.converted_files.model, ConvertedFile)
     assert isinstance(db.history, ModelTable)
     assert issubclass(db.history.model, HistoryEntry)
 
     # Check views classes
-    assert isinstance(db.not_converted, ModelView)
-    assert issubclass(db.not_converted.model, File)
     assert isinstance(db.identification_warnings, ModelView)
     assert issubclass(db.identification_warnings.model, File)
     assert isinstance(db.signature_count, ModelView)
@@ -82,15 +74,12 @@ def test_database_tables(database_path: Path):
         t for [t] in db.execute("select name from sqlite_master where type = 'table' and name != 'sqlite_master'")
     ]
     assert db.files.name in tables
-    assert db.metadata.name in tables
-    assert db.converted_files.name in tables
     assert db.history.name in tables
 
     # Test views existence
     views: list[str] = [
         t for [t] in db.execute("select name from sqlite_master where type = 'view' and name != 'sqlite_master'")
     ]
-    assert db.not_converted.name in views
     assert db.identification_warnings.name in views
     assert db.signature_count.name in views
 
@@ -100,7 +89,7 @@ def test_database_columns(database_path: Path):
 
     db: FileDB = FileDB(database_path)
 
-    for table in (db.files, db.metadata, db.converted_files, db.history):
+    for table in (db.files, db.history):
         columns_from_model = tuple(
             (
                 column.name,
