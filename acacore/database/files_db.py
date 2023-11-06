@@ -6,12 +6,10 @@ from typing import Type
 from typing import Union
 from uuid import UUID
 
-from acacore.models.file import ConvertedFile
 from acacore.models.file import File
 from acacore.models.history import HistoryEntry
 from acacore.models.identification import ChecksumCount
 from acacore.models.identification import SignatureCount
-from acacore.models.metadata import Metadata
 from acacore.utils.functions import or_none
 
 from .base import Column
@@ -63,16 +61,8 @@ class FileDB(FileDBBase):
         )
 
         self.files = self.create_table("Files", File)
-        self.metadata = self.create_table("Metadata", Metadata)
-        self.converted_files = self.create_table("_ConvertedFiles", ConvertedFile)
         self.history = self.create_table("History", HistoryEntry)
 
-        self.not_converted = self.create_view(
-            "_NotConverted",
-            self.files,
-            self.files.model,
-            f'"{self.files.name}".uuid NOT IN ' f"(SELECT uuid from {self.converted_files.name})",
-        )
         self.identification_warnings = self.create_view(
             "_IdentificationWarnings",
             self.files,
@@ -152,10 +142,7 @@ class FileDB(FileDBBase):
     def init(self):
         """Create the default tables and views."""
         self.files.create(True)
-        self.metadata.create(True)
-        self.converted_files.create(True)
         self.history.create(True)
-        self.not_converted.create(True)
         self.identification_warnings.create(True)
         self.signature_count.create(True)
         self.commit()
