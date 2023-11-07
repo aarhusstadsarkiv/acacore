@@ -49,7 +49,7 @@ def test_io():
 
 def test_log(temp_folder: Path):
     log_file: Path = temp_folder / "test.log"
-    logger = setup_logger("test", log_file)
+    logger = setup_logger("test", files=[log_file])
     logger.info("test info message")
     logger.warning("test warning message")
     logger.error("test error message")
