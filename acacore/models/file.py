@@ -63,6 +63,7 @@ class File(ACABase):
         custom_signatures: Optional[list[CustomSignature]] = None,
         *,
         uuid: Optional[UUID4] = None,
+        processed: bool = False,
     ):
         """
         Create a File object from a given file.
@@ -80,6 +81,7 @@ class File(ACABase):
             actions: A dictionary with PUID keys and Action values to assign an action.
             custom_signatures: A list of CustomSignature objects to refine the identification.
             uuid: Optionally, a specific UUID to use for the file.
+            processed: Optionally, the value to be used for the processed property.
 
         Returns:
             File: A File object.
@@ -95,6 +97,7 @@ class File(ACABase):
             warning=None,
             action=None,
             root=root,
+            processed=processed,
         )
 
         if siegfried:
