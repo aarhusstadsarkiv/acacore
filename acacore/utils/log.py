@@ -3,34 +3,59 @@ from logging import Formatter
 from logging import getLogger
 from logging import INFO
 from logging import Logger
+from logging import StreamHandler
 from pathlib import Path
+from typing import IO
+from typing import Optional
+from typing import overload
 
 
-def setup_logger(log_name: str, log_path: Path) -> Logger:
+@overload
+def setup_logger(log_name: str, *, files: list[Path], streams: Optional[list[IO]] = None) -> Logger:
+    ...
+
+
+@overload
+def setup_logger(log_name: str, *, files: Optional[list[Path]] = None, streams: list[IO]) -> Logger:
+    ...
+
+
+def setup_logger(log_name: str, *, files: Optional[list[Path]] = None, streams: Optional[list[IO]] = None) -> Logger:
     """
-    General method for setting op a log object. Ensures that the different logs we use across tools are standardized.
+    Set up a logger that prints to files and/or streams.
 
     Args:
-        log_name: The name given to the logger within the logging modules own namespace. All descendant logs needs
-        to have a name on the form 'log_name.descendant_log_name', which often is the name of the module or submodule
-        that the function is called from.
-        log_path: The path directly to the log as a `txt` file. If the file is not there, it will be created.
-        If it already exists, it will append the messages to the file.
+        log_name: The name of the logger.
+        files: A list of Path objects representing the log files.
+        streams: A list of IO objects representing the log streams.
 
     Returns:
-        A Logger instance.
-    """
-    if not log_path.parent.exists():
-        Path.mkdir(log_path.parent, parents=True, exist_ok=True)
+        The configured Logger object.
 
-    log: Logger = getLogger(log_name)
-    file_handler: FileHandler = FileHandler(log_path, "a", encoding="utf-8")
-    # noinspection SpellCheckingInspection
-    log_fmt: Formatter = Formatter(
+    Raises:
+        AssertionError: If neither files nor streams are given.
+    """
+    assert files or streams, "At least one file or stream must be set."
+
+    files = files or []
+    streams = streams or []
+
+    logger: Logger = getLogger(log_name)
+    logger_format: Formatter = Formatter(
         fmt="%(asctime)s %(levelname)s: %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
-    file_handler.setFormatter(log_fmt)
-    log.addHandler(file_handler)
-    log.setLevel(INFO)
-    return log
+    logger.setLevel(INFO)
+
+    for file in files:
+        file.parent.mkdir(parents=True, exist_ok=True)
+        handler: FileHandler = FileHandler(file, "a", encoding="utf-8")
+        handler.setFormatter(logger_format)
+        logger.addHandler(handler)
+
+    for stream in streams:
+        handler: StreamHandler = StreamHandler(stream)
+        handler.setFormatter(logger_format)
+        logger.addHandler(handler)
+
+    return logger
