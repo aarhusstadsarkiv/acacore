@@ -81,6 +81,7 @@ def test_database_tables(database_path: Path):
     ]
     assert db.files.name in tables
     assert db.history.name in tables
+    assert db.metadata.name in tables
 
     # Test views existence
     views: list[str] = [
@@ -112,6 +113,25 @@ def test_database_columns(database_path: Path):
             for column in db.execute(f'pragma table_info("{table.name}")').fetchall()
         )
         assert columns_from_model == columns_from_sql
+
+
+def test_database_keys_tables(database_path: Path):
+    assert database_path.is_file()
+
+    db: FileDB = FileDB(database_path)
+
+    metadata = db.metadata.select()
+
+    assert isinstance(metadata, db.metadata.model)
+    assert metadata.version == __version__
+
+    metadata.version = __version__ + "-test"
+    db.metadata.update(metadata)
+    db.commit()
+
+    metadata2 = db.metadata.select()
+
+    assert metadata.model_dump() == metadata2.model_dump()
 
 
 def test_insert_select(database_path: Path, test_file: File):
