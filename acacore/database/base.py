@@ -237,12 +237,12 @@ class Table:
         elements.append(self.name)
 
         if self.columns:
-            elements.append(
-                "("
-                + ", ".join(c.create_statement() for c in self.columns)
-                + (f", primary key ({', '.join(c.name for c in keys)})" if (keys := self.keys) else "")
-                + ")",
-            )
+            columns_elements: list[str] = []
+            for column in self.columns:
+                columns_elements.append(column.create_statement())
+            if self.keys:
+                columns_elements.append(f"primary key ({','.join(c.name for c in self.keys)})")
+            elements.append(f"({','.join(columns_elements)})")
 
         return " ".join(elements)
 
