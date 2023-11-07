@@ -10,6 +10,7 @@ from acacore.models.file import File
 from acacore.models.history import HistoryEntry
 from acacore.models.identification import ChecksumCount
 from acacore.models.identification import SignatureCount
+from acacore.models.metadata import Metadata
 from acacore.utils.functions import or_none
 
 from .base import Column
@@ -62,6 +63,7 @@ class FileDB(FileDBBase):
 
         self.files = self.create_table("Files", File)
         self.history = self.create_table("History", HistoryEntry)
+        self.metadata = self.create_keys_table("Metadata", Metadata)
 
         self.identification_warnings = self.create_view(
             "_IdentificationWarnings",
@@ -143,9 +145,11 @@ class FileDB(FileDBBase):
         """Create the default tables and views."""
         self.files.create(True)
         self.history.create(True)
+        self.metadata.create(True)
         self.identification_warnings.create(True)
         self.checksum_count.create(True)
         self.signature_count.create(True)
+        self.metadata.update(self.metadata.model())
         self.commit()
 
     def is_empty(self) -> bool:
