@@ -5,7 +5,7 @@ from typing import Optional
 from pydantic import BaseModel
 from pydantic import Field
 
-TActionType = Literal["convert", "extract", "manual", "rename", "ignore", "reidentify"]
+TActionType = Literal["convert", "extract", "replace", "manual", "rename", "ignore", "reidentify"]
 
 
 class CustomSignature(BaseModel):
