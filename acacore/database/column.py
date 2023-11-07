@@ -33,11 +33,26 @@ _sql_schema_type_converters: dict[
     "uuid4": (str, UUID),
     "binary": (bytes, bytes),
     "string": (str, str),
-    "integer": (float, float),
+    "integer": (int, int),
     "number": (float, float),
     "boolean": (bool, bool),
     "null": (lambda x: x, lambda x: x),
 }
+
+
+def _value_to_sql(value: V) -> str:
+    if value is None:
+        return "null"
+    elif isinstance(value, str):
+        return value.replace("'", "\\'")
+    elif isinstance(value, bool):
+        return "true" if value else "false"
+    elif isinstance(value, datetime):
+        return value.isoformat()
+    elif isinstance(value, bytes):
+        return f"X'{value.hex()}'"
+    else:
+        return str(value)
 
 
 def dump_object(obj: Union[list, tuple, dict, BaseModel]) -> Union[list, dict]:
@@ -197,12 +212,7 @@ class Column(Generic[T]):
         if self.not_null:
             elements.append("not null")
         if self.default is not Ellipsis:
-            default_value: V = self.to_entry(self.default)
-            elements.append(
-                "default '{}'".format(default_value.replace("'", "\\'"))
-                if isinstance(default_value, str)
-                else f"default {'null' if default_value is None else default_value}",
-            )
+            elements.append(f"default {_value_to_sql(self.default_value())}")
         if self.check:
             elements.append(f"check ({self.check})")
 
