@@ -36,6 +36,7 @@ class File(ACABase):
         signature (Optional[str]): The signature of the file.
         warning (Optional[str]): Any warning associated with the file PUID.
         action (list[TAction]): A list of actions related to the file.
+        processed (bool): True if the file has been processed, false otherwise.
         root (Optional[Path]): The root directory for the file.
     """
 
@@ -49,6 +50,7 @@ class File(ACABase):
     warning: Optional[list[str]] = None
     action: Optional[TActionType] = None
     action_data: Optional[ActionData] = None
+    processed: bool = False
     root: Optional[Path] = Field(None, ignore=True)
 
     @classmethod
