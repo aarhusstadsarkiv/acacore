@@ -9,6 +9,9 @@ from acacore.database import FileDB
 from acacore.database import model_to_columns
 from acacore.database.base import ModelTable
 from acacore.database.base import ModelView
+
+# noinspection PyProtectedMember
+from acacore.database.column import _value_to_sql
 from acacore.models.file import File
 from acacore.models.history import HistoryEntry
 from acacore.models.identification import ChecksumCount
@@ -99,9 +102,7 @@ def test_database_columns(database_path: Path):
                 column.name,
                 column.sql_type.lower(),
                 column.not_null,
-                ("null" if column.default is None else column.to_entry(column.default))
-                if column.default is not Ellipsis
-                else None,
+                _value_to_sql(column.default_value()) if column.default is not Ellipsis else None,
                 column.primary_key,
             )
             for column in model_to_columns(table.model)
