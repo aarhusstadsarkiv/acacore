@@ -35,7 +35,8 @@ class File(ACABase):
         size (int): The size of the file.
         signature (Optional[str]): The signature of the file.
         warning (Optional[str]): Any warning associated with the file PUID.
-        action (list[TAction]): A list of actions related to the file.
+        action (Optional[str]): The name of the main action for the file's PUID, if one exists.
+        action_data (Optional[ActionData]): The data for the action for the file's PUID, if one exists.
         processed (bool): True if the file has been processed, false otherwise.
         root (Optional[Path]): The root directory for the file.
     """
