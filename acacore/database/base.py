@@ -1,4 +1,6 @@
 from datetime import datetime
+from json import dumps
+from json import loads
 from os import PathLike
 from pathlib import Path
 from sqlite3 import Connection
@@ -17,7 +19,10 @@ from typing import Union
 
 from pydantic.main import BaseModel
 
+from acacore.utils.functions import or_none
+
 from .column import Column
+from .column import dump_object
 from .column import model_to_columns
 from .column import SelectColumn
 
@@ -424,6 +429,104 @@ class ModelTable(Table, Generic[M]):
             self.insert(entry, exist_ok, replace)
 
 
+# noinspection SqlResolve
+class KeysTable:
+    def __init__(self, connection: "FileDBBase", name: str, keys: list[Column]) -> None:
+        """
+        A class that holds information about a key-value pairs table.
+
+        Args:
+            connection: A FileDBBase object connected to the database the table belongs to.
+            name: The name of the table.
+            keys: The keys of the table.
+        """
+        self.keys: list[Column] = keys
+        self.connection: "FileDBBase" = connection
+        self.name: str = name
+        self.columns: list[Column] = [
+            Column("KEY", "text", str, str, True, True),
+            Column("VALUE", "text", or_none(lambda o: dumps(dump_object(o))), or_none(loads)),
+        ]
+
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}("{self.name}")'
+
+    def __len__(self) -> int:
+        return len(self.keys)
+
+    def __iter__(self) -> Generator[tuple[str, Any], None, None]:
+        return ((k, v) for k, v in self.select().items())
+
+    def create_statement(self, exist_ok: bool = True) -> str:
+        """
+        Generate the expression that creates the table.
+
+        Args:
+            exist_ok: True if existing tables with the same name should be ignored.
+
+        Returns:
+            A CREATE TABLE expression.
+        """
+        return Table(self.connection, self.name, self.columns).create_statement(exist_ok)
+
+    def create(self, exist_ok: bool = True):
+        self.connection.execute(self.create_statement(exist_ok))
+
+    def select(self) -> Optional[dict[str, Any]]:
+        """Return the data in the table as a dictionary."""
+        data = dict(self.connection.execute(f"select KEY, VALUE from {self.name}").fetchall())
+        return {c.name: c.from_entry(data[c.name]) for c in self.keys} if data else None
+
+    def update(self, entry: dict[str, Any]):
+        """
+        Update the table with new data.
+
+        Existing key-value pairs are replaced if the new entry contains an existing key.
+
+        Args:
+            entry: A dictionary with string keys.
+        """
+        entry = {k.lower(): v for k, v in entry.items()}
+        entry = {c.name: c.to_entry(entry[c.name.lower()]) if c.name in entry else c.default_value() for c in self.keys}
+
+        for key, value in entry.items():
+            self.connection.execute(f"insert or replace into {self.name} (KEY, VALUE) values (?, ?)", [key, value])
+
+
+class ModelKeysTable(KeysTable, Generic[M]):
+    def __init__(self, connection: "FileDBBase", name: str, model: Type[M]) -> None:
+        """
+        A class that holds information about a key-value pairs table using a BaseModel for validation and parsing.
+
+        Args:
+            connection: A FileDBBase object connected to the database the table belongs to.
+            name: The name of the table.
+            model: The model of the table.
+        """
+        self.model: Type[M] = model
+        super().__init__(connection, name, model_to_columns(model))
+
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}[{self.model.__name__}]("{self.name}")'
+
+    def select(self) -> Optional[M]:
+        """Return the data in the table using the BaseModel object stored in the object."""
+        data = super().select()
+        return self.model.model_validate(data) if data else None
+
+    def update(self, entry: M):
+        """
+        Update the table with new data.
+
+        Existing key-value pairs are replaced if the new entry contains an existing key.
+
+        Args:
+            entry: A BaseModel object.
+        """
+        assert issubclass(type(entry), self.model), f"{type(entry).__name__} is not a subclass of {self.model.__name__}"
+        super().update(entry.model_dump())
+
+
 # noinspection SqlNoDataSourceInspection
 class View(Table):
     def __init__(
@@ -710,6 +813,33 @@ class FileDBBase(Connection):
             return ModelTable[M](self, name, columns)
         else:
             return Table(self, name, columns)
+
+    @overload
+    def create_keys_table(self, name: str, columns: Type[M]) -> ModelKeysTable[M]:
+        ...
+
+    @overload
+    def create_keys_table(self, name: str, columns: list[Column]) -> KeysTable:
+        ...
+
+    def create_keys_table(
+        self,
+        name: str,
+        columns: Union[Type[M], list[Column]],
+    ) -> Union[KeysTable, ModelKeysTable[M]]:
+        """
+        Create a key-value pairs table in the database.
+
+        When the `columns` argument is a subclass of BaseModel, a ModelTable object is returned.
+
+        Args:
+            name: The name of the table.
+            columns: A BaseModel subclass or the columns of the table.
+        """
+        if issubclass(columns, BaseModel):
+            return ModelKeysTable[M](self, name, columns)
+        else:
+            return KeysTable(self, name, columns)
 
     @overload
     def create_view(
