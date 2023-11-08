@@ -1,60 +1,70 @@
-import json
 from functools import lru_cache
+from http.client import HTTPException
 from http.client import HTTPResponse
 from urllib import request
 
+from pydantic import TypeAdapter
+from yaml import load
+from yaml import Loader
+
+from acacore.models.reference_files import Action
 from acacore.models.reference_files import CustomSignature
-from acacore.models.reference_files import ReIdentifyModel
+
+actions_url: str = "https://raw.githubusercontent.com/aarhusstadsarkiv/reference-files/main/fileformats.yml"
+custom_signatures_url: str = (
+    "https://raw.githubusercontent.com/aarhusstadsarkiv/reference-files/main/custom_signatures.json"
+)
 
 
 @lru_cache
-def to_re_identify() -> list[ReIdentifyModel]:
-    """Gets the json file with the different formats that we wish to reidentify.
-
-    Is kept updated on the reference-files repo. The function caches the result,
-    soo multiple calls in the same run should not be an issue.
-    """
-    response: HTTPResponse = request.urlopen(
-        "https://raw.githubusercontent.com/aarhusstadsarkiv/reference-files/main/to_reidentify.json",
-    )
+def _get_actions() -> dict[str, Action]:
+    response: HTTPResponse = request.urlopen(actions_url)
     if response.getcode() != 200:
-        raise ConnectionError
+        raise HTTPException(response.getcode())
 
-    re_identify_map: dict[str, dict[str, str]] = json.loads(response.read())
-
-    if re_identify_map is None:
-        raise ConnectionError
-
-    result_list: list[ReIdentifyModel] = []
-    for key, values in re_identify_map.items():
-        result = ReIdentifyModel(puid=key, **values)
-        result_list.append(result)
-
-    return result_list
+    return TypeAdapter(dict[str, Action]).validate_python(load(response.read(), Loader))
 
 
 @lru_cache
-def costum_sigs() -> list[CustomSignature]:
-    """Gets the json file with our own costum formats in a list.
-
-    Is kept updated on the reference-files repo. The function caches the result,
-    soo multiple calls in the same run should not be an issue.
-    """
-    response: HTTPResponse = request.urlopen(
-        "https://raw.githubusercontent.com/aarhusstadsarkiv/reference-files/main/custom_signatures.json",
-    )
+def _get_custom_signatures() -> list[CustomSignature]:
+    response: HTTPResponse = request.urlopen(custom_signatures_url)
     if response.getcode() != 200:
-        raise ConnectionError
+        raise HTTPException(response.getcode())
 
-    custom_list: list[dict] = json.loads(response.read())
+    return TypeAdapter(list[CustomSignature]).validate_json(response.read())
 
-    if custom_list is None:
-        raise ConnectionError
 
-    result_list: list[CustomSignature] = []
+def get_actions(use_cache: bool = True) -> dict[str, Action]:
+    """
+    Get the actions for each of the supported PUIDs.
 
-    for values in custom_list:
-        result = CustomSignature(**values)
-        result_list.append(result)
+    The data is fetched from the repository with a cached web request.
 
-    return result_list
+    Args:
+        use_cache (bool): Use cached data if True, otherwise fetch data regardless of cache status.
+
+    Returns:
+        dict[str, Action]: A dictionary with PUID keys and Action values.
+
+    See Also:
+        https://github.com/aarhusstadsarkiv/reference-files/blob/main/actions.yml
+    """
+    return _get_actions() if use_cache else _get_actions.__wrapped__()
+
+
+def get_custom_signatures(use_cache: bool = True) -> list[CustomSignature]:
+    """
+    Gets list of custom formats with their signatures.
+
+    The data is fetched from the repository with a cached web request.
+
+    Args:
+        use_cache (bool): Use cached data if True, otherwise fetch data regardless of cache status
+
+    Returns:
+        list[CustomSignature]: A list of CustomSignature objects
+
+    See Also:
+        https://github.com/aarhusstadsarkiv/reference-files/blob/main/custom_signatures.json
+    """
+    return _get_custom_signatures() if use_cache else _get_custom_signatures.__wrapped__()

@@ -6,6 +6,11 @@ from typing import Type
 from typing import Union
 from uuid import UUID
 
+from acacore.models.file import File
+from acacore.models.history import HistoryEntry
+from acacore.models.identification import ChecksumCount
+from acacore.models.identification import SignatureCount
+from acacore.models.metadata import Metadata
 from acacore.utils.functions import or_none
 
 from .base import Column
@@ -45,12 +50,6 @@ class FileDB(FileDBBase):
                 to avoid parsing overhead.
             uri: If set to True, database is interpreted as a URI with a file path and an optional query string.
         """
-        from acacore.models.file import ConvertedFile
-        from acacore.models.file import File
-        from acacore.models.history import HistoryEntry
-        from acacore.models.identification import SignatureCount
-        from acacore.models.metadata import Metadata
-
         super().__init__(
             database,
             timeout=timeout,
@@ -63,21 +62,42 @@ class FileDB(FileDBBase):
         )
 
         self.files = self.create_table("Files", File)
-        self.metadata = self.create_table("Metadata", Metadata)
-        self.converted_files = self.create_table("_ConvertedFiles", ConvertedFile)
         self.history = self.create_table("History", HistoryEntry)
+        self.metadata = self.create_keys_table("Metadata", Metadata)
 
-        self.not_converted = self.create_view(
-            "_NotConverted",
-            self.files,
-            self.files.model,
-            f'"{self.files.name}".uuid NOT IN ' f"(SELECT uuid from {self.converted_files.name})",
-        )
         self.identification_warnings = self.create_view(
             "_IdentificationWarnings",
             self.files,
             self.files.model,
-            f'"{self.files.name}".warning IS NOT null',
+            f'"{self.files.name}".warning is not null or "{self.files.name}".puid is NULL',
+        )
+        self.checksum_count = self.create_view(
+            "_ChecksumCount",
+            self.files,
+            ChecksumCount,
+            None,
+            [
+                Column("checksum", "varchar", str, str, False, False, False),
+            ],
+            [
+                (Column("count", "int", str, str), "DESC"),
+            ],
+            select_columns=[
+                Column(
+                    "checksum",
+                    "varchar",
+                    or_none(str),
+                    or_none(str),
+                    False,
+                    False,
+                    False,
+                ),
+                SelectColumn(
+                    f'count("{self.files.name}.checksum")',
+                    int,
+                    "count",
+                ),
+            ],
         )
         self.signature_count = self.create_view(
             "_SignatureCount",
@@ -124,12 +144,12 @@ class FileDB(FileDBBase):
     def init(self):
         """Create the default tables and views."""
         self.files.create(True)
-        self.metadata.create(True)
-        self.converted_files.create(True)
         self.history.create(True)
-        self.not_converted.create(True)
+        self.metadata.create(True)
         self.identification_warnings.create(True)
+        self.checksum_count.create(True)
         self.signature_count.create(True)
+        self.metadata.update(self.metadata.model())
         self.commit()
 
     def is_empty(self) -> bool:
@@ -137,19 +157,19 @@ class FileDB(FileDBBase):
 
     def add_history(
         self,
-        uuid: UUID,
+        uuid: Optional[UUID],
         operation: str,
         data: Optional[Union[dict, list, str, int, float, bool, datetime]],
         reason: Optional[str] = None,
         *,
         time: Optional[datetime] = None,
-    ):
-        self.history.insert(
-            self.history.model(
-                uuid=uuid,
-                operation=operation,
-                data=data,
-                reason=reason,
-                time=time or datetime.now(),  # noqa: DTZ005
-            ),
+    ) -> HistoryEntry:
+        entry = self.history.model(
+            uuid=uuid,
+            operation=operation,
+            data=data,
+            reason=reason,
+            time=time or datetime.now(),  # noqa: DTZ005
         )
+        self.history.insert(entry)
+        return entry

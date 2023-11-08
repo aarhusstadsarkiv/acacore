@@ -33,14 +33,43 @@ _sql_schema_type_converters: dict[
     "uuid4": (str, UUID),
     "binary": (bytes, bytes),
     "string": (str, str),
-    "integer": (float, float),
+    "integer": (int, int),
     "number": (float, float),
     "boolean": (bool, bool),
     "null": (lambda x: x, lambda x: x),
 }
 
 
-def _schema_to_column(name: str, schema: dict, defs: Optional[dict[str, dict]] = None) -> "Column":
+def _value_to_sql(value: V) -> str:
+    if value is None:
+        return "null"
+    elif isinstance(value, str):
+        return value.replace("'", "\\'")
+    elif isinstance(value, bool):
+        return "true" if value else "false"
+    elif isinstance(value, datetime):
+        return value.isoformat()
+    elif isinstance(value, bytes):
+        return f"X'{value.hex()}'"
+    else:
+        return str(value)
+
+
+def dump_object(obj: Union[list, tuple, dict, BaseModel]) -> Union[list, dict]:
+    if isinstance(obj, dict):
+        return obj
+    elif issubclass(type(obj), BaseModel):
+        return obj.model_dump(mode="json")
+    elif isinstance(obj, (list, tuple)):
+        return list(map(dump_object, obj))
+    else:
+        return obj
+
+
+def _schema_to_column(name: str, schema: dict, defs: Optional[dict[str, dict]] = None) -> Optional["Column"]:
+    if schema.get("ignore"):
+        return None
+
     defs = defs or {}
     if schema.get("$ref"):
         schema.update(defs[schema.get("$ref", "").removeprefix("#/$defs/")])
@@ -56,17 +85,18 @@ def _schema_to_column(name: str, schema: dict, defs: Optional[dict[str, dict]] =
         sql_type = _sql_schema_types.get(schema_type, None)
         type_name: str = schema.get("format", schema_type)
 
-        if schema.get("enum"):
-            to_entry, from_entry = lambda e: e.value, str
+        if schema.get("enum") is not None:
+            to_entry, from_entry = schema["enum"][0].__class__ if schema["enum"] else str, str
+        elif schema_type in ("object", "array"):
+            sql_type = "text"
+            to_entry, from_entry = lambda o: dumps(dump_object(o), default=str), lambda o: loads(o)
         elif type_name in _sql_schema_type_converters:
             to_entry, from_entry = _sql_schema_type_converters[type_name]
         else:
             raise TypeError(f"Cannot recognize type from schema {schema!r}")
     elif schema_any_of:
-        if not schema_any_of[0]:
-            sql_type, to_entry, from_entry = "text", lambda x: dumps(x, default=str), lambda x: loads(x, default=str)
-        elif (schema_any_of[-1].get("type", None) != "null" and len(schema_any_of) > 1) or len(schema_any_of) > 2:
-            raise TypeError(f"Cannot recognize type from schema {schema!r}")
+        if not schema_any_of[0] or len(schema_any_of) > 2:
+            sql_type, to_entry, from_entry = "text", lambda o: dumps(dump_object(o), default=str), lambda x: loads(x)
         else:
             return _schema_to_column(name, {**schema_any_of[0], **schema}, defs)
     else:
@@ -86,7 +116,8 @@ def _schema_to_column(name: str, schema: dict, defs: Optional[dict[str, dict]] =
 
 def model_to_columns(model: Type[BaseModel]) -> list["Column"]:
     schema: dict = model.model_json_schema()
-    return [_schema_to_column(p, s, schema.get("$defs")) for p, s in schema["properties"].items()]
+    columns = [_schema_to_column(p, s, schema.get("$defs")) for p, s in schema["properties"].items()]
+    return [c for c in columns if c]
 
 
 class Column(Generic[T]):
@@ -154,6 +185,20 @@ class Column(Generic[T]):
     def check(self, check: Optional[str]):
         self._check = check
 
+    def default_value(self) -> V:
+        """
+        Get the default value of the column formatted as an SQL parameter.
+
+        Returns:
+            An object of the return type of the column's to_entry function.
+
+        Raises:
+            ValueError: If the column does not have a set default value.
+        """
+        if self.default is Ellipsis:
+            raise ValueError("Column does not have a default value")
+        return self.to_entry(self.default)
+
     def create_statement(self) -> str:
         """
         Generate the statement that creates the column.
@@ -167,12 +212,7 @@ class Column(Generic[T]):
         if self.not_null:
             elements.append("not null")
         if self.default is not Ellipsis:
-            default_value: V = self.to_entry(self.default)
-            elements.append(
-                "default '{}'".format(default_value.replace("'", "\\'"))
-                if isinstance(default_value, str)
-                else f"default {'null' if default_value is None else default_value}",
-            )
+            elements.append(f"default {_value_to_sql(self.default_value())}")
         if self.check:
             elements.append(f"check ({self.check})")
 
