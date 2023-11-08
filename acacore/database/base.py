@@ -5,6 +5,7 @@ from os import PathLike
 from pathlib import Path
 from sqlite3 import Connection
 from sqlite3 import Cursor as SQLiteCursor
+from sqlite3 import DatabaseError
 from sqlite3 import OperationalError
 from types import TracebackType
 from typing import Any
@@ -794,6 +795,14 @@ class FileDBBase(Connection):
                 return Path(filename)
 
         return None
+
+    @property
+    def is_open(self) -> bool:
+        try:
+            self.execute("SELECT * FROM sqlite_master")
+            return True
+        except DatabaseError:
+            return False
 
     @overload
     def create_table(self, name: str, columns: Type[M]) -> ModelTable[M]:
