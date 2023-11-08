@@ -115,7 +115,10 @@ class File(ACABase):
             if custom_match:
                 file.puid = custom_match.puid
                 file.signature = custom_match.signature
-                file.warning = None
+                file.warning = []
+                if custom_match.extension and file.suffix != custom_match.extension:
+                    file.warning.append("extension mismatch")
+                file.warning = file.warning or None
                 file.get_action(actions)
             elif file.action_data.reidentify and file.action_data.reidentify.onfail:
                 file.action = file.action_data.reidentify.onfail
