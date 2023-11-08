@@ -46,6 +46,18 @@ def test_file(test_files: Path, test_files_data: dict[str, dict]) -> File:
     return file
 
 
+def test_database_connection(database_path: Path):
+    db = FileDB(database_path)
+    assert db.is_open
+
+    db.close()
+    assert not db.is_open
+
+    with FileDB(database_path) as db:
+        assert db.is_open
+    assert not db.is_open
+
+
 # noinspection DuplicatedCode
 def test_database_classes(database_path: Path):
     db: FileDB = FileDB(database_path)
