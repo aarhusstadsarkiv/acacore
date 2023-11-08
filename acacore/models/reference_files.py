@@ -115,7 +115,7 @@ class ReIdentifyAction(BaseModel):
     """
 
     reasoning: str
-    onfail: Optional[Literal["convert", "extract", "manual", "rename", "ignore"]] = None
+    onfail: Optional[Literal["convert", "extract", "replace", "manual", "rename", "ignore"]] = None
 
 
 class RenameAction(BaseModel):
