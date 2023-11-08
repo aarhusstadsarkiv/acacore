@@ -120,13 +120,14 @@ class ReIdentifyAction(BaseModel):
 
 class RenameAction(BaseModel):
     """
-    Class representing an action to rename a file. It is a dictionary-based class with the following fields.
+    Class representing an action to change file's extension.
 
     Attributes:
-        new_name (str): A string representing the new name for the file.
+        extension (str): A string representing the new extension for the file.
     """
 
-    new_name: str
+    extension: str
+    append: bool = False
     on_extension_mismatch: bool = False
 
 
