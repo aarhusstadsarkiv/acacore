@@ -19,6 +19,7 @@ from .identification import Identification
 from .reference_files import Action
 from .reference_files import ActionData
 from .reference_files import CustomSignature
+from .reference_files import ManualAction
 from .reference_files import TActionType
 
 
@@ -123,7 +124,8 @@ class File(ACABase):
             elif file.action_data.reidentify and file.action_data.reidentify.onfail:
                 file.action = file.action_data.reidentify.onfail
             else:
-                file.get_action({})
+                file.action = "manual"
+                file.action_data = ActionData(manual=ManualAction(reason="Re-identify failure"))
                 file.puid = file.signature = file.warning = None
 
         if file.action_data and file.action_data.ignore and file.action_data.ignore.ignore_if:
