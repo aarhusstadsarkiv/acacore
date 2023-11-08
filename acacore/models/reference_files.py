@@ -132,6 +132,28 @@ class RenameAction(BaseModel):
 
 
 class ActionData(BaseModel):
+    """
+    A class representing the data for a specific action.
+
+    Separate from Action to avoid duplicating information in the File object.
+
+    Attributes:
+        convert (Optional[list[ConvertAction]]): A list of ConvertAction objects representing the conversion
+            actions to be performed. Defaults to None.
+        extract (Optional[ExtractAction]): An ExtractAction object representing the extraction action to be
+            performed. Defaults to None.
+        replace (Optional[ReplaceAction]): A ReplaceAction object representing the replacement action to be
+            performed. Defaults to None.
+        manual (Optional[ManualAction]): A ManualAction object representing the manual action to be
+            performed. Defaults to None.
+        rename (Optional[RenameAction]): A RenameAction object representing the renaming action to be
+            performed. Defaults to None.
+        ignore (Optional[IgnoreAction]): An IgnoreAction object representing the ignore action to be
+            performed. Defaults to None.
+        reidentify (Optional[ReIdentifyAction]): A ReIdentifyAction object representing the re-identification
+            action to be performed. Defaults to None.
+    """
+
     convert: Optional[list[ConvertAction]] = None
     extract: Optional[ExtractAction] = None
     replace: Optional[ReplaceAction] = None
@@ -142,12 +164,33 @@ class ActionData(BaseModel):
 
 
 class Action(ActionData):
+    """
+    Class representing an Action.
+
+    Follows the format as outlined in the reference files repository.
+    Subclasses ActionData to avoid duplicated properties in the File object.
+
+    See Also:
+        https://github.com/aarhusstadsarkiv/reference-files/blob/main/fileformats.schema.json
+
+    Attributes:
+        name (str): The name of the action.
+        description (Optional[str]): The description of the action.
+        action (Optional[TActionType]): The type of action.
+    """
+
     name: str
     description: Optional[str] = None
     action: TActionType
 
     @property
     def action_data(self) -> ActionData:
+        """
+        Return only the ActionData portion of the object.
+
+        Returns:
+            ActionData: The action data.
+        """
         return ActionData(
             convert=self.convert,
             extract=self.extract,
