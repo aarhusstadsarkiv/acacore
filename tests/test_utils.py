@@ -1,11 +1,14 @@
 from pathlib import Path
 from re import match
 
+import pytest
+
 from acacore.utils.functions import file_checksum
 from acacore.utils.functions import image_size
 from acacore.utils.functions import is_binary
 from acacore.utils.functions import or_none
 from acacore.utils.functions import rm_tree
+from acacore.utils.helpers import ExceptionManager
 from acacore.utils.io import size_fmt
 from acacore.utils.log import setup_logger
 
@@ -35,6 +38,29 @@ def test_functions(test_files: Path, test_files_data: dict[str, dict], temp_fold
     for filename, filedata in test_files_data.items():
         if filedata.get("image_size"):
             assert image_size(test_files / filename) == tuple(filedata.get("image_size"))
+
+
+def test_helpers():
+    # ContextManager
+    with ExceptionManager(BaseException) as context:
+        raise SystemExit(3)
+
+    assert isinstance(context.exception, SystemExit)
+    assert context.exception.code == 3
+    assert context.traceback is not None
+
+    with pytest.raises(KeyboardInterrupt) as raises, ExceptionManager(Exception) as context:
+        raise KeyboardInterrupt
+
+    assert isinstance(raises.value, KeyboardInterrupt)
+    assert isinstance(context.exception, KeyboardInterrupt)
+    assert context.traceback is not None
+
+    with ExceptionManager() as context:
+        pass
+
+    assert context.exception is None
+    assert context.traceback is None
 
 
 def test_io():
