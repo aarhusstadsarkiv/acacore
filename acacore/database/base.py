@@ -6,6 +6,7 @@ from pathlib import Path
 from sqlite3 import Connection
 from sqlite3 import Cursor as SQLiteCursor
 from sqlite3 import OperationalError
+from types import TracebackType
 from typing import Any
 from typing import Generator
 from typing import Generic
@@ -779,6 +780,12 @@ class FileDBBase(Connection):
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.path})"
+
+    def __enter__(self) -> "FileDBBase":
+        return self
+
+    def __exit__(self, _exc_type: Type[BaseException], _exc_val: BaseException, _exc_tb: TracebackType) -> None:
+        self.close()
 
     @property
     def path(self) -> Optional[Path]:
