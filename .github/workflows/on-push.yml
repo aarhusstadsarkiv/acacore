@@ -17,10 +17,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: |
+          project_name="$(grep --color=never 'name *= *".*"' pyproject.toml)"
+          project_name="${project_name%\"}"
+          project_name="${project_name#*\"}"
           version_project="$(grep --color=never 'version *= *".*"' pyproject.toml)"
           version_project="${version_project%\"}"
           version_project="${version_project#*\"}"
-          version_package="$(grep --color=never '__version__ *= *".*"' acacore/__version__.py)"
+          version_package="$(grep --color=never '__version__ *= *".*"' "$project_name"/__version__.py)"
           version_package="${version_package%\"}"
           version_package="${version_package#*\"}"
           test "$version_project" = "$version_package"
