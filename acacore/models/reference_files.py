@@ -127,6 +127,7 @@ class RenameAction(BaseModel):
     """
 
     new_name: str
+    on_extension_mismatch: bool = False
 
 
 class ActionData(BaseModel):
