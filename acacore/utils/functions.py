@@ -64,7 +64,7 @@ def find_files(*root: Path, exclude: Optional[list[Path]] = None) -> Generator[P
         elif f.is_file():
             yield f
         elif f.is_dir():
-            yield from find_files(*f.iterdir(), exclude=exclude)
+            yield from find_files(*sorted(f.iterdir()), exclude=exclude)
 
 
 def file_checksum(path: Path) -> str:
