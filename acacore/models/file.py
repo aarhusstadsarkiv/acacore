@@ -125,7 +125,7 @@ class File(ACABase):
                 file.action = file.action_data.reidentify.onfail
             else:
                 file.action = "manual"
-                file.action_data = ActionData(manual=ManualAction(reason="Re-identify failure"))
+                file.action_data = ActionData(manual=ManualAction(reasoning="Re-identify failure", process=""))
                 file.puid = file.signature = file.warning = None
 
         if file.action_data and file.action_data.ignore and file.action_data.ignore.ignore_if:
