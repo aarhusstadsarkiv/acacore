@@ -128,7 +128,8 @@ def get_eof(path: Path, chunk_size: int = 1024) -> bytes:
         bytes: The contents of the last chunk of the file as a bytes object.
     """
     with path.open("rb") as f:
-        f.seek(path.stat().st_size - chunk_size)
+        file_size: int = path.stat().st_size
+        f.seek(file_size if chunk_size > file_size else chunk_size)
         return f.read(chunk_size)
 
 
