@@ -39,10 +39,12 @@ class ExtractAction(BaseModel):
 
     Attributes:
         tool (str): The name of the tool used for extraction.
+        extension (Optional[str]): The suffix that the file should have. Defaults to None.
         dir_suffix (str): The output directory where the extracted data will be saved.
     """
 
     tool: str
+    extension: Optional[str] = None
     dir_suffix: str
 
 
