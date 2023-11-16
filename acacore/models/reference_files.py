@@ -54,6 +54,8 @@ class ReplaceAction(BaseModel):
 
     Attributes:
         template (str): The replacement template.
+        template_text (Optional[str]): Optional. Text to use instead of the default template,
+            if template is set to "text".
     """
 
     template: Literal["text", "empty", "password-protected", "corrupted", "not-preservable", "not-convertable"]
