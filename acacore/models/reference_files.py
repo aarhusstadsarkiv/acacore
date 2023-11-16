@@ -56,7 +56,7 @@ class ReplaceAction(BaseModel):
         template (str): The replacement template.
     """
 
-    template: str
+    template: Literal["empty", "password-protected", "corrupted", "not-preservable", "not-convertable"]
 
 
 class ManualAction(BaseModel):
