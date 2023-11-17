@@ -6,8 +6,23 @@ from typing import get_args as get_type_args
 from pydantic import BaseModel
 from pydantic import Field
 
-TActionType = Literal["convert", "extract", "replace", "manual", "rename", "ignore", "reidentify"]
-TReplaceTemplate = Literal["text", "empty", "password-protected", "corrupted", "not-preservable", "not-convertable"]
+TActionType = Literal[
+    "convert",
+    "extract",
+    "replace",
+    "manual",
+    "rename",
+    "ignore",
+    "reidentify",
+]
+TReplaceTemplate = Literal[
+    "text",
+    "empty",
+    "password-protected",
+    "corrupted",
+    "not-preservable",
+    "not-convertable",
+]
 
 ActionTypeEnum: tuple[TActionType, ...] = get_type_args(TActionType)
 ReplaceTemplateEnum: tuple[TReplaceTemplate, ...] = get_type_args(TReplaceTemplate)
