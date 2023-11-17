@@ -1,7 +1,7 @@
 """Data models for the data on saved to different .json files on the `reference_files` repo."""
+from typing import get_args as get_type_args
 from typing import Literal
 from typing import Optional
-from typing import get_args as get_type_args
 
 from pydantic import BaseModel
 from pydantic import Field
@@ -20,6 +20,7 @@ TReplaceTemplate = Literal[
     "empty",
     "password-protected",
     "corrupted",
+    "duplicate",
     "not-preservable",
     "not-convertable",
 ]
