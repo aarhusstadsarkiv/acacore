@@ -1,4 +1,22 @@
 {
+  "empty.empty": {
+    "filesize": 0,
+    "checksum": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "binary": false,
+    "errors": "",
+    "matches": {
+      "ns": "pronom",
+      "id": null,
+      "format": "",
+      "version": "",
+      "mime": "",
+      "match_class": [],
+      "basis": [],
+      "warning": ["no match"],
+      "URI": null,
+      "permalink": null
+    }
+  },
   "ico.ico": {
     "filesize": 531,
     "image_size": [16, 16],
