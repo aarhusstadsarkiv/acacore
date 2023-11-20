@@ -128,7 +128,7 @@ class File(ACABase):
                 file.action = file.action_data.reidentify.onfail
             else:
                 file.action = "manual"
-                file.action_data = ActionData(manual=ManualAction(reasoning="Re-identify failure", process=""))
+                file.action_data = ActionData(manual=ManualAction(reason="Re-identify failure", process=""))
                 file.puid = file.signature = file.warning = None
 
         if file.action_data and file.action_data.ignore and file.action_data.ignore.ignore_if:
@@ -141,13 +141,13 @@ class File(ACABase):
                         or height < (ignore_if.pixel_height or 0)
                     ):
                         file.action = "ignore"
-                        file.action_data.ignore.reasoning = ignore_if.reason or file.action_data.ignore.reasoning
+                        file.action_data.ignore.reason = ignore_if.reason or file.action_data.ignore.reason
                 elif file.is_binary and file.size < (ignore_if.binary_size or 0):  # noqa: SIM114
                     file.action = "ignore"
-                    file.action_data.ignore.reasoning = ignore_if.reason or file.action_data.ignore.reasoning
+                    file.action_data.ignore.reason = ignore_if.reason or file.action_data.ignore.reason
                 elif file.size < (ignore_if.size or 0):
                     file.action = "ignore"
-                    file.action_data.ignore.reasoning = ignore_if.reason or file.action_data.ignore.reasoning
+                    file.action_data.ignore.reason = ignore_if.reason or file.action_data.ignore.reason
 
         return file
 
