@@ -8,6 +8,7 @@ from pydantic import UUID4
 
 from acacore.siegfried.siegfried import Siegfried
 from acacore.siegfried.siegfried import SiegfriedFile
+from acacore.siegfried.siegfried import TSiegfriedClass
 from acacore.utils.functions import file_checksum
 from acacore.utils.functions import get_bof
 from acacore.utils.functions import get_eof
@@ -101,15 +102,17 @@ class File(ACABase):
             root=root,
             processed=processed,
         )
+        match_classes: list[TSiegfriedClass] = []
 
         if siegfried:
-            file.identify(siegfried, set_match=True)
+            siegfried_match = file.identify(siegfried, set_match=True).best_match()
+            match_classes.extend(siegfried_match.match_class if siegfried_match else [])
 
         if custom_signatures and not file.puid:
             file.identify_custom(custom_signatures, set_match=True)
 
         if actions:
-            file.get_action(actions)
+            file.get_action(actions, match_classes)
 
         if custom_signatures and file.action == "reidentify":
             custom_match = file.identify_custom(custom_signatures)
@@ -120,7 +123,7 @@ class File(ACABase):
                 if custom_match.extension and file.suffix != custom_match.extension:
                     file.warning.append("extension mismatch")
                 file.warning = file.warning or None
-                file.get_action(actions)
+                file.get_action(actions, match_classes)
             elif file.action_data.reidentify and file.action_data.reidentify.onfail:
                 file.action = file.action_data.reidentify.onfail
             else:
@@ -216,8 +219,29 @@ class File(ACABase):
 
         return signature
 
-    def get_action(self, actions: dict[str, Action]) -> Optional[Action]:
-        action: Optional[Action] = actions.get(self.puid)
+    def get_action(
+        self,
+        actions: dict[str, Action],
+        match_classes: Optional[list[TSiegfriedClass]] = None,
+    ) -> Optional[Action]:
+        action: Optional[Action] = None
+
+        identifiers: list[str] = [
+            self.puid,
+            *(match_classes or []),
+        ]
+        if self.suffix:
+            identifiers.append(f"!ext={''.join(self.get_absolute_path().suffixes)}")
+        if self.is_binary:
+            identifiers.append("!binary")
+        if not self.size:
+            identifiers.append("!empty")
+
+        for identifier in identifiers:
+            action = actions.get(identifier)
+            if action:
+                break
+
         self.action, self.action_data = action.action if action else None, action.action_data if action else None
         return action
 

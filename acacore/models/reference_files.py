@@ -1,11 +1,32 @@
 """Data models for the data on saved to different .json files on the `reference_files` repo."""
+from typing import get_args as get_type_args
 from typing import Literal
 from typing import Optional
 
 from pydantic import BaseModel
 from pydantic import Field
 
-TActionType = Literal["convert", "extract", "replace", "manual", "rename", "ignore", "reidentify"]
+TActionType = Literal[
+    "convert",
+    "extract",
+    "replace",
+    "manual",
+    "rename",
+    "ignore",
+    "reidentify",
+]
+TReplaceTemplate = Literal[
+    "text",
+    "empty",
+    "password-protected",
+    "corrupted",
+    "duplicate",
+    "not-preservable",
+    "not-convertable",
+]
+
+ActionTypeEnum: tuple[TActionType, ...] = get_type_args(TActionType)
+ReplaceTemplateEnum: tuple[TReplaceTemplate, ...] = get_type_args(TReplaceTemplate)
 
 
 class CustomSignature(BaseModel):
@@ -58,7 +79,7 @@ class ReplaceAction(BaseModel):
             if template is set to "text".
     """
 
-    template: Literal["text", "empty", "password-protected", "corrupted", "not-preservable", "not-convertable"]
+    template: TReplaceTemplate
     template_text: Optional[str] = None
 
 
@@ -67,11 +88,11 @@ class ManualAction(BaseModel):
     Class representing a manual action in a workflow.
 
     Attributes:
-        reasoning (str): The reasoning behind the manual action.
+        reason (str): The reason behind the manual action.
         process (str): The process for performing the manual action.
     """
 
-    reasoning: str
+    reason: str
     process: str
 
 
@@ -87,7 +108,7 @@ class IgnoreIfAction(BaseModel):
         pixel_height (Optional[int]): Height for images.
         size (Optional[int]): Size for all files.
         binary_size (Optional[int]): Size for binary files.
-        reason (Optional[int]): A reasoning for the specific condition.
+        reason (Optional[int]): A reason for the specific condition.
     """
 
     pixel_total: Optional[int] = Field(None, gt=0)
@@ -100,27 +121,27 @@ class IgnoreIfAction(BaseModel):
 
 class IgnoreAction(BaseModel):
     """
-    Class representing an action to ignore a specific file based on the given reasoning.
+    Class representing an action to ignore a specific file based on the given reason.
 
     Attributes:
-        reasoning (str): The reasoning for ignoring the file.
+        reason (str): The reason for ignoring the file.
         ignore_if (list[IgnoreIfAction]): An optional list of ignore conditions.
     """
 
-    reasoning: Optional[str] = None
+    reason: Optional[str] = None
     ignore_if: list[IgnoreIfAction] = Field(default_factory=list)
 
 
 class ReIdentifyAction(BaseModel):
     """
-    Class representing an action to ignore a specific file based on the given reasoning.
+    Class representing an action to ignore a specific file based on the given reason.
 
     Attributes:
-        reasoning (str): The reasoning for ignoring the file.
+        reason (str): The reason for ignoring the file.
     """
 
-    reasoning: str
-    onfail: Optional[Literal["convert", "extract", "replace", "manual", "rename", "ignore"]] = None
+    reason: str
+    onfail: Optional[TActionType] = None
 
 
 class RenameAction(BaseModel):

@@ -21,6 +21,26 @@ _byte_match_regexp_single = re_compile(r"^byte match at (\d+), *(\d+)( *\([^)]*\
 _byte_match_regexp_multi = re_compile(r"^byte match at \[\[(\d+) +(\d+)]( \[\d+ +\d+])*]( \([^)]*\))?$")
 _extension_match = re_compile(r"^extension match (.+)$")
 TSignature = Literal["pronom", "loc", "tika", "freedesktop", "pronom-tika-loc", "deluxe", "archivematica"]
+TSiegfriedClass = Literal[
+    "aggregate",
+    "audio",
+    "database",
+    "dataset",
+    "email",
+    "font",
+    "gis",
+    "image (raster)",
+    "image (vector)",
+    "model",
+    "page description",
+    "presentation",
+    "spreadsheet",
+    "text (mark-up)",
+    "text (structured)",
+    "text (unstructured)",
+    "video",
+    "word processor",
+]
 
 
 def _check_process(process: CompletedProcess) -> CompletedProcess:
@@ -71,7 +91,7 @@ class SiegfriedMatch(BaseModel):
     format: str  # noqa: A003
     version: Optional[str] = None
     mime: str
-    match_class: Optional[str] = Field(None, alias="class")
+    match_class: Optional[list[TSiegfriedClass]] = Field(None, alias="class")
     basis: list[str]
     warning: list[str]
     URI: Optional[AnyUrl] = None
@@ -148,6 +168,7 @@ class SiegfriedMatch(BaseModel):
                 "id": None if data["id"].lower().strip() == "unknown" else data["id"].strip() or None,
                 "basis": filter(bool, map(str.strip, data["basis"].strip().split(";"))),
                 "warning": filter(bool, map(str.strip, data["warning"].strip().split(";"))),
+                "class": [c for c in map(str.strip, data.get("class", "").lower().split(",")) if c],
             }
         return data
 
