@@ -88,11 +88,11 @@ class ManualAction(BaseModel):
     Class representing a manual action in a workflow.
 
     Attributes:
-        reasoning (str): The reasoning behind the manual action.
+        reason (str): The reason behind the manual action.
         process (str): The process for performing the manual action.
     """
 
-    reasoning: str
+    reason: str
     process: str
 
 
@@ -108,7 +108,7 @@ class IgnoreIfAction(BaseModel):
         pixel_height (Optional[int]): Height for images.
         size (Optional[int]): Size for all files.
         binary_size (Optional[int]): Size for binary files.
-        reason (Optional[int]): A reasoning for the specific condition.
+        reason (Optional[int]): A reason for the specific condition.
     """
 
     pixel_total: Optional[int] = Field(None, gt=0)
@@ -121,26 +121,26 @@ class IgnoreIfAction(BaseModel):
 
 class IgnoreAction(BaseModel):
     """
-    Class representing an action to ignore a specific file based on the given reasoning.
+    Class representing an action to ignore a specific file based on the given reason.
 
     Attributes:
-        reasoning (str): The reasoning for ignoring the file.
+        reason (str): The reason for ignoring the file.
         ignore_if (list[IgnoreIfAction]): An optional list of ignore conditions.
     """
 
-    reasoning: Optional[str] = None
+    reason: Optional[str] = None
     ignore_if: list[IgnoreIfAction] = Field(default_factory=list)
 
 
 class ReIdentifyAction(BaseModel):
     """
-    Class representing an action to ignore a specific file based on the given reasoning.
+    Class representing an action to ignore a specific file based on the given reason.
 
     Attributes:
-        reasoning (str): The reasoning for ignoring the file.
+        reason (str): The reason for ignoring the file.
     """
 
-    reasoning: str
+    reason: str
     onfail: Optional[TActionType] = None
 
 
