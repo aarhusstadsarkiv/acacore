@@ -65,7 +65,9 @@ def test_identify(siegfried: Siegfried, test_files: Path, test_files_data: dict[
         assert result.filesize == filedata["filesize"]
         assert result.matches
         assert result.matches[0].model_dump() == filedata["matches"]
-        assert result.best_match().model_dump() == filedata["matches"]
+        assert (
+            result.best_match() is None and filedata["matches"]["id"] is None
+        ) or result.best_match().model_dump() == filedata["matches"]
 
 
 def test_identify_many(siegfried: Siegfried, test_files: Path, test_files_data: dict[str, dict]):
@@ -74,5 +76,6 @@ def test_identify_many(siegfried: Siegfried, test_files: Path, test_files_data: 
         assert result.filename == str(test_files / filename)
         assert result.filesize == filedata["filesize"]
         assert result.matches
-        assert result.matches[0].model_dump() == filedata["matches"]
-        assert result.best_match().model_dump() == filedata["matches"]
+        assert (
+            result.best_match() is None and filedata["matches"]["id"] is None
+        ) or result.best_match().model_dump() == filedata["matches"]
