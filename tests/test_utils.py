@@ -68,6 +68,11 @@ def test_helpers():
     assert isinstance(raises.value, FileNotFoundError)
     assert isinstance(context.exception, FileNotFoundError)
 
+    with ExceptionManager(BaseException, FileNotFoundError, allow=[OSError]) as context:
+        raise FileNotFoundError
+
+    assert isinstance(context.exception, FileNotFoundError)
+
     with ExceptionManager() as context:
         pass
 
