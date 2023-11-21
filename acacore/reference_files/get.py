@@ -45,6 +45,9 @@ def get_actions(use_cache: bool = True) -> dict[str, Action]:
     Returns:
         dict[str, Action]: A dictionary with PUID keys and Action values.
 
+    Raises:
+        urllib.error.HTTPError: If there is an issue with the request.
+
     See Also:
         https://github.com/aarhusstadsarkiv/reference-files/blob/main/actions.yml
     """
@@ -65,7 +68,10 @@ def get_custom_signatures(use_cache: bool = True) -> list[CustomSignature]:
         use_cache (bool): Use cached data if True, otherwise fetch data regardless of cache status
 
     Returns:
-        list[CustomSignature]: A list of CustomSignature objects
+        list[CustomSignature]: A list of CustomSignature objects.
+
+    Raises:
+        urllib.error.HTTPError: If there is an issue with the request.
 
     See Also:
         https://github.com/aarhusstadsarkiv/reference-files/blob/main/custom_signatures.json
