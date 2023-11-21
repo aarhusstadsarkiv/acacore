@@ -10,15 +10,14 @@ from yaml import Loader
 from acacore.models.reference_files import Action
 from acacore.models.reference_files import CustomSignature
 
-actions_url: str = "https://raw.githubusercontent.com/aarhusstadsarkiv/reference-files/main/fileformats.yml"
-custom_signatures_url: str = (
-    "https://raw.githubusercontent.com/aarhusstadsarkiv/reference-files/main/custom_signatures.json"
-)
+download_url: str = "https://github.com/aarhusstadsarkiv/reference-files/releases/latest/download/"
+actions_file: str = "fileformats.yml"
+custom_signatures_file: str = "custom_signatures.json"
 
 
 @lru_cache
 def _get_actions() -> dict[str, Action]:
-    response: HTTPResponse = request.urlopen(actions_url)
+    response: HTTPResponse = request.urlopen(f"{download_url.rstrip('/')}/{actions_file.lstrip('/')}")
     if response.getcode() != 200:
         raise HTTPException(response.getcode())
 
@@ -27,7 +26,7 @@ def _get_actions() -> dict[str, Action]:
 
 @lru_cache
 def _get_custom_signatures() -> list[CustomSignature]:
-    response: HTTPResponse = request.urlopen(custom_signatures_url)
+    response: HTTPResponse = request.urlopen(f"{download_url.rstrip('/')}/{custom_signatures_file.lstrip('/')}")
     if response.getcode() != 200:
         raise HTTPException(response.getcode())
 
