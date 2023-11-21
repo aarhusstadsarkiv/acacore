@@ -13,35 +13,37 @@ from acacore.utils.io import size_fmt
 from acacore.utils.log import setup_logger
 
 
-def test_functions(test_files: Path, test_files_data: dict[str, dict], temp_folder: Path):
-    # or_none
+def test_functions_or_none():
     func = or_none(lambda _: 5)
     assert func(1) == 5
     assert func(None) is None
 
-    # file_checksum
+
+def test_functions_file_checksum(test_files: Path, test_files_data: dict[str, dict]):
     for filename, filedata in test_files_data.items():
         assert file_checksum(test_files / filename) == filedata["checksum"]
 
-    # is_binary
+
+def test_functions_is_binary(test_files: Path, test_files_data: dict[str, dict]):
     for filename, filedata in test_files_data.items():
         assert is_binary(test_files / filename) == filedata["binary"]
 
-    # rm_tree
+
+def test_functions_rm_tree(temp_folder: Path):
     test_folder = temp_folder.joinpath("1")
     test_folder.joinpath("2", "3").mkdir(parents=True, exist_ok=True)
     rm_tree(test_folder)
     assert not test_folder.is_dir()
     assert temp_folder.is_dir()
 
-    # image_size
+
+def test_functions_image_size(test_files: Path, test_files_data: dict[str, dict]):
     for filename, filedata in test_files_data.items():
         if filedata.get("image_size"):
             assert image_size(test_files / filename) == tuple(filedata.get("image_size"))
 
 
-def test_helpers():
-    # ContextManager
+def test_helpers_context_manager():
     with ExceptionManager(BaseException) as context:
         raise SystemExit(3)
 
@@ -80,8 +82,7 @@ def test_helpers():
     assert context.traceback is None
 
 
-def test_io():
-    # size_fmt
+def test_io_size_fmt():
     assert size_fmt(2) == "2.0 B"
     assert size_fmt(2**10) == "1.0 KiB"
     assert size_fmt(2**20) == "1.0 MiB"
@@ -90,7 +91,7 @@ def test_io():
     assert size_fmt(2**12 + 128) == "4.1 KiB"
 
 
-def test_log(temp_folder: Path):
+def test_log_setup_logger(temp_folder: Path):
     log_file: Path = temp_folder / "test.log"
     logger = setup_logger("test", files=[log_file])
     logger.info("test info message")
