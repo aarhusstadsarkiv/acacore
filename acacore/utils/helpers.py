@@ -41,4 +41,6 @@ class ExceptionManager:
         if not exc_type:
             return False
 
-        return any(issubclass(exc_type, e) for e in self.catch) and not any(issubclass(exc_type, e) for e in self.allow)
+        return any(issubclass(exc_type, e) for e in self.catch) and (
+            exc_type in self.catch or not any(issubclass(exc_type, e) for e in self.allow)
+        )
