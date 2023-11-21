@@ -1,7 +1,7 @@
 from functools import lru_cache
-from http.client import HTTPException
 from http.client import HTTPResponse
 from urllib import request
+from urllib.error import HTTPError
 
 from pydantic import TypeAdapter
 from yaml import load
@@ -19,7 +19,7 @@ custom_signatures_file: str = "custom_signatures.json"
 def _get_actions(url: str) -> dict[str, Action]:
     response: HTTPResponse = request.urlopen(url)
     if response.getcode() != 200:
-        raise HTTPException(response.getcode())
+        raise HTTPError(url, response.getcode(), "", response.headers, response)
 
     return TypeAdapter(dict[str, Action]).validate_python(load(response.read(), Loader))
 
@@ -28,7 +28,7 @@ def _get_actions(url: str) -> dict[str, Action]:
 def _get_custom_signatures(url: str) -> list[CustomSignature]:
     response: HTTPResponse = request.urlopen(url)
     if response.getcode() != 200:
-        raise HTTPException(response.getcode())
+        raise HTTPError(url, response.getcode(), "", response.headers, response)
 
     return TypeAdapter(list[CustomSignature]).validate_json(response.read())
 
