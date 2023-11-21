@@ -16,8 +16,8 @@ custom_signatures_file: str = "custom_signatures.json"
 
 
 @lru_cache
-def _get_actions() -> dict[str, Action]:
-    response: HTTPResponse = request.urlopen(f"{download_url.rstrip('/')}/{actions_file.lstrip('/')}")
+def _get_actions(url: str) -> dict[str, Action]:
+    response: HTTPResponse = request.urlopen(url)
     if response.getcode() != 200:
         raise HTTPException(response.getcode())
 
@@ -25,8 +25,8 @@ def _get_actions() -> dict[str, Action]:
 
 
 @lru_cache
-def _get_custom_signatures() -> list[CustomSignature]:
-    response: HTTPResponse = request.urlopen(f"{download_url.rstrip('/')}/{custom_signatures_file.lstrip('/')}")
+def _get_custom_signatures(url: str) -> list[CustomSignature]:
+    response: HTTPResponse = request.urlopen(url)
     if response.getcode() != 200:
         raise HTTPException(response.getcode())
 
@@ -48,7 +48,11 @@ def get_actions(use_cache: bool = True) -> dict[str, Action]:
     See Also:
         https://github.com/aarhusstadsarkiv/reference-files/blob/main/actions.yml
     """
-    return _get_actions() if use_cache else _get_actions.__wrapped__()
+    return (
+        _get_actions(f"{download_url.rstrip('/')}/{actions_file.lstrip('/')}")
+        if use_cache
+        else _get_actions.__wrapped__()
+    )
 
 
 def get_custom_signatures(use_cache: bool = True) -> list[CustomSignature]:
@@ -66,4 +70,8 @@ def get_custom_signatures(use_cache: bool = True) -> list[CustomSignature]:
     See Also:
         https://github.com/aarhusstadsarkiv/reference-files/blob/main/custom_signatures.json
     """
-    return _get_custom_signatures() if use_cache else _get_custom_signatures.__wrapped__()
+    return (
+        _get_custom_signatures(f"{download_url.rstrip('/')}/{custom_signatures_file.lstrip('/')}")
+        if use_cache
+        else _get_custom_signatures.__wrapped__()
+    )
