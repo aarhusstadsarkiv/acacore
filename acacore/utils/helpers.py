@@ -8,6 +8,9 @@ class ExceptionManager:
     """
     A context manager class that catches specified exceptions and stores the exception and traceback for later use.
 
+    Exceptions whose class is explicitly declared in the 'catch' argument are always caught,
+    even if they subclass from classes passed int the 'allow' argument.
+
     Args:
         *catch (Type[BaseException]): Exception types that should be caught and not allowed to rise.
 
