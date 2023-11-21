@@ -49,12 +49,24 @@ def test_helpers():
     assert context.exception.code == 3
     assert context.traceback is not None
 
-    with pytest.raises(KeyboardInterrupt) as raises, ExceptionManager(Exception) as context:
+    with (
+        pytest.raises(KeyboardInterrupt) as raises,
+        ExceptionManager(Exception) as context,
+    ):
         raise KeyboardInterrupt
 
     assert isinstance(raises.value, KeyboardInterrupt)
     assert isinstance(context.exception, KeyboardInterrupt)
     assert context.traceback is not None
+
+    with (
+        pytest.raises(OSError) as raises,  # noqa: PT011
+        ExceptionManager(BaseException, allow=[OSError]) as context,
+    ):
+        raise FileNotFoundError
+
+    assert isinstance(raises.value, FileNotFoundError)
+    assert isinstance(context.exception, FileNotFoundError)
 
     with ExceptionManager() as context:
         pass
