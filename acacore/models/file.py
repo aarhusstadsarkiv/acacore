@@ -235,7 +235,7 @@ class File(ACABase):
         if self.is_binary:
             identifiers.append("!binary")
         if not self.size:
-            identifiers.append("!empty")
+            identifiers.insert(0, "!empty")
 
         for identifier in identifiers:
             action = actions.get(identifier)
