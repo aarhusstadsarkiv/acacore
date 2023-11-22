@@ -20,8 +20,30 @@ from .identification import Identification
 from .reference_files import Action
 from .reference_files import ActionData
 from .reference_files import CustomSignature
+from .reference_files import IgnoreIfAction
 from .reference_files import ManualAction
 from .reference_files import TActionType
+
+
+def _ignore_if(file: "File", ignore_ifs: list[IgnoreIfAction]) -> "File":
+    for ignore_if in ignore_ifs:
+        if ignore_if.pixel_total or ignore_if.pixel_width or ignore_if.pixel_height:
+            width, height = image_size(file.get_absolute_path())
+            if (
+                width * height < (ignore_if.pixel_total or 0)
+                or width < (ignore_if.pixel_width or 0)
+                or height < (ignore_if.pixel_height or 0)
+            ):
+                file.action = "ignore"
+                file.action_data.ignore.reason = ignore_if.reason or file.action_data.ignore.reason
+        elif file.is_binary and file.size < (ignore_if.binary_size or 0):  # noqa: SIM114
+            file.action = "ignore"
+            file.action_data.ignore.reason = ignore_if.reason or file.action_data.ignore.reason
+        elif file.size < (ignore_if.size or 0):
+            file.action = "ignore"
+            file.action_data.ignore.reason = ignore_if.reason or file.action_data.ignore.reason
+
+    return file
 
 
 class File(ACABase):
@@ -131,23 +153,11 @@ class File(ACABase):
                 file.action_data = ActionData(manual=ManualAction(reason="Re-identify failure", process=""))
                 file.puid = file.signature = file.warning = None
 
-        if file.action_data and file.action_data.ignore and file.action_data.ignore.ignore_if:
-            for ignore_if in file.action_data.ignore.ignore_if:
-                if ignore_if.pixel_total or ignore_if.pixel_width or ignore_if.pixel_height:
-                    width, height = image_size(file.get_absolute_path())
-                    if (
-                        width * height < (ignore_if.pixel_total or 0)
-                        or width < (ignore_if.pixel_width or 0)
-                        or height < (ignore_if.pixel_height or 0)
-                    ):
-                        file.action = "ignore"
-                        file.action_data.ignore.reason = ignore_if.reason or file.action_data.ignore.reason
-                elif file.is_binary and file.size < (ignore_if.binary_size or 0):  # noqa: SIM114
-                    file.action = "ignore"
-                    file.action_data.ignore.reason = ignore_if.reason or file.action_data.ignore.reason
-                elif file.size < (ignore_if.size or 0):
-                    file.action = "ignore"
-                    file.action_data.ignore.reason = ignore_if.reason or file.action_data.ignore.reason
+        if file.action_data and file.action_data.ignore:
+            file = _ignore_if(file, file.action_data.ignore.ignore_if)
+
+        if file.action != "ignore" and actions and "*" in actions:
+            file = _ignore_if(file, actions["*"].ignore.ignore_if if actions["*"].ignore else [])
 
         return file
 
@@ -235,7 +245,7 @@ class File(ACABase):
         if self.is_binary:
             identifiers.append("!binary")
         if not self.size:
-            identifiers.append("!empty")
+            identifiers.insert(0, "!empty")
 
         for identifier in identifiers:
             action = actions.get(identifier)
