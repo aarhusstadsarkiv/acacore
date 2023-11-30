@@ -14,6 +14,7 @@ TActionType = Literal[
     "rename",
     "ignore",
     "reidentify",
+    "retry",
 ]
 TReplaceTemplate = Literal[
     "text",
