@@ -144,6 +144,17 @@ class ReIdentifyAction(BaseModel):
     onfail: Optional[TActionType] = None
 
 
+class RetryAction(BaseModel):
+    """
+    Class representing an action to ignore a specific file based on the given reason.
+
+    Attributes:
+        error (str): The error for why the conversion failed, when needed to retry the conversion.
+    """
+
+    error: str
+
+
 class RenameAction(BaseModel):
     """
     Class representing an action to change file's extension.
@@ -178,6 +189,7 @@ class ActionData(BaseModel):
             performed. Defaults to None.
         reidentify (Optional[ReIdentifyAction]): A ReIdentifyAction object representing the re-identification
             action to be performed. Defaults to None.
+        retry (Optional[RetryAction]): 
     """
 
     convert: Optional[list[ConvertAction]] = None
@@ -187,6 +199,7 @@ class ActionData(BaseModel):
     rename: Optional[RenameAction] = None
     ignore: Optional[IgnoreAction] = None
     reidentify: Optional[ReIdentifyAction] = None
+    retry: Optional[RetryAction] = None
 
 
 class Action(ActionData):
@@ -225,4 +238,5 @@ class Action(ActionData):
             rename=self.rename,
             ignore=self.ignore,
             reidentify=self.reidentify,
+            retry=self.retry,
         )
