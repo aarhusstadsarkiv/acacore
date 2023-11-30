@@ -39,9 +39,9 @@ def _ignore_if(file: "File", ignore_ifs: list[IgnoreIfAction]) -> "File":
                 or height < (ignore_if.pixel_height or 0)
             ):
                 action = "ignore"
-        elif file.is_binary and file.size < (ignore_if.binary_size or 0):  # noqa: SIM114
+        elif ignore_if.binary_size and file.is_binary and file.size < ignore_if.binary_size:  # noqa: SIM114
             action = "ignore"
-        elif file.size < (ignore_if.size or 0):
+        elif ignore_if.size and file.size < ignore_if.size:
             action = "ignore"
 
         if action:
