@@ -20,12 +20,16 @@ from .identification import Identification
 from .reference_files import Action
 from .reference_files import ActionData
 from .reference_files import CustomSignature
+from .reference_files import IgnoreAction
 from .reference_files import IgnoreIfAction
 from .reference_files import ManualAction
 from .reference_files import TActionType
 
 
 def _ignore_if(file: "File", ignore_ifs: list[IgnoreIfAction]) -> "File":
+    action: Optional[TActionType] = None
+    action_data: Optional[ActionData] = None
+
     for ignore_if in ignore_ifs:
         if ignore_if.pixel_total or ignore_if.pixel_width or ignore_if.pixel_height:
             width, height = image_size(file.get_absolute_path())
@@ -34,14 +38,21 @@ def _ignore_if(file: "File", ignore_ifs: list[IgnoreIfAction]) -> "File":
                 or width < (ignore_if.pixel_width or 0)
                 or height < (ignore_if.pixel_height or 0)
             ):
-                file.action = "ignore"
-                file.action_data.ignore.reason = ignore_if.reason or file.action_data.ignore.reason
-        elif file.is_binary and file.size < (ignore_if.binary_size or 0):  # noqa: SIM114
-            file.action = "ignore"
-            file.action_data.ignore.reason = ignore_if.reason or file.action_data.ignore.reason
-        elif file.size < (ignore_if.size or 0):
-            file.action = "ignore"
-            file.action_data.ignore.reason = ignore_if.reason or file.action_data.ignore.reason
+                action = "ignore"
+        elif ignore_if.binary_size and file.is_binary and file.size < ignore_if.binary_size:  # noqa: SIM114
+            action = "ignore"
+        elif ignore_if.size and file.size < ignore_if.size:
+            action = "ignore"
+
+        if action:
+            action_data = file.action_data or ActionData()
+            action_data.ignore = action_data.ignore or IgnoreAction()
+            action_data.ignore.reason = ignore_if.reason or action_data.ignore.reason
+            break
+
+    if action and action_data:
+        file.action = action
+        file.action_data = action
 
     return file
 
