@@ -6,16 +6,30 @@ from typing import Type
 from typing import Union
 from uuid import UUID
 
+from acacore.models.base import ACABase
 from acacore.models.file import File
 from acacore.models.history import HistoryEntry
-from acacore.models.identification import ChecksumCount
-from acacore.models.identification import SignatureCount
 from acacore.models.metadata import Metadata
 from acacore.utils.functions import or_none
 
 from .base import Column
 from .base import FileDBBase
 from .base import SelectColumn
+
+
+class SignatureCount(ACABase):
+    """Signature count datamodel."""
+
+    puid: Optional[str]
+    signature: Optional[str]
+    count: Optional[int]
+
+
+class ChecksumCount(ACABase):
+    """Signature count datamodel."""
+
+    checksum: str
+    count: int
 
 
 class FileDB(FileDBBase):

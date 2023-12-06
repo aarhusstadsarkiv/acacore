@@ -12,10 +12,10 @@ from acacore.database.base import ModelView
 
 # noinspection PyProtectedMember
 from acacore.database.column import _value_to_sql
+from acacore.database.files_db import ChecksumCount
+from acacore.database.files_db import SignatureCount
 from acacore.models.file import File
 from acacore.models.history import HistoryEntry
-from acacore.models.identification import ChecksumCount
-from acacore.models.identification import SignatureCount
 from acacore.models.reference_files import Action
 
 
