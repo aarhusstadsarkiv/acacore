@@ -541,6 +541,7 @@ class View(Table):
         group_by: Optional[list[Union[Column, SelectColumn]]] = None,
         order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
         limit: Optional[int] = None,
+        joins: Optional[list[str]] = None,
     ) -> None:
         """
         A subclass of Table to handle views.
@@ -555,6 +556,7 @@ class View(Table):
             order_by: A list tuples containing one column (either as Column or string)
                 and a sorting direction ("ASC", or "DESC").
             limit: The number of rows to limit the results to.
+            joins: Join operations to apply to the view.
         """
         assert columns, "Views must have columns"
         super().__init__(connection, name, columns)
@@ -563,6 +565,7 @@ class View(Table):
         self.group_by: list[Union[Column, SelectColumn]] = group_by or []
         self.order_by: Optional[list[tuple[Union[str, Column], str]]] = order_by or []
         self.limit: Optional[int] = limit
+        self.joins: list[str] = joins or []
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}("{self.name}", on={self.on!r})'
@@ -577,6 +580,7 @@ class View(Table):
         Returns:
             A CREATE VIEW expression.
         """
+        on_table: str = self.on.name if isinstance(self.on, Table) else self.on
         elements: list[str] = ["CREATE VIEW"]
 
         if exist_ok:
@@ -587,12 +591,16 @@ class View(Table):
         elements.append("AS")
 
         select_names = [
-            f"{c.name} as {c.alias}" if c.alias else c.name for c in [SelectColumn.from_column(c) for c in self.columns]
+            f"{c.name} as {c.alias}" if c.alias else f"{on_table}.{c.name}"
+            for c in [SelectColumn.from_column(c) for c in self.columns]
         ]
 
         elements.append(
-            f"SELECT {','.join(select_names)} " f"FROM {self.on.name if isinstance(self.on, Table) else self.on}",
+            f"SELECT {','.join(select_names)} " f"FROM {on_table}",
         )
+
+        if self.joins:
+            elements.extend(self.joins)
 
         if self.where:
             elements.append(f"WHERE {self.where}")
@@ -682,6 +690,7 @@ class ModelView(View, Generic[M]):
         group_by: Optional[list[Union[Column, SelectColumn]]] = None,
         order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
         limit: Optional[int] = None,
+        joins: Optional[list[str]] = None,
     ) -> None:
         """
         A subclass of Table to handle views with models.
@@ -697,6 +706,7 @@ class ModelView(View, Generic[M]):
             order_by: A list tuples containing one column (either as Column or string)
                 and a sorting direction ("ASC", or "DESC").
             limit: The number of rows to limit the results to.
+            joins: Join operations to apply to the view.
         """
         super().__init__(
             connection,
@@ -707,6 +717,7 @@ class ModelView(View, Generic[M]):
             group_by,
             order_by,
             limit,
+            joins,
         )
         self.model: Type[M] = model
 
@@ -867,6 +878,7 @@ class FileDBBase(Connection):
         group_by: Optional[list[Union[Column, SelectColumn]]] = None,
         order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
         limit: Optional[int] = None,
+        joins: Optional[list[str]] = None,
         *,
         select_columns: Optional[list[Union[Column, SelectColumn]]] = None,
     ) -> ModelView[M]:
@@ -882,6 +894,7 @@ class FileDBBase(Connection):
         group_by: Optional[list[Union[Column, SelectColumn]]] = None,
         order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
         limit: Optional[int] = None,
+        joins: Optional[list[str]] = None,
     ) -> View:
         ...
 
@@ -894,6 +907,7 @@ class FileDBBase(Connection):
         group_by: Optional[list[Union[Column, SelectColumn]]] = None,
         order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
         limit: Optional[int] = None,
+        joins: Optional[list[str]] = None,
         *,
         select_columns: Optional[list[Union[Column, SelectColumn]]] = None,
     ) -> Union[View, ModelView[M]]:
@@ -911,18 +925,9 @@ class FileDBBase(Connection):
                 and a sorting direction ("ASC", or "DESC").
             limit: The number of rows to limit the results to.
             select_columns: Optionally, the columns of the view if a model is given and is too limited.
+            joins: Join operations to apply to the view.
         """
         if issubclass(columns, BaseModel):
-            return ModelView[M](
-                self,
-                name,
-                on,
-                columns,
-                select_columns,
-                where,
-                group_by,
-                order_by,
-                limit,
-            )
+            return ModelView[M](self, name, on, columns, select_columns, where, group_by, order_by, limit, joins)
         else:
-            return View(self, name, on, columns, where, group_by, order_by, limit)
+            return View(self, name, on, columns, where, group_by, order_by, limit, joins)
