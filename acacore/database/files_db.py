@@ -10,6 +10,7 @@ from acacore.models.base import ACABase
 from acacore.models.file import File
 from acacore.models.history import HistoryEntry
 from acacore.models.metadata import Metadata
+from acacore.models.reference_files import TActionType
 from acacore.utils.functions import or_none
 
 from .base import Column
@@ -29,6 +30,11 @@ class ChecksumCount(ACABase):
     """Signature count datamodel."""
 
     checksum: str
+    count: int
+
+
+class ActionCount(ACABase):
+    action: TActionType
     count: int
 
 
@@ -154,6 +160,34 @@ class FileDB(FileDBBase):
                 ),
             ],
         )
+        self.actions_count = self.create_view(
+            "_ActionsCount",
+            self.files,
+            ActionCount,
+            None,
+            [
+                Column("action", "varchar", str, str, False, False, False),
+            ],
+            [
+                (Column("count", "int", str, str), "DESC"),
+            ],
+            select_columns=[
+                Column(
+                    "action",
+                    "varchar",
+                    or_none(str),
+                    or_none(str),
+                    False,
+                    False,
+                    False,
+                ),
+                SelectColumn(
+                    f'count("{self.files.name}.action")',
+                    int,
+                    "count",
+                ),
+            ],
+        )
 
     def init(self):
         """Create the default tables and views."""
@@ -163,6 +197,7 @@ class FileDB(FileDBBase):
         self.identification_warnings.create(True)
         self.checksum_count.create(True)
         self.signature_count.create(True)
+        self.actions_count.create(True)
         self.metadata.update(self.metadata.model())
         self.commit()
 

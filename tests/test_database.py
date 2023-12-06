@@ -12,6 +12,7 @@ from acacore.database.base import ModelView
 
 # noinspection PyProtectedMember
 from acacore.database.column import _value_to_sql
+from acacore.database.files_db import ActionCount
 from acacore.database.files_db import ChecksumCount
 from acacore.database.files_db import SignatureCount
 from acacore.models.file import File
@@ -75,6 +76,8 @@ def test_database_classes(database_path: Path):
     assert issubclass(db.checksum_count.model, ChecksumCount)
     assert isinstance(db.signature_count, ModelView)
     assert issubclass(db.signature_count.model, SignatureCount)
+    assert isinstance(db.actions_count, ModelView)
+    assert issubclass(db.actions_count.model, ActionCount)
 
 
 # noinspection SqlResolve,SqlNoDataSourceInspection
@@ -102,6 +105,7 @@ def test_database_tables(database_path: Path):
     assert db.identification_warnings.name in views
     assert db.checksum_count.name in views
     assert db.signature_count.name in views
+    assert db.actions_count.name in views
 
 
 def test_database_columns(database_path: Path):
