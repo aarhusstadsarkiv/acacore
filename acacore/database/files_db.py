@@ -1,5 +1,6 @@
 from datetime import datetime
 from os import PathLike
+from pathlib import Path
 from sqlite3 import Connection
 from typing import Optional
 from typing import Type
@@ -16,6 +17,10 @@ from acacore.utils.functions import or_none
 from .base import Column
 from .base import FileDBBase
 from .base import SelectColumn
+
+
+class HistoryEntryPath(HistoryEntry):
+    relative_path: Optional[Path] = None
 
 
 class SignatureCount(ACABase):
@@ -85,6 +90,12 @@ class FileDB(FileDBBase):
         self.history = self.create_table("History", HistoryEntry)
         self.metadata = self.create_keys_table("Metadata", Metadata)
 
+        self.history_paths = self.create_view(
+            "_HistoryPaths",
+            self.history,
+            HistoryEntryPath,
+            joins=["left join Files on History.UUID = Files.uuid"],
+        )
         self.identification_warnings = self.create_view(
             "_IdentificationWarnings",
             self.files,
@@ -194,6 +205,7 @@ class FileDB(FileDBBase):
         self.files.create(True)
         self.history.create(True)
         self.metadata.create(True)
+        self.history_paths.create(True)
         self.identification_warnings.create(True)
         self.checksum_count.create(True)
         self.signature_count.create(True)

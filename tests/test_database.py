@@ -14,6 +14,7 @@ from acacore.database.base import ModelView
 from acacore.database.column import _value_to_sql
 from acacore.database.files_db import ActionCount
 from acacore.database.files_db import ChecksumCount
+from acacore.database.files_db import HistoryEntryPath
 from acacore.database.files_db import SignatureCount
 from acacore.models.file import File
 from acacore.models.history import HistoryEntry
@@ -70,6 +71,8 @@ def test_database_classes(database_path: Path):
     assert issubclass(db.history.model, HistoryEntry)
 
     # Check views classes
+    assert isinstance(db.history_paths, ModelView)
+    assert issubclass(db.history_paths.model, HistoryEntryPath)
     assert isinstance(db.identification_warnings, ModelView)
     assert issubclass(db.identification_warnings.model, File)
     assert isinstance(db.checksum_count, ModelView)
@@ -102,6 +105,7 @@ def test_database_tables(database_path: Path):
     views: list[str] = [
         t for [t] in db.execute("select name from sqlite_master where type = 'view' and name != 'sqlite_master'")
     ]
+    assert db.history_paths.name in views
     assert db.identification_warnings.name in views
     assert db.checksum_count.name in views
     assert db.signature_count.name in views
