@@ -52,7 +52,7 @@ def _ignore_if(file: "File", ignore_ifs: list[IgnoreIfAction]) -> "File":
 
     if action and action_data:
         file.action = action
-        file.action_data = action
+        file.action_data = action_data
 
     return file
 
