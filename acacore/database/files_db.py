@@ -13,8 +13,8 @@ from acacore.models.history import HistoryEntry
 from acacore.models.metadata import Metadata
 from acacore.models.reference_files import TActionType
 from acacore.utils.functions import or_none
-from . import model_to_columns
 
+from . import model_to_columns
 from .base import Column
 from .base import FileDBBase
 from .base import SelectColumn
