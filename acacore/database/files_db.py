@@ -13,6 +13,7 @@ from acacore.models.history import HistoryEntry
 from acacore.models.metadata import Metadata
 from acacore.models.reference_files import TActionType
 from acacore.utils.functions import or_none
+from . import model_to_columns
 
 from .base import Column
 from .base import FileDBBase
@@ -94,6 +95,10 @@ class FileDB(FileDBBase):
             "_HistoryPaths",
             self.history,
             HistoryEntryPath,
+            select_columns=[
+                SelectColumn("Files.relative_path", str, "relative_path"),
+                *model_to_columns(HistoryEntry),
+            ],
             joins=["left join Files on History.UUID = Files.uuid"],
         )
         self.identification_warnings = self.create_view(
