@@ -1,21 +1,47 @@
 from datetime import datetime
 from os import PathLike
+from pathlib import Path
 from sqlite3 import Connection
 from typing import Optional
 from typing import Type
 from typing import Union
 from uuid import UUID
 
+from acacore.models.base import ACABase
 from acacore.models.file import File
 from acacore.models.history import HistoryEntry
-from acacore.models.identification import ChecksumCount
-from acacore.models.identification import SignatureCount
 from acacore.models.metadata import Metadata
+from acacore.models.reference_files import TActionType
 from acacore.utils.functions import or_none
 
+from . import model_to_columns
 from .base import Column
 from .base import FileDBBase
 from .base import SelectColumn
+
+
+class HistoryEntryPath(HistoryEntry):
+    relative_path: Optional[Path] = None
+
+
+class SignatureCount(ACABase):
+    """Signature count datamodel."""
+
+    puid: Optional[str]
+    signature: Optional[str]
+    count: Optional[int]
+
+
+class ChecksumCount(ACABase):
+    """Signature count datamodel."""
+
+    checksum: str
+    count: int
+
+
+class ActionCount(ACABase):
+    action: TActionType
+    count: int
 
 
 class FileDB(FileDBBase):
@@ -65,6 +91,16 @@ class FileDB(FileDBBase):
         self.history = self.create_table("History", HistoryEntry)
         self.metadata = self.create_keys_table("Metadata", Metadata)
 
+        self.history_paths = self.create_view(
+            "_HistoryPaths",
+            self.history,
+            HistoryEntryPath,
+            select_columns=[
+                SelectColumn("Files.relative_path", str, "relative_path"),
+                *model_to_columns(HistoryEntry),
+            ],
+            joins=["left join Files on History.UUID = Files.uuid"],
+        )
         self.identification_warnings = self.create_view(
             "_IdentificationWarnings",
             self.files,
@@ -140,15 +176,45 @@ class FileDB(FileDBBase):
                 ),
             ],
         )
+        self.actions_count = self.create_view(
+            "_ActionsCount",
+            self.files,
+            ActionCount,
+            None,
+            [
+                Column("action", "varchar", str, str, False, False, False),
+            ],
+            [
+                (Column("count", "int", str, str), "DESC"),
+            ],
+            select_columns=[
+                Column(
+                    "action",
+                    "varchar",
+                    or_none(str),
+                    or_none(str),
+                    False,
+                    False,
+                    False,
+                ),
+                SelectColumn(
+                    f'count("{self.files.name}.action")',
+                    int,
+                    "count",
+                ),
+            ],
+        )
 
     def init(self):
         """Create the default tables and views."""
         self.files.create(True)
         self.history.create(True)
         self.metadata.create(True)
+        self.history_paths.create(True)
         self.identification_warnings.create(True)
         self.checksum_count.create(True)
         self.signature_count.create(True)
+        self.actions_count.create(True)
         self.metadata.update(self.metadata.model())
         self.commit()
 
