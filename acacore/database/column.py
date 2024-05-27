@@ -63,14 +63,6 @@ def dump_object(obj: Union[list, tuple, dict, BaseModel]) -> Union[list, dict]:
         return obj
 
 
-def from_entry_func(x: any) -> Union[any, None]:
-    """Try to load json. If file is empty returns None"""
-    try:
-        return loads(x)
-    except:
-        return None
-
-
 def _schema_to_column(name: str, schema: dict, defs: Optional[dict[str, dict]] = None) -> Optional["Column"]:
     if schema.get("ignore"):
         return None
@@ -95,7 +87,7 @@ def _schema_to_column(name: str, schema: dict, defs: Optional[dict[str, dict]] =
         elif schema_type in ("object", "array"):
             sql_type = "text"
             to_entry = lambda o: dumps(dump_object(o), default=str)
-            from_entry = lambda x: from_entry_func(x)
+            from_entry = lambda x: loads(x) if x else None
         elif type_name in _sql_schema_type_converters:
             to_entry, from_entry = _sql_schema_type_converters[type_name]
         else:
@@ -104,7 +96,7 @@ def _schema_to_column(name: str, schema: dict, defs: Optional[dict[str, dict]] =
         if not schema_any_of[0] or len(schema_any_of) > 2:
             sql_type = "text"
             to_entry = lambda o: dumps(dump_object(o), default=str)
-            from_entry = lambda x: from_entry_func(x)
+            from_entry = lambda x: loads(x) if x else None
         else:
             return _schema_to_column(name, {**schema_any_of[0], **schema}, defs)
     else:
