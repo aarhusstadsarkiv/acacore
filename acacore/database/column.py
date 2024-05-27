@@ -24,17 +24,19 @@ _sql_schema_types: dict[str, str] = {
     "null": "text",
 }
 
-_sql_schema_type_converters: dict[str, tuple[Callable[[Optional[T]], V], Callable[[V], Optional[T]]],] = {
-    "path": (str, Path),
-    "date-time": (datetime.isoformat, datetime.fromisoformat),
-    "uuid4": (str, UUID),
-    "binary": (bytes, bytes),
-    "string": (str, str),
-    "integer": (int, int),
-    "number": (float, float),
-    "boolean": (bool, bool),
-    "null": (lambda x: x, lambda x: x),
-}
+_sql_schema_type_converters: dict[
+        str, 
+        tuple[Callable[[Optional[T]], V], Callable[[V], Optional[T]]],] = {
+            "path": (str, Path),
+            "date-time": (datetime.isoformat, datetime.fromisoformat),
+            "uuid4": (str, UUID),
+            "binary": (bytes, bytes),
+            "string": (str, str),
+            "integer": (int, int),
+            "number": (float, float),
+            "boolean": (bool, bool),
+            "null": (lambda x: x, lambda x: x),
+        }
 
 
 def _value_to_sql(value: V) -> str:
