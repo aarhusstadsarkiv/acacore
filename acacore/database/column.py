@@ -24,10 +24,7 @@ _sql_schema_types: dict[str, str] = {
     "null": "text",
 }
 
-_sql_schema_type_converters: dict[
-    str,
-    tuple[Callable[[Optional[T]], V], Callable[[V], Optional[T]]],
-] = {
+_sql_schema_type_converters: dict[str, tuple[Callable[[Optional[T]], V], Callable[[V], Optional[T]]],] = {
     "path": (str, Path),
     "date-time": (datetime.isoformat, datetime.fromisoformat),
     "uuid4": (str, UUID),
@@ -64,7 +61,7 @@ def dump_object(obj: Union[list, tuple, dict, BaseModel]) -> Union[list, dict]:
         return list(map(dump_object, obj))
     else:
         return obj
-    
+
 
 def from_entry_func(x):
     """Try to load json. If file is empty returns None"""
