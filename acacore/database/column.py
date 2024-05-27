@@ -24,10 +24,7 @@ _sql_schema_types: dict[str, str] = {
     "null": "text",
 }
 
-_sql_schema_type_converters: dict[
-    str,
-    tuple[Callable[[Optional[T]], V], Callable[[V], Optional[T]]],
-] = {
+_sql_schema_type_converters: dict[str, tuple[Callable[[Optional[T]], V], Callable[[V], Optional[T]]],] = {
     "path": (str, Path),
     "date-time": (datetime.isoformat, datetime.fromisoformat),
     "uuid4": (str, UUID),
