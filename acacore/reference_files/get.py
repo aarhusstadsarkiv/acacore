@@ -12,7 +12,7 @@ from acacore.models.reference_files import CustomSignature
 
 download_url: str = "https://github.com/aarhusstadsarkiv/reference-files/releases/latest/download/"
 actions_file: str = "fileformats.yml"
-custom_signatures_file: str = "custom_signatures.json"
+custom_signatures_file: str = "custom_signatures.yml"
 
 
 @lru_cache
@@ -30,7 +30,7 @@ def _get_custom_signatures(url: str) -> list[CustomSignature]:
     if response.getcode() != 200:
         raise HTTPError(url, response.getcode(), "", response.headers, response)
 
-    return TypeAdapter(list[CustomSignature]).validate_json(response.read())
+    return TypeAdapter(list[CustomSignature]).validate_python(load(response.read(), Loader))
 
 
 def get_actions(use_cache: bool = True) -> dict[str, Action]:

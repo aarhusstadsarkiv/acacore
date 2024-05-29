@@ -202,7 +202,7 @@ class SiegfriedFile(BaseModel):
             A SiegfriedMatch object or None if there are no known matches.
         """
         matches: list[SiegfriedMatch] = [m for m in self.matches if m.id]
-        matches.sort(key=SiegfriedMatch.sort_tuple)
+        matches.sort(key=lambda m: m.sort_tuple())
         return matches[-1] if matches else None
 
     def best_matches(self) -> list[SiegfriedMatch]:
@@ -212,7 +212,7 @@ class SiegfriedFile(BaseModel):
         Returns:
             A list of SiegfriedMatch objects.
         """
-        return sorted([m for m in self.matches if m.id], key=SiegfriedMatch.sort_tuple, reverse=True)
+        return sorted([m for m in self.matches if m.id], key=lambda m: m.sort_tuple(), reverse=True)
 
 
 class SiegfriedResult(BaseModel):
