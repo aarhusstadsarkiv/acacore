@@ -112,6 +112,40 @@ class Cursor:
         )
 
     @overload
+    def fetchmany(self, size: int) -> Generator[dict[str, Any], None, None]:
+        ...
+
+    @overload
+    def fetchmany(self, size: int, model: Type[M]) -> Generator[M, None, None]:
+        ...
+
+    def fetchmany(self, size: int, model: Optional[Type[M]] = None) -> Generator[Union[dict[str, Any], M], None, None]:
+        """
+        Fetch `size` results from the cursor and return them as dicts, with the columns' names/aliases used as keys.
+
+        Args:
+            size: The amount of results to fetch.
+            model: Optionally, a pydantic.BaseModel class to use instead of a dict.
+
+        Returns:
+            Generator: A generator for converted dicts (or models).
+        """
+        select_columns: list[SelectColumn] = [SelectColumn.from_column(c) for c in self.columns]
+
+        if model:
+            return (
+                model.model_validate(
+                    {c.alias or c.name: c.from_entry(v) for c, v in zip(select_columns, vs)},
+                )
+                for vs in self.cursor.fetchmany(size)
+            )
+
+        return (
+            {c.alias or c.name: c.from_entry(v) for c, v in zip(select_columns, vs)}
+            for vs in self.cursor.fetchmany(size)
+        )
+
+    @overload
     def fetchone(self) -> Optional[dict[str, Any]]:
         ...
 
@@ -178,6 +212,19 @@ class ModelCursor(Cursor, Generic[M]):
             Generator: A generator for converted objects.
         """
         return super().fetchall(model or self.model)
+
+    def fetchmany(self, size: int, model: Optional[Type[M]] = None) -> Generator[Union[dict[str, Any], M], None, None]:
+        """
+        Fetch `size` results from the cursor and return them as model objects.
+
+        Args:
+            size: The amount of results to fetch.
+            model: Optionally, a different pydantic.BaseModel class to use instead of the one in the ModelCursor.
+
+        Returns:
+            Generator: A generator for converted objects.
+        """
+        return super().fetchmany(size, model or self.model)
 
     def fetchone(self, model: Optional[Type[M]] = None) -> Optional[M]:
         """
