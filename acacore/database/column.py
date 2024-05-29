@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Callable
 from typing import Generic
 from typing import Optional
+from typing import Sequence
 from typing import Type
 from typing import TypeVar
 from typing import Union
@@ -264,3 +265,16 @@ class SelectColumn(Column):
             select_column.alias = alias or column.alias
 
         return select_column
+
+
+class Index:
+    def __init__(self, name: str, columns: Sequence[Column], unique: bool = False) -> None:
+        self.name: str = name
+        self.columns: list[Column] = list(columns)
+        self.unique: bool = unique
+
+    def create_statement(self, table: str, exists_ok: bool = True):
+        return (
+            f"create {'unique' if self.unique else ''} index {'if not exists' if exists_ok else ''} {self.name}"
+            f" on {table} ({','.join(c.name for c in self.columns)})"
+        )
