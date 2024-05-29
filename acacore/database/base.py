@@ -24,6 +24,7 @@ from pydantic.main import BaseModel
 from acacore.utils.functions import or_none
 
 from .column import Column
+from .column import Index
 from .column import dump_object
 from .column import model_to_columns
 from .column import SelectColumn
@@ -239,7 +240,7 @@ class ModelCursor(Cursor, Generic[M]):
 
 # noinspection SqlNoDataSourceInspection
 class Table:
-    def __init__(self, connection: "FileDBBase", name: str, columns: list[Column]) -> None:
+    def __init__(self, connection: "FileDBBase", name: str, columns: list[Column], indices: list[Index] | None = None):
         """
         A class that holds information about a table.
 
@@ -251,6 +252,7 @@ class Table:
         self.connection: "FileDBBase" = connection
         self.name: str = name
         self.columns: list[Column] = columns
+        self.indices: list[Index] = indices or []
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}("{self.name}")'
@@ -300,6 +302,8 @@ class Table:
 
     def create(self, exist_ok: bool = True):
         self.connection.execute(self.create_statement(exist_ok))
+        for index in self.indices:
+            self.connection.execute(index.create_statement(self.name, exist_ok))
 
     def select(
         self,
@@ -392,7 +396,7 @@ class Table:
 
 
 class ModelTable(Table, Generic[M]):
-    def __init__(self, connection: "FileDBBase", name: str, model: Type[M]) -> None:
+    def __init__(self, connection: "FileDBBase", name: str, model: Type[M], indices: list[Index] | None = None):
         """
         A class that holds information about a table using a model.
 
@@ -401,7 +405,7 @@ class ModelTable(Table, Generic[M]):
             name: The name of the table.
             model: The model representing the table.
         """
-        super().__init__(connection, name, model_to_columns(model))
+        super().__init__(connection, name, model_to_columns(model), indices)
         self.model: Type[M] = model
 
     def __repr__(self) -> str:
