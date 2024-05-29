@@ -135,6 +135,21 @@ def test_database_columns(database_path: Path):
         assert columns_from_model == columns_from_sql
 
 
+def test_database_indices(database_path: Path):
+    assert database_path.is_file()
+
+    with FileDB(database_path) as db:
+        for table in (db.files, db.history):
+            for index in table.indices:
+                assert (
+                    db.execute(
+                        "select 1 from sqlite_master where type = 'index' and tbl_name = ? and name = ?",
+                        [table.name, index.name],
+                    ).fetchone()
+                    is not None
+                )
+
+
 def test_database_keys_tables(database_path: Path):
     assert database_path.is_file()
 
