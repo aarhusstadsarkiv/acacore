@@ -269,11 +269,29 @@ class SelectColumn(Column):
 
 class Index:
     def __init__(self, name: str, columns: Sequence[Column], unique: bool = False) -> None:
+        """
+        A class that stores information regarding an index.
+
+        Args:
+            name: The name of the index
+            columns: The list of columns that the index applies to.
+            unique: Whether the index is unique or not.
+        """
         self.name: str = name
         self.columns: list[Column] = list(columns)
         self.unique: bool = unique
 
     def create_statement(self, table: str, exists_ok: bool = True):
+        """
+        Generate the expression that creates the index.
+
+        Args:
+            table: The name of the table.
+            exists_ok: True if existing tables with the same name should be ignored.
+
+        Returns:
+            A CREATE TABLE expression.
+        """
         return (
             f"create {'unique' if self.unique else ''} index {'if not exists' if exists_ok else ''} {self.name}"
             f" on {table} ({','.join(c.name for c in self.columns)})"

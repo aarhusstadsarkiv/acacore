@@ -248,6 +248,7 @@ class Table:
             connection: A FileDBBase object connected to the database the table belongs to.
             name: The name of the table.
             columns: The columns of the table.
+            indices: The indices to create in the table.
         """
         self.connection: "FileDBBase" = connection
         self.name: str = name
@@ -404,6 +405,7 @@ class ModelTable(Table, Generic[M]):
             connection: A FileDBBase object connected to the database the table belongs to.
             name: The name of the table.
             model: The model representing the table.
+            indices: The indices to create in the table.
         """
         super().__init__(connection, name, model_to_columns(model), indices)
         self.model: Type[M] = model
@@ -885,6 +887,7 @@ class FileDBBase(Connection):
         Args:
             name: The name of the table.
             columns: A BaseModel subclass or the columns of the table.
+            indices: The indices to create in the table.
         """
         if issubclass(columns, BaseModel):
             return ModelTable[M](self, name, columns, indices)
