@@ -865,17 +865,18 @@ class FileDBBase(Connection):
             return False
 
     @overload
-    def create_table(self, name: str, columns: Type[M]) -> ModelTable[M]:
+    def create_table(self, name: str, columns: Type[M], indices: list[Index] | None) -> ModelTable[M]:
         ...
 
     @overload
-    def create_table(self, name: str, columns: list[Column]) -> Table:
+    def create_table(self, name: str, columns: list[Column], indices: list[Index] | None) -> Table:
         ...
 
     def create_table(
         self,
         name: str,
         columns: Union[Type[M], list[Column]],
+        indices: list[Index] | None = None,
     ) -> Union[Table, ModelTable[M]]:
         """Create a table in the database.
 
@@ -886,9 +887,9 @@ class FileDBBase(Connection):
             columns: A BaseModel subclass or the columns of the table.
         """
         if issubclass(columns, BaseModel):
-            return ModelTable[M](self, name, columns)
+            return ModelTable[M](self, name, columns, indices)
         else:
-            return Table(self, name, columns)
+            return Table(self, name, columns, indices)
 
     @overload
     def create_keys_table(self, name: str, columns: Type[M]) -> ModelKeysTable[M]:
