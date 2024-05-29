@@ -76,8 +76,8 @@ class File(ACABase):
         root (Optional[Path]): The root directory for the file.
     """
 
-    uuid: UUID4 = Field(default_factory=uuid4)
-    checksum: str
+    uuid: UUID4 = Field(default_factory=uuid4, index=["idx_uuid"])
+    checksum: str = Field(index=["idx_checksum"])
     relative_path: Path = Field(primary_key=True)
     is_binary: bool
     size: int
