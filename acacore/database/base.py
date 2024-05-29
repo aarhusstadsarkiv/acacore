@@ -27,6 +27,7 @@ from .column import Column
 from .column import Index
 from .column import dump_object
 from .column import model_to_columns
+from .column import model_to_indices
 from .column import SelectColumn
 
 T = TypeVar("T")
@@ -890,7 +891,7 @@ class FileDBBase(Connection):
             indices: The indices to create in the table.
         """
         if issubclass(columns, BaseModel):
-            return ModelTable[M](self, name, columns, indices)
+            return ModelTable[M](self, name, columns, model_to_indices(columns) if indices is None else indices)
         else:
             return Table(self, name, columns, indices)
 
