@@ -104,12 +104,10 @@ class Cursor:
                 model.model_validate(
                     {c.alias or c.name: c.from_entry(v) for c, v in zip(select_columns, vs)},
                 )
-                for vs in self.cursor.fetchall()
+                for vs in self.cursor
             )
 
-        return (
-            {c.alias or c.name: c.from_entry(v) for c, v in zip(select_columns, vs)} for vs in self.cursor.fetchall()
-        )
+        return ({c.alias or c.name: c.from_entry(v) for c, v in zip(select_columns, vs)} for vs in self.cursor)
 
     @overload
     def fetchmany(self, size: int) -> Generator[dict[str, Any], None, None]:
