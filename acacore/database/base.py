@@ -246,7 +246,7 @@ class Table:
         connection: "FileDBBase",
         name: str,
         columns: list[Column],
-        indices: list[Index] | None = None,
+        indices: Optional[list[Index]] = None,
     ) -> None:
         """
         A class that holds information about a table.
@@ -404,7 +404,13 @@ class Table:
 
 
 class ModelTable(Table, Generic[M]):
-    def __init__(self, connection: "FileDBBase", name: str, model: Type[M], indices: list[Index] | None = None) -> None:
+    def __init__(
+        self,
+        connection: "FileDBBase",
+        name: str,
+        model: Type[M],
+        indices: Optional[list[Index]] = None,
+    ) -> None:
         """
         A class that holds information about a table using a model.
 
@@ -874,18 +880,18 @@ class FileDBBase(Connection):
             return False
 
     @overload
-    def create_table(self, name: str, columns: Type[M], indices: list[Index] | None = None) -> ModelTable[M]:
+    def create_table(self, name: str, columns: Type[M], indices: Optional[list[Index]] = None) -> ModelTable[M]:
         ...
 
     @overload
-    def create_table(self, name: str, columns: list[Column], indices: list[Index] | None = None) -> Table:
+    def create_table(self, name: str, columns: list[Column], indices: Optional[list[Index]] = None) -> Table:
         ...
 
     def create_table(
         self,
         name: str,
         columns: Union[Type[M], list[Column]],
-        indices: list[Index] | None = None,
+        indices: Optional[list[Index]] = None,
     ) -> Union[Table, ModelTable[M]]:
         """Create a table in the database.
 
