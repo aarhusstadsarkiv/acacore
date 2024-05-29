@@ -867,11 +867,11 @@ class FileDBBase(Connection):
             return False
 
     @overload
-    def create_table(self, name: str, columns: Type[M], indices: list[Index] | None) -> ModelTable[M]:
+    def create_table(self, name: str, columns: Type[M], indices: list[Index] | None = None) -> ModelTable[M]:
         ...
 
     @overload
-    def create_table(self, name: str, columns: list[Column], indices: list[Index] | None) -> Table:
+    def create_table(self, name: str, columns: list[Column], indices: list[Index] | None = None) -> Table:
         ...
 
     def create_table(
