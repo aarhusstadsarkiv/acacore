@@ -8,8 +8,8 @@ from acacore.siegfried import Siegfried
 
 
 @pytest.fixture()
-def siegfried_folder(temp_folder: Path) -> Path:
-    return temp_folder / "siegfried"
+def siegfried_folder(test_folder: Path) -> Path:
+    return test_folder / "siegfried"
 
 
 @pytest.fixture()
