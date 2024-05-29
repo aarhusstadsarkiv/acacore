@@ -281,6 +281,15 @@ class Index:
         self.columns: list[Column] = list(columns)
         self.unique: bool = unique
 
+    def __repr__(self) -> str:
+        return (
+            f"{self.__class__.__name__}("
+            f"{self.name}"
+            f", unique={self.unique}"
+            f", columns={[c.name for c in self.columns]}"
+            f")"
+        )
+
     def create_statement(self, table: str, exist_ok: bool = True):
         """
         Generate the expression that creates the index.
