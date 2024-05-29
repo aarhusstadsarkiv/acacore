@@ -24,8 +24,8 @@ from pydantic.main import BaseModel
 from acacore.utils.functions import or_none
 
 from .column import Column
-from .column import Index
 from .column import dump_object
+from .column import Index
 from .column import model_to_columns
 from .column import model_to_indices
 from .column import SelectColumn
@@ -241,7 +241,13 @@ class ModelCursor(Cursor, Generic[M]):
 
 # noinspection SqlNoDataSourceInspection
 class Table:
-    def __init__(self, connection: "FileDBBase", name: str, columns: list[Column], indices: list[Index] | None = None):
+    def __init__(
+        self,
+        connection: "FileDBBase",
+        name: str,
+        columns: list[Column],
+        indices: list[Index] | None = None,
+    ) -> None:
         """
         A class that holds information about a table.
 
@@ -398,7 +404,7 @@ class Table:
 
 
 class ModelTable(Table, Generic[M]):
-    def __init__(self, connection: "FileDBBase", name: str, model: Type[M], indices: list[Index] | None = None):
+    def __init__(self, connection: "FileDBBase", name: str, model: Type[M], indices: list[Index] | None = None) -> None:
         """
         A class that holds information about a table using a model.
 
