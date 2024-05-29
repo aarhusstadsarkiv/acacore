@@ -1,4 +1,5 @@
 from datetime import datetime
+from functools import reduce
 from json import dumps
 from json import loads
 from pathlib import Path
@@ -119,6 +120,16 @@ def model_to_columns(model: Type[BaseModel]) -> list["Column"]:
     schema: dict = model.model_json_schema()
     columns = [_schema_to_column(p, s, schema.get("$defs")) for p, s in schema["properties"].items()]
     return [c for c in columns if c]
+
+
+def model_to_indices(model: Type[BaseModel]) -> list["Index"]:
+    columns: dict[str, Column] = {c.name: c for c in model_to_columns(model)}
+    schema: dict = model.model_json_schema()
+    indices: list[tuple[Column, str]] = [
+        (columns[p], idx) for p, s in schema["properties"].items() if (idxs := s.get("index")) for idx in idxs
+    ]
+    indices_merged = reduce(lambda idxs, c: idxs | {c[1]: idxs.get(c[1], []) + [c[0]]}, indices, {})
+    return [Index(n, cs) for n, cs in indices_merged.items()]
 
 
 class Column(Generic[T]):
