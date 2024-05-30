@@ -128,7 +128,11 @@ def model_to_indices(model: Type[BaseModel]) -> list["Index"]:
     indices: list[tuple[Column, str]] = [
         (columns[p], idx) for p, s in schema["properties"].items() if (idxs := s.get("index")) for idx in idxs
     ]
-    indices_merged = reduce(lambda idxs, c: idxs | {c[1]: [*idxs.get(c[1], []), c[0]]}, indices, {})
+    unique_indices: list[tuple[Column, str]] = [
+        (columns[p], idx) for p, s in schema["properties"].items() if (idxs := s.get("unique_index")) for idx in idxs
+    ]
+    indices_merged: dict[str, list[Column]] = reduce(lambda i, c: i | {c[1]: [*i.get(c[1], []), c[0]]}, indices, {})
+    indices_merged |= reduce(lambda i, c: i | {c[1]: [*i.get(c[1], []), c[0]]}, unique_indices, {})
     return [Index(n, cs) for n, cs in indices_merged.items()]
 
 
