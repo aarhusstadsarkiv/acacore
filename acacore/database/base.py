@@ -523,7 +523,7 @@ class ModelTable(Table, Generic[M]):
         for entry in entries:
             self.insert(entry, exist_ok, replace)
 
-    def update(self, entry: M | dict[str, Any], where: Optional[dict[str, Any]] = None):
+    def update(self, entry: Union[M, dict[str, Any]], where: Optional[dict[str, Any]] = None):
         """
         Update a row. If ``where`` is provided, then the WHERE clause is computed with those, otherwise the table's
         keys and values in ``entry`` are used.
