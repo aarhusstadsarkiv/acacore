@@ -404,8 +404,10 @@ class Table:
 
     def update(self, entry: dict[str, Any], where: Optional[dict[str, Any]] = None):
         """
-        Update a row. If ``where`` is provided, then the WHERE clause is computed with those, otherwise the table's
-        keys and values in ``entry`` are used.
+        Update a row.
+
+        If ``where`` is provided, then the WHERE clause is computed with those, otherwise the table's keys and values
+        in ``entry`` are used.
 
         Raises:
              OperationalError: If ``where`` is not provided and the table has no keys.
@@ -426,7 +428,7 @@ class Table:
         else:
             raise OperationalError("Table has no keys.")
         elements.append("WHERE")
-        elements.append(" AND ".join(f"{c} = ?" for c in where_entry.keys()))
+        elements.append(" AND ".join(f"{c} = ?" for c in where_entry))
         values.extend(where_entry.items())
 
         self.connection.execute(" ".join(elements), [v for _, v in values])
@@ -525,8 +527,10 @@ class ModelTable(Table, Generic[M]):
 
     def update(self, entry: Union[M, dict[str, Any]], where: Optional[dict[str, Any]] = None):
         """
-        Update a row. If ``where`` is provided, then the WHERE clause is computed with those, otherwise the table's
-        keys and values in ``entry`` are used.
+        Update a row.
+
+        If ``where`` is provided, then the WHERE clause is computed with those, otherwise the table's keys and values
+        in ``entry`` are used.
 
         Raises:
              OperationalError: If ``where`` is not provided and the table has no keys.
