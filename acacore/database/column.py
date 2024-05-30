@@ -24,10 +24,7 @@ _sql_schema_types: dict[str, str] = {
     "null": "text",
 }
 
-_sql_schema_type_converters: dict[
-    str,
-    tuple[Callable[[Optional[T]], V], Callable[[V], Optional[T]]],
-] = {
+_sql_schema_type_converters: dict[str, tuple[Callable[[Optional[T]], V], Callable[[V], Optional[T]]],] = {
     "path": (str, Path),
     "date-time": (datetime.isoformat, datetime.fromisoformat),
     "uuid4": (str, UUID),
@@ -89,14 +86,17 @@ def _schema_to_column(name: str, schema: dict, defs: Optional[dict[str, dict]] =
             to_entry, from_entry = schema["enum"][0].__class__ if schema["enum"] else str, str
         elif schema_type in ("object", "array"):
             sql_type = "text"
-            to_entry, from_entry = lambda o: dumps(dump_object(o), default=str), lambda o: loads(o)
+            to_entry = lambda o: dumps(dump_object(o), default=str)
+            from_entry = lambda x: loads(x) if x else None
         elif type_name in _sql_schema_type_converters:
             to_entry, from_entry = _sql_schema_type_converters[type_name]
         else:
             raise TypeError(f"Cannot recognize type from schema {schema!r}")
     elif schema_any_of:
         if not schema_any_of[0] or len(schema_any_of) > 2:
-            sql_type, to_entry, from_entry = "text", lambda o: dumps(dump_object(o), default=str), lambda x: loads(x)
+            sql_type = "text"
+            to_entry = lambda o: dumps(dump_object(o), default=str)
+            from_entry = lambda x: loads(x) if x else None
         else:
             return _schema_to_column(name, {**schema_any_of[0], **schema}, defs)
     else:
