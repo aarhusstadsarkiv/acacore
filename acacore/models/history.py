@@ -10,7 +10,7 @@ from .base import ACABase
 
 
 class HistoryEntry(ACABase):
-    uuid: Optional[UUID4] = None
+    uuid: Optional[UUID4] = Field(default=None, index=["idx_uuid_history"])
     time: datetime = Field(default_factory=datetime.now)
     operation: str
     data: Optional[object] = None

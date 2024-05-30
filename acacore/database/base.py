@@ -25,7 +25,9 @@ from acacore.utils.functions import or_none
 
 from .column import Column
 from .column import dump_object
+from .column import Index
 from .column import model_to_columns
+from .column import model_to_indices
 from .column import SelectColumn
 
 T = TypeVar("T")
@@ -239,7 +241,13 @@ class ModelCursor(Cursor, Generic[M]):
 
 # noinspection SqlNoDataSourceInspection
 class Table:
-    def __init__(self, connection: "FileDBBase", name: str, columns: list[Column]) -> None:
+    def __init__(
+        self,
+        connection: "FileDBBase",
+        name: str,
+        columns: list[Column],
+        indices: Optional[list[Index]] = None,
+    ) -> None:
         """
         A class that holds information about a table.
 
@@ -247,10 +255,12 @@ class Table:
             connection: A FileDBBase object connected to the database the table belongs to.
             name: The name of the table.
             columns: The columns of the table.
+            indices: The indices to create in the table.
         """
         self.connection: "FileDBBase" = connection
         self.name: str = name
         self.columns: list[Column] = columns
+        self.indices: list[Index] = indices or []
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}("{self.name}")'
@@ -300,6 +310,8 @@ class Table:
 
     def create(self, exist_ok: bool = True):
         self.connection.execute(self.create_statement(exist_ok))
+        for index in self.indices:
+            self.connection.execute(index.create_statement(self.name, exist_ok))
 
     def select(
         self,
@@ -390,9 +402,46 @@ class Table:
         for entry in entries:
             self.insert(entry, exist_ok, replace)
 
+    def update(self, entry: dict[str, Any], where: Optional[dict[str, Any]] = None):
+        """
+        Update a row.
+
+        If ``where`` is provided, then the WHERE clause is computed with those, otherwise the table's keys and values
+        in ``entry`` are used.
+
+        Raises:
+             OperationalError: If ``where`` is not provided and the table has no keys.
+             KeyError: If ``where`` is not provided and one of the table's keys is missing from ``entry``.
+
+        Args:
+            entry: The values of the row to be updated as a dict with keys matching the names of the columns.
+                The values need not be converted beforehand.
+            where: Optionally, the columns and values to use in the WHERE statement. The values need not be converted
+                beforehand.
+        """
+        values: list[tuple[str, V]] = [(c.name, c.to_entry(entry[c.name])) for c in self.columns if c.name in entry]
+        elements: list[str] = [f"UPDATE {self.name} SET", ", ".join(f"{c} = ?" for c, _ in values)]
+        if where:
+            where_entry: dict[str, V] = {c.name: c.to_entry(where[c.name]) for c in self.columns if c.name in where}
+        elif self.keys:
+            where_entry: dict[str, V] = {c.name: c.to_entry(entry[c.name]) for c in self.keys}
+        else:
+            raise OperationalError("Table has no keys.")
+        elements.append("WHERE")
+        elements.append(" AND ".join(f"{c} = ?" for c in where_entry))
+        values.extend(where_entry.items())
+
+        self.connection.execute(" ".join(elements), [v for _, v in values])
+
 
 class ModelTable(Table, Generic[M]):
-    def __init__(self, connection: "FileDBBase", name: str, model: Type[M]) -> None:
+    def __init__(
+        self,
+        connection: "FileDBBase",
+        name: str,
+        model: Type[M],
+        indices: Optional[list[Index]] = None,
+    ) -> None:
         """
         A class that holds information about a table using a model.
 
@@ -400,8 +449,9 @@ class ModelTable(Table, Generic[M]):
             connection: A FileDBBase object connected to the database the table belongs to.
             name: The name of the table.
             model: The model representing the table.
+            indices: The indices to create in the table.
         """
-        super().__init__(connection, name, model_to_columns(model))
+        super().__init__(connection, name, model_to_columns(model), indices)
         self.model: Type[M] = model
 
     def __repr__(self) -> str:
@@ -474,6 +524,25 @@ class ModelTable(Table, Generic[M]):
         """
         for entry in entries:
             self.insert(entry, exist_ok, replace)
+
+    def update(self, entry: Union[M, dict[str, Any]], where: Optional[dict[str, Any]] = None):
+        """
+        Update a row.
+
+        If ``where`` is provided, then the WHERE clause is computed with those, otherwise the table's keys and values
+        in ``entry`` are used.
+
+        Raises:
+             OperationalError: If ``where`` is not provided and the table has no keys.
+             KeyError: If ``where`` is not provided and one of the table's keys is missing from ``entry``.
+
+        Args:
+            entry: The row to be inserted as a model object with attributes matching the names of the columns.
+                Alternatively, a dict with keys matching the names of the columns.
+            where: Optionally, the columns and values to use in the WHERE statement. The values need not be converted
+                beforehand.
+        """
+        super().update(entry if isinstance(entry, dict) else entry.model_dump(), where)
 
 
 # noinspection SqlResolve
@@ -861,17 +930,18 @@ class FileDBBase(Connection):
             return False
 
     @overload
-    def create_table(self, name: str, columns: Type[M]) -> ModelTable[M]:
+    def create_table(self, name: str, columns: Type[M], indices: Optional[list[Index]] = None) -> ModelTable[M]:
         ...
 
     @overload
-    def create_table(self, name: str, columns: list[Column]) -> Table:
+    def create_table(self, name: str, columns: list[Column], indices: Optional[list[Index]] = None) -> Table:
         ...
 
     def create_table(
         self,
         name: str,
         columns: Union[Type[M], list[Column]],
+        indices: Optional[list[Index]] = None,
     ) -> Union[Table, ModelTable[M]]:
         """Create a table in the database.
 
@@ -880,11 +950,12 @@ class FileDBBase(Connection):
         Args:
             name: The name of the table.
             columns: A BaseModel subclass or the columns of the table.
+            indices: The indices to create in the table.
         """
         if issubclass(columns, BaseModel):
-            return ModelTable[M](self, name, columns)
+            return ModelTable[M](self, name, columns, model_to_indices(columns) if indices is None else indices)
         else:
-            return Table(self, name, columns)
+            return Table(self, name, columns, indices)
 
     @overload
     def create_keys_table(self, name: str, columns: Type[M]) -> ModelKeysTable[M]:

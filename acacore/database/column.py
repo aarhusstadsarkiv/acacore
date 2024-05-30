@@ -1,10 +1,12 @@
 from datetime import datetime
+from functools import reduce
 from json import dumps
 from json import loads
 from pathlib import Path
 from typing import Callable
 from typing import Generic
 from typing import Optional
+from typing import Sequence
 from typing import Type
 from typing import TypeVar
 from typing import Union
@@ -118,6 +120,20 @@ def model_to_columns(model: Type[BaseModel]) -> list["Column"]:
     schema: dict = model.model_json_schema()
     columns = [_schema_to_column(p, s, schema.get("$defs")) for p, s in schema["properties"].items()]
     return [c for c in columns if c]
+
+
+def model_to_indices(model: Type[BaseModel]) -> list["Index"]:
+    columns: dict[str, Column] = {c.name: c for c in model_to_columns(model)}
+    schema: dict = model.model_json_schema()
+    indices: list[tuple[Column, str]] = [
+        (columns[p], idx) for p, s in schema["properties"].items() if (idxs := s.get("index")) for idx in idxs
+    ]
+    unique_indices: list[tuple[Column, str]] = [
+        (columns[p], idx) for p, s in schema["properties"].items() if (idxs := s.get("unique_index")) for idx in idxs
+    ]
+    indices_merged: dict[str, list[Column]] = reduce(lambda i, c: i | {c[1]: [*i.get(c[1], []), c[0]]}, indices, {})
+    indices_merged |= reduce(lambda i, c: i | {c[1]: [*i.get(c[1], []), c[0]]}, unique_indices, {})
+    return [Index(n, cs) for n, cs in indices_merged.items()]
 
 
 class Column(Generic[T]):
@@ -264,3 +280,43 @@ class SelectColumn(Column):
             select_column.alias = alias or column.alias
 
         return select_column
+
+
+class Index:
+    def __init__(self, name: str, columns: Sequence[Column], unique: bool = False) -> None:
+        """
+        A class that stores information regarding an index.
+
+        Args:
+            name: The name of the index
+            columns: The list of columns that the index applies to.
+            unique: Whether the index is unique or not.
+        """
+        self.name: str = name
+        self.columns: list[Column] = list(columns)
+        self.unique: bool = unique
+
+    def __repr__(self) -> str:
+        return (
+            f"{self.__class__.__name__}("
+            f"{self.name}"
+            f", unique={self.unique}"
+            f", columns={[c.name for c in self.columns]}"
+            f")"
+        )
+
+    def create_statement(self, table: str, exist_ok: bool = True):
+        """
+        Generate the expression that creates the index.
+
+        Args:
+            table: The name of the table.
+            exist_ok: True if existing tables with the same name should be ignored.
+
+        Returns:
+            A CREATE TABLE expression.
+        """
+        return (
+            f"create {'unique' if self.unique else ''} index {'if not exists' if exist_ok else ''} {self.name}"
+            f" on {table} ({','.join(c.name for c in self.columns)})"
+        )
