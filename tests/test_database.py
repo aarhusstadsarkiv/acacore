@@ -1,5 +1,6 @@
 from pathlib import Path
 from sqlite3 import IntegrityError
+from sqlite3 import OperationalError
 from uuid import uuid4
 
 import pytest
@@ -198,6 +199,38 @@ def test_insert_select(database_path: Path, test_file: File):
     assert len(result_files) == 2
     assert result_files[0].uuid == test_file.uuid
     assert result_files[1].uuid == test_file2.uuid
+
+
+def test_update(database_path: Path, test_file: File):
+    assert database_path.is_file()
+
+    test_file2 = test_file.model_copy(deep=True)
+    test_file2.uuid = uuid4()
+
+    db: FileDB = FileDB(database_path)
+    db.files.insert(test_file, exist_ok=True)
+
+    db.files.update(test_file2)
+    db.commit()
+
+    cursor = db.files.select(where="relative_path = ?", parameters=[str(test_file.relative_path)])
+    result_file = cursor.fetchone()
+    assert result_file is not None
+    assert result_file.uuid == test_file2.uuid
+
+    db.files.update({"uuid": test_file.uuid}, {"relative_path": test_file.relative_path})
+    db.commit()
+
+    cursor = db.files.select(where="relative_path = ?", parameters=[str(test_file.relative_path)])
+    result_file = cursor.fetchone()
+    assert result_file is not None
+    assert result_file.uuid == test_file.uuid
+
+    with pytest.raises(OperationalError):
+        db.history.update({"uuid": test_file.uuid})
+
+    with pytest.raises(KeyError):
+        db.files.update({"uuid": test_file.uuid})
 
 
 def test_history(database_path: Path):
