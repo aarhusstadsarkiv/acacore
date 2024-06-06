@@ -60,7 +60,10 @@ def find_files(path: Path, exclude: Optional[list[Union[Path, str]]] = None) -> 
     """
     if exclude and path in exclude:
         return
-    elif path.is_file():
+    elif exclude:
+        exclude = [p for p in exclude if p.is_relative_to(path)] or None
+
+    if path.is_file():
         yield path
     elif path.is_dir():
         yield from (f for i in sorted(path.iterdir()) for f in find_files(i, exclude=exclude))
