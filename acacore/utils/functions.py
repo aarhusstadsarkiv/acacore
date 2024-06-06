@@ -4,6 +4,7 @@ from typing import Callable
 from typing import Generator
 from typing import Optional
 from typing import TypeVar
+from typing import Union
 
 from PIL import Image
 
@@ -44,27 +45,25 @@ def rm_tree(path: Path):
     path.rmdir()
 
 
-def find_files(*root: Path, exclude: Optional[list[Path]] = None) -> Generator[Path, None, None]:
+def find_files(path: Path, exclude: Optional[list[Union[Path, str]]] = None) -> Generator[Path, None, None]:
     """
     Find files in the specified root directories, excluding any files or directories included in the `exclude` list.
 
     Paths in the exclude argument will be ignored, including their children if they are folders.
 
     Args:
-        *root (Path): The root directories to search for files.
+        path (Path): The path to search for files.
         exclude (Optional[list[Path]]): A list of files or directories to exclude from the search. Defaults to None.
 
     Returns:
         Generator[Path, None, None]: A generator that yields paths of found files.
     """
-    exclude = exclude or []
-    for f in root:
-        if f in exclude:
-            continue
-        elif f.is_file():
-            yield f
-        elif f.is_dir():
-            yield from find_files(*sorted(f.iterdir()), exclude=exclude)
+    if exclude and path in exclude:
+        return
+    elif path.is_file():
+        yield path
+    elif path.is_dir():
+        yield from (f for i in sorted(path.iterdir()) for f in find_files(i, exclude=exclude))
 
 
 def file_checksum(path: Path) -> str:
