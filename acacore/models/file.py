@@ -84,7 +84,7 @@ class File(ACABase):
     puid: Optional[str]
     signature: Optional[str]
     warning: Optional[list[str]] = None
-    action: Optional[TActionType] = None
+    action: Optional[TActionType] = Field(index=["idx_action"])
     action_data: Optional[ActionData] = None
     processed: bool = False
     root: Optional[Path] = Field(None, ignore=True)
