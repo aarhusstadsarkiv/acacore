@@ -91,6 +91,7 @@ ignore = [
     "D212",    # multi-line docstring summary should start at the first line,
     "D213",    # multi-line docstring summary should start at the second line,
     "D300",    # use triple docstring
+    "DTZ005",  # datetime.datetime.now() called without a tz argument
     "E712",    # comparison to True/False, we ignore because we use sqlalchemy
     "FBT001",  # boolean arguement in function definition
     "N802",    # name of function should be lower case
