@@ -60,7 +60,7 @@ class HistoryEntry(ACABase):
 
         return cls(
             uuid=uuid,
-            time=time or datetime.now(),  # noqa: DTZ005
+            time=time or datetime.now(),
             operation=operation,
             data=data,
             reason=reason,
