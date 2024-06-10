@@ -87,7 +87,7 @@ def _schema_to_column(name: str, schema: dict, defs: Optional[dict[str, dict]] =
         elif schema_type in ("object", "array"):
             sql_type = "text"
             to_entry = lambda o: dumps(dump_object(o), default=str)
-            from_entry = lambda x: loads(x) if x else None
+            from_entry = lambda x: None if x in (None, '') else loads(x)
         elif type_name in _sql_schema_type_converters:
             to_entry, from_entry = _sql_schema_type_converters[type_name]
         else:
@@ -96,7 +96,7 @@ def _schema_to_column(name: str, schema: dict, defs: Optional[dict[str, dict]] =
         if not schema_any_of[0] or len(schema_any_of) > 2:
             sql_type = "text"
             to_entry = lambda o: dumps(dump_object(o), default=str)
-            from_entry = lambda x: loads(x) if x else None
+            from_entry = lambda x: None if x in (None, '') else loads(x)
         else:
             return _schema_to_column(name, {**schema_any_of[0], **schema}, defs)
     else:
