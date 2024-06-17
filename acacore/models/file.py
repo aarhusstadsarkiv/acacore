@@ -3,9 +3,9 @@ from re import compile as re_compile
 from typing import Optional
 from uuid import uuid4
 
-from pydantic import Field
 from pydantic import UUID4
 
+from acacore.database.column import DBField
 from acacore.siegfried.siegfried import Siegfried
 from acacore.siegfried.siegfried import SiegfriedFile
 from acacore.siegfried.siegfried import TSiegfriedClass
@@ -76,18 +76,18 @@ class File(ACABase):
         root (Optional[Path]): The root directory for the file.
     """
 
-    uuid: UUID4 = Field(default_factory=uuid4, index=["idx_uuid"])
-    checksum: str = Field(index=["idx_checksum"])
-    relative_path: Path = Field(primary_key=True)
+    uuid: UUID4 = DBField(default_factory=uuid4, index=["idx_uuid"])
+    checksum: str = DBField(index=["idx_checksum"])
+    relative_path: Path = DBField(primary_key=True)
     is_binary: bool
     size: int
     puid: Optional[str]
     signature: Optional[str]
     warning: Optional[list[str]] = None
-    action: Optional[TActionType] = Field(index=["idx_action"])
+    action: Optional[TActionType] = DBField(index=["idx_action"])
     action_data: Optional[ActionData] = None
     processed: bool = False
-    root: Optional[Path] = Field(None, ignore=True)
+    root: Optional[Path] = DBField(None, ignore=True)
 
     @classmethod
     def from_file(
@@ -312,6 +312,6 @@ class ArchiveFile(Identification, File):
 
 
 class ConvertedFile(ACABase):
-    file_id: int = Field(primary_key=True)
-    uuid: UUID4 = Field(primary_key=True)
+    file_id: int = DBField(primary_key=True)
+    uuid: UUID4 = DBField(primary_key=True)
     status: str
