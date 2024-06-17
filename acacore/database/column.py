@@ -3,8 +3,11 @@ from functools import reduce
 from json import dumps
 from json import loads
 from pathlib import Path
+from re import Pattern
+from typing import Any
 from typing import Callable
 from typing import Generic
+from typing import Literal
 from typing import Optional
 from typing import Sequence
 from typing import Type
@@ -12,7 +15,110 @@ from typing import TypeVar
 from typing import Union
 from uuid import UUID
 
+from pydantic import AliasChoices
+from pydantic import AliasPath
 from pydantic import BaseModel
+from pydantic import Discriminator
+from pydantic import Field
+
+# noinspection PyProtectedMember
+from pydantic.config import JsonDict
+
+# noinspection PyProtectedMember
+from pydantic.fields import FieldInfo
+from pydantic_core import PydanticUndefined
+
+
+# noinspection PyPep8Naming
+def DBField(
+    default: Any = PydanticUndefined,  # noqa: ANN401
+    *,
+    default_factory: Callable[[], Any] | None = PydanticUndefined,
+    alias: str | None = PydanticUndefined,
+    alias_priority: int | None = PydanticUndefined,
+    validation_alias: str | AliasPath | AliasChoices | None = PydanticUndefined,
+    serialization_alias: str | None = PydanticUndefined,
+    title: str | None = PydanticUndefined,
+    description: str | None = PydanticUndefined,
+    examples: list[Any] | None = PydanticUndefined,
+    exclude: bool | None = PydanticUndefined,
+    discriminator: str | Discriminator | None = PydanticUndefined,
+    deprecated: str | bool | None = PydanticUndefined,
+    json_schema_extra: JsonDict | Callable[[JsonDict], None] | None = PydanticUndefined,
+    frozen: bool | None = PydanticUndefined,
+    validate_default: bool | None = PydanticUndefined,
+    in_repr: bool = PydanticUndefined,
+    init: bool | None = PydanticUndefined,
+    init_var: bool | None = PydanticUndefined,
+    kw_only: bool | None = PydanticUndefined,
+    pattern: str | Pattern[str] | None = PydanticUndefined,
+    strict: bool | None = PydanticUndefined,
+    coerce_numbers_to_str: bool | None = PydanticUndefined,
+    gt: float | None = PydanticUndefined,
+    ge: float | None = PydanticUndefined,
+    lt: float | None = PydanticUndefined,
+    le: float | None = PydanticUndefined,
+    multiple_of: float | None = PydanticUndefined,
+    allow_inf_nan: bool | None = PydanticUndefined,
+    max_digits: int | None = PydanticUndefined,
+    decimal_places: int | None = PydanticUndefined,
+    min_length: int | None = PydanticUndefined,
+    max_length: int | None = PydanticUndefined,
+    union_mode: Literal["smart", "left_to_right"] = PydanticUndefined,
+    primary_key: bool | None = PydanticUndefined,
+    index: list[str] | None = PydanticUndefined,
+    ignore: bool | None = PydanticUndefined,
+) -> FieldInfo:
+    extra: dict = (
+        json_schema_extra
+        if isinstance(json_schema_extra, dict)
+        else json_schema_extra()
+        if callable(json_schema_extra)
+        else {}
+    )
+    if primary_key is not PydanticUndefined:
+        extra["primary_key"] = primary_key
+    if index is not PydanticUndefined:
+        extra["index"] = index
+    if ignore is not PydanticUndefined:
+        extra["ignore"] = ignore
+
+    return Field(
+        default=default,
+        default_factory=default_factory,
+        alias=alias,
+        alias_priority=alias_priority,
+        validation_alias=validation_alias,
+        serialization_alias=serialization_alias,
+        title=title,
+        description=description,
+        examples=examples,
+        exclude=exclude,
+        discriminator=discriminator,
+        deprecated=deprecated,
+        frozen=frozen,
+        validate_default=validate_default,
+        repr=in_repr,
+        init=init,
+        init_var=init_var,
+        kw_only=kw_only,
+        pattern=pattern,
+        strict=strict,
+        coerce_numbers_to_str=coerce_numbers_to_str,
+        gt=gt,
+        ge=ge,
+        lt=lt,
+        le=le,
+        multiple_of=multiple_of,
+        allow_inf_nan=allow_inf_nan,
+        max_digits=max_digits,
+        decimal_places=decimal_places,
+        min_length=min_length,
+        max_length=max_length,
+        union_mode=union_mode,
+        json_schema_extra=extra,
+    )
+
 
 T = TypeVar("T")
 V = Union[str, bytes, int, float, bool, datetime, None]
