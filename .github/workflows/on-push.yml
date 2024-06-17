@@ -4,8 +4,8 @@ on:
   push
 
 env:
-  PYTHON_VERSION: 3.9.18
-  POETRY_VERSION: 1.6.1
+  PYTHON_VERSION: 3.11.5
+  POETRY_VERSION: 1.8.2
 
 jobs:
   linting:
