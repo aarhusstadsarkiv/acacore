@@ -9,7 +9,20 @@ env:
 
 jobs:
   linting:
-    uses: aarhusstadsarkiv/acautils/.github/workflows/linting_ruff-mypy.yml@main
+    name: Check Linting & Types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - uses: abatilo/actions-poetry@v2
+        with:
+          poetry-version: ${{ env.POETRY_VERSION }}
+      - name: ruff
+        run: poetry run ruff check acacore
+      - name: black
+        run: poetry run black --check acacore
 
   version:
     name: Test Version
