@@ -6,13 +6,10 @@ from pathlib import Path
 from re import Pattern
 from typing import Any
 from typing import Callable
-from typing import Generic
 from typing import Literal
 from typing import Optional
 from typing import Sequence
 from typing import Type
-from typing import TypeVar
-from typing import Union
 from uuid import UUID
 
 from pydantic import AliasChoices
@@ -27,6 +24,8 @@ from pydantic.config import JsonDict
 # noinspection PyProtectedMember
 from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined
+
+SQLValue = str | bytes | int | float | bool | datetime | None
 
 
 # noinspection PyPep8Naming
@@ -120,9 +119,6 @@ def DBField(
     )
 
 
-T = TypeVar("T")
-V = Union[str, bytes, int, float, bool, datetime, None]
-
 _sql_schema_types: dict[str, str] = {
     "string": "text",
     "integer": "integer",
@@ -134,7 +130,7 @@ _sql_schema_types: dict[str, str] = {
 
 _sql_schema_type_converters: dict[
     str,
-    tuple[Callable[[Optional[T]], V], Callable[[V], Optional[T]]],
+    tuple[Callable[[Any | None], SQLValue], Callable[[SQLValue], Any | None]],
 ] = {
     "path": (str, Path),
     "date-time": (datetime.isoformat, datetime.fromisoformat),
@@ -148,7 +144,7 @@ _sql_schema_type_converters: dict[
 }
 
 
-def _value_to_sql(value: V) -> str:
+def _value_to_sql(value: SQLValue) -> str:
     if value is None:
         return "null"
     elif isinstance(value, str):
@@ -163,7 +159,7 @@ def _value_to_sql(value: V) -> str:
         return str(value)
 
 
-def dump_object(obj: Union[list, tuple, dict, BaseModel]) -> Union[list, dict]:
+def dump_object(obj: list | tuple | dict | BaseModel) -> list | dict:
     if isinstance(obj, dict):
         return obj
     elif issubclass(type(obj), BaseModel):
@@ -174,19 +170,19 @@ def dump_object(obj: Union[list, tuple, dict, BaseModel]) -> Union[list, dict]:
         return obj
 
 
-def _schema_to_column(name: str, schema: dict, defs: Optional[dict[str, dict]] = None) -> Optional["Column"]:
+def _schema_to_column[T, V](name: str, schema: dict, defs: dict[str, dict] | None = None) -> Optional["Column"]:
     if schema.get("ignore"):
         return None
 
     defs = defs or {}
     if schema.get("$ref"):
         schema.update(defs[schema.get("$ref", "").removeprefix("#/$defs/")])
-    schema_type: Optional[str] = schema.get("type", None)
+    schema_type: str | None = schema.get("type", None)
     schema_any_of: list[dict] = schema.get("anyOf", [])
 
     sql_type: str
-    to_entry: Callable[[Optional[T]], V]
-    from_entry: Callable[[V], Optional[T]]
+    to_entry: Callable[[T | None], V]
+    from_entry: Callable[[V], T | None]
     not_null: bool = (schema_any_of or [{}])[-1].get("type", None) != "null"
 
     if schema_type:
@@ -242,7 +238,7 @@ def model_to_indices(model: Type[BaseModel]) -> list["Index"]:
     return [Index(n, cs) for n, cs in indices_merged.items()]
 
 
-class Column(Generic[T]):
+class Column[T, V: SQLValue]:
     def __init__(
         self,
         name: str,
@@ -252,8 +248,8 @@ class Column(Generic[T]):
         unique: bool = False,
         primary_key: bool = False,
         not_null: bool = False,
-        check: Optional[str] = None,
-        default: Optional[T] = ...,
+        check: str | None = None,
+        default: T | None = ...,
     ) -> None:
         """
         A class that stores information regarding a table column.
@@ -281,7 +277,7 @@ class Column(Generic[T]):
         self.primary_key: bool = primary_key
         self.not_null: bool = not_null
         self._check: str = check or ""
-        self.default: Union[Optional[T], Ellipsis] = default
+        self.default: T | Ellipsis | None = default
 
     def __repr__(self) -> str:
         return (
@@ -304,7 +300,7 @@ class Column(Generic[T]):
         return self._check.format(name=self.name) if self._check else ""
 
     @check.setter
-    def check(self, check: Optional[str]):
+    def check(self, check: str | None):
         self._check = check
 
     def default_value(self) -> V:
@@ -341,12 +337,12 @@ class Column(Generic[T]):
         return " ".join(elements)
 
 
-class SelectColumn(Column):
+class SelectColumn[T, V: SQLValue](Column):
     def __init__(
         self,
         name: str,
         from_entry: Callable[[V], T],
-        alias: Optional[str] = None,
+        alias: str | None = None,
     ) -> None:
         """
         A subclass of Column for SELECT expressions that need complex statements and/or an alias.
@@ -359,10 +355,10 @@ class SelectColumn(Column):
                 and as a key by Cursor.
         """
         super().__init__(name, "", lambda x: x, from_entry)
-        self.alias: Optional[str] = alias
+        self.alias: str | None = alias
 
     @classmethod
-    def from_column(cls, column: Column, alias: Optional[str] = None) -> "SelectColumn":
+    def from_column(cls, column: Column, alias: str | None = None) -> "SelectColumn":
         """
         Take a Column object and create a SelectColumn with the given alias.
 

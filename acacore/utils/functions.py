@@ -2,9 +2,7 @@ from hashlib import sha256
 from pathlib import Path
 from typing import Callable
 from typing import Generator
-from typing import Optional
 from typing import TypeVar
-from typing import Union
 
 from PIL import Image
 
@@ -14,7 +12,7 @@ R = TypeVar("R")
 _text_bytes: bytes = bytes([7, 8, 9, 10, 12, 13, 27, *range(0x20, 0x7F), *range(0x80, 0x100)])
 
 
-def or_none(func: Callable[[T], R]) -> Callable[[T], Optional[R]]:
+def or_none(func: Callable[[T], R]) -> Callable[[T], R | None]:
     """Create a lambda function of arity one that will return None if its argument is None.
 
     Otherwise, will call func on the object.
@@ -45,7 +43,7 @@ def rm_tree(path: Path):
     path.rmdir()
 
 
-def find_files(path: Path, exclude: Optional[list[Union[Path, str]]] = None) -> Generator[Path, None, None]:
+def find_files(path: Path, exclude: list[Path] | None = None) -> Generator[Path, None, None]:
     """
     Find files in the specified root directories, excluding any files or directories included in the `exclude` list.
 
@@ -53,7 +51,7 @@ def find_files(path: Path, exclude: Optional[list[Union[Path, str]]] = None) -> 
 
     Args:
         path (Path): The path to search for files.
-        exclude (Optional[list[Path]]): A list of files or directories to exclude from the search. Defaults to None.
+        exclude (list[Path] | None): A list of files or directories to exclude from the search. Defaults to None.
 
     Returns:
         Generator[Path, None, None]: A generator that yields paths of found files.

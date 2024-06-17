@@ -1,5 +1,4 @@
 from typing import Any
-from typing import Optional
 
 from pydantic import model_validator
 
@@ -9,10 +8,10 @@ from .base import ACABase
 class Identification(ACABase):
     """File identification datamodel."""
 
-    puid: Optional[str]
-    signature: Optional[str]
-    warning: Optional[str]
-    size: Optional[int]
+    puid: str | None
+    signature: str | None
+    warning: str | None
+    size: int | None
 
     # noinspection PyNestedDecorators
     @model_validator(mode="before")

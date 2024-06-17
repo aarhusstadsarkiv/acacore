@@ -1,6 +1,5 @@
 from pathlib import Path
 from re import compile as re_compile
-from typing import Optional
 from uuid import uuid4
 
 from pydantic import UUID4
@@ -27,8 +26,8 @@ from .reference_files import TActionType
 
 
 def _ignore_if(file: "File", ignore_ifs: list[IgnoreIfAction]) -> "File":
-    action: Optional[TActionType] = None
-    action_data: Optional[ActionData] = None
+    action: TActionType | None = None
+    action_data: ActionData | None = None
 
     for ignore_if in ignore_ifs:
         if ignore_if.pixel_total or ignore_if.pixel_width or ignore_if.pixel_height:
@@ -64,16 +63,16 @@ class File(ACABase):
     Attributes:
         uuid (UUID4): The UUID of the file.
         checksum (str): The checksum of the file.
-        puid (Optional[str]): The PUID (PRONOM Unique Identifier) of the file.
+        puid (str | None): The PUID (PRONOM Unique Identifier) of the file.
         relative_path (Path): The relative path to the file.
         is_binary (bool): Indicates whether the file is binary.
         size (int): The size of the file.
-        signature (Optional[str]): The signature of the file.
-        warning (Optional[str]): Any warning associated with the file PUID.
-        action (Optional[str]): The name of the main action for the file's PUID, if one exists.
-        action_data (Optional[ActionData]): The data for the action for the file's PUID, if one exists.
+        signature (str | None): The signature of the file.
+        warning (str | None): Any warning associated with the file PUID.
+        action (str | None): The name of the main action for the file's PUID, if one exists.
+        action_data (ActionData | None): The data for the action for the file's PUID, if one exists.
         processed (bool): True if the file has been processed, false otherwise.
-        root (Optional[Path]): The root directory for the file.
+        root (Path | None): The root directory for the file.
     """
 
     uuid: UUID4 = DBField(default_factory=uuid4, index=["idx_uuid"])
@@ -81,24 +80,24 @@ class File(ACABase):
     relative_path: Path = DBField(primary_key=True)
     is_binary: bool
     size: int
-    puid: Optional[str]
-    signature: Optional[str]
-    warning: Optional[list[str]] = None
-    action: Optional[TActionType] = DBField(index=["idx_action"])
-    action_data: Optional[ActionData] = None
+    puid: str | None
+    signature: str | None
+    warning: list[str] | None = None
+    action: TActionType | None = DBField(index=["idx_action"])
+    action_data: ActionData | None = None
     processed: bool = False
-    root: Optional[Path] = DBField(None, ignore=True)
+    root: Path | None = DBField(None, ignore=True)
 
     @classmethod
     def from_file(
         cls,
         path: Path,
-        root: Optional[Path] = None,
-        siegfried: Optional[Siegfried] = None,
-        actions: Optional[dict[str, Action]] = None,
-        custom_signatures: Optional[list[CustomSignature]] = None,
+        root: Path | None = None,
+        siegfried: Siegfried | None = None,
+        actions: dict[str, Action] | None = None,
+        custom_signatures: list[CustomSignature | None] | None = None,
         *,
-        uuid: Optional[UUID4] = None,
+        uuid: UUID4 | None = None,
         processed: bool = False,
     ):
         """
@@ -196,7 +195,7 @@ class File(ACABase):
         custom_signatures: list[CustomSignature],
         *,
         set_match: bool = False,
-    ) -> Optional[CustomSignature]:
+    ) -> CustomSignature | None:
         """
         Uses the BOF and EOF to try to determine a ACAUID for the file.
 
@@ -209,7 +208,7 @@ class File(ACABase):
         """
         bof = get_bof(self.get_absolute_path(self.root)).hex()
         eof = get_eof(self.get_absolute_path(self.root)).hex()
-        signature: Optional[CustomSignature] = None
+        signature: CustomSignature | None = None
         signature_length: int = 0
 
         # We have to go through all the signatures in order to check their BOF en EOF with the file.
@@ -243,9 +242,9 @@ class File(ACABase):
     def get_action(
         self,
         actions: dict[str, Action],
-        match_classes: Optional[list[TSiegfriedClass]] = None,
-    ) -> Optional[Action]:
-        action: Optional[Action] = None
+        match_classes: list[TSiegfriedClass | None] | None = None,
+    ) -> Action | None:
+        action: Action | None = None
 
         identifiers: list[str] = [
             self.puid,
@@ -266,7 +265,7 @@ class File(ACABase):
         self.action, self.action_data = action.action if action else None, action.action_data if action else None
         return action
 
-    def get_absolute_path(self, root: Optional[Path] = None) -> Path:
+    def get_absolute_path(self, root: Path | None = None) -> Path:
         root = root or self.root
         return root.joinpath(self.relative_path) if root else self.relative_path.resolve()
 

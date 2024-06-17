@@ -1,5 +1,4 @@
 from types import TracebackType
-from typing import Optional
 from typing import Sequence
 from typing import Type
 
@@ -15,17 +14,17 @@ class ExceptionManager:
         *catch (Type[BaseException]): Exception types that should be caught and not allowed to rise.
 
     Attributes:
-        exception (Optional[BaseException]): The exception that was raised within the context, if any.
-        traceback (Optional[TracebackType]): The traceback associated with the exception, if any.
+        exception (BaseException | None): The exception that was raised within the context, if any.
+        traceback (TracebackType | None): The traceback associated with the exception, if any.
         catch (tuple[Type[BaseException], ...]): Tuple of exceptions that should be caught instead of letting them rise.
         allow (tuple[Type[BaseException], ...]): Tuple of exceptions that should be allowed to rise.
     """
 
     __slots__ = ("exception", "traceback", "catch", "allow")
 
-    def __init__(self, *catch: Type[BaseException], allow: Optional[Sequence[Type[BaseException]]] = None) -> None:
-        self.exception: Optional[BaseException] = None
-        self.traceback: Optional[TracebackType] = None
+    def __init__(self, *catch: Type[BaseException], allow: Sequence[Type[BaseException]] | None = None) -> None:
+        self.exception: BaseException | None = None
+        self.traceback: TracebackType | None = None
         self.catch: tuple[Type[BaseException], ...] = catch
         self.allow: tuple[Type[BaseException], ...] = tuple(allow or [])
 
@@ -34,9 +33,9 @@ class ExceptionManager:
 
     def __exit__(
         self,
-        exc_type: Optional[Type[BaseException]],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
+        exc_type: Type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
     ) -> bool:
         self.exception = exc_val
         self.traceback = exc_tb

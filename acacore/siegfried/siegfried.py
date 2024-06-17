@@ -5,8 +5,6 @@ from re import compile as re_compile
 from subprocess import CompletedProcess
 from subprocess import run
 from typing import Literal
-from typing import Optional
-from typing import Union
 
 from pydantic import BaseModel
 from pydantic import ConfigDict
@@ -87,17 +85,17 @@ class SiegfriedMatch(BaseModel):
     """
 
     ns: str
-    id: Optional[str]  # noqa: A003
+    id: str | None  # noqa: A003
     format: str  # noqa: A003
-    version: Optional[str] = None
+    version: str | None = None
     mime: str
-    match_class: Optional[list[TSiegfriedClass]] = Field(None, alias="class")
+    match_class: list[TSiegfriedClass] | None = Field(None, alias="class")
     basis: list[str]
     warning: list[str]
-    URI: Optional[AnyUrl] = None
-    permalink: Optional[HttpUrl] = None
+    URI: AnyUrl | None = None
+    permalink: HttpUrl | None = None
 
-    def byte_match(self) -> Optional[int]:
+    def byte_match(self) -> int | None:
         """
         Get the length of the byte match, if any, or None.
 
@@ -110,7 +108,7 @@ class SiegfriedMatch(BaseModel):
                 return (int(match.group(2)) - int(match.group(1))) if match else None
         return None
 
-    def extension_match(self) -> Optional[str]:
+    def extension_match(self) -> str | None:
         """
         Get the matched extension.
 
@@ -194,7 +192,7 @@ class SiegfriedFile(BaseModel):
     errors: str
     matches: list[SiegfriedMatch]
 
-    def best_match(self) -> Optional[SiegfriedMatch]:
+    def best_match(self) -> SiegfriedMatch | None:
         """
         Get the best match for the file.
 
@@ -251,9 +249,9 @@ class Siegfried:
 
     def __init__(
         self,
-        binary: Union[str, PathLike] = "sf",
+        binary: str | PathLike = "sf",
         signature: str = "default.sig",
-        home: Optional[Union[str, PathLike]] = None,
+        home: str | PathLike | None = None,
     ) -> None:
         """
         Initializes a new instance of the Siegfried class.
@@ -265,7 +263,7 @@ class Siegfried:
         """
         self.binary: str = str(binary)
         self.signature: str = signature
-        self.home: Optional[Path] = Path(home) if home else None
+        self.home: Path | None = Path(home) if home else None
 
     def run(self, *args: str) -> CompletedProcess:
         """
@@ -284,7 +282,7 @@ class Siegfried:
             args = ("-home", str(self.home), *args)
         return _check_process(run([self.binary, *args], capture_output=True, encoding="utf-8"))  # noqa: PLW1510
 
-    def update(self, signature: Optional[TSignature] = None, *, set_signature: bool = True):
+    def update(self, signature: TSignature | None = None, *, set_signature: bool = True):
         """
         Update or fetch signature files.
 
@@ -304,7 +302,7 @@ class Siegfried:
         if set_signature:
             self.signature = signature_file
 
-    def identify(self, path: Union[str, PathLike]) -> SiegfriedResult:
+    def identify(self, path: str | PathLike) -> SiegfriedResult:
         """
         Identify a file.
 

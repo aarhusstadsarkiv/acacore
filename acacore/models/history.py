@@ -1,6 +1,5 @@
 from datetime import datetime
 from logging import Logger
-from typing import Optional
 
 from click import Context
 from pydantic import Field
@@ -13,21 +12,21 @@ from .base import ACABase
 
 
 class HistoryEntry(ACABase):
-    uuid: Optional[UUID4] = DBField(default=None, index=["idx_uuid_history"])
+    uuid: UUID4 | None = DBField(default=None, index=["idx_uuid_history"])
     time: datetime = Field(default_factory=datetime.now)
     operation: str
-    data: Optional[object] = None
-    reason: Optional[str] = None
+    data: object | None = None
+    reason: str | None = None
 
     @classmethod
     def command_history(
         cls,
         ctx: Context,
         operation: str,
-        uuid: Optional[UUID4] = None,
-        data: Optional[object] = None,
-        reason: Optional[str] = None,
-        time: Optional[datetime] = None,
+        uuid: UUID4 | None = None,
+        data: object | None = None,
+        reason: str | None = None,
+        time: datetime | None = None,
         add_params_to_data: bool = False,
     ) -> "HistoryEntry":
         """

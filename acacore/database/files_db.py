@@ -2,9 +2,7 @@ from datetime import datetime
 from os import PathLike
 from pathlib import Path
 from sqlite3 import Connection
-from typing import Optional
 from typing import Type
-from typing import Union
 from uuid import UUID
 
 from acacore.models.base import ACABase
@@ -21,15 +19,15 @@ from .base import SelectColumn
 
 
 class HistoryEntryPath(HistoryEntry):
-    relative_path: Optional[Path] = None
+    relative_path: Path | None = None
 
 
 class SignatureCount(ACABase):
     """Signature count datamodel."""
 
-    puid: Optional[str]
-    signature: Optional[str]
-    count: Optional[int]
+    puid: str | None
+    signature: str | None
+    count: int | None
 
 
 class ChecksumCount(ACABase):
@@ -47,13 +45,13 @@ class ActionCount(ACABase):
 class FileDB(FileDBBase):
     def __init__(
         self,
-        database: Union[str, bytes, PathLike[str], PathLike[bytes]],
+        database: str | bytes | PathLike[str] | PathLike[bytes],
         *,
         timeout: float = 5.0,
         detect_types: int = 0,
-        isolation_level: Optional[str] = "DEFERRED",
+        isolation_level: str | None = "DEFERRED",
         check_same_thread: bool = True,
-        factory: Optional[Type[Connection]] = Connection,
+        factory: Type[Connection] | None = Connection,
         cached_statements: int = 100,
         uri: bool = False,
     ) -> None:
@@ -223,12 +221,12 @@ class FileDB(FileDBBase):
 
     def add_history(
         self,
-        uuid: Optional[UUID],
+        uuid: UUID | None,
         operation: str,
-        data: Optional[Union[dict, list, str, int, float, bool, datetime]],
-        reason: Optional[str] = None,
+        data: dict | list | str | int | float | bool | datetime | None,
+        reason: str | None = None,
         *,
-        time: Optional[datetime] = None,
+        time: datetime | None = None,
     ) -> HistoryEntry:
         entry = self.history.model(
             uuid=uuid,
