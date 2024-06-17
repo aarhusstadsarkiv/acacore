@@ -1,4 +1,5 @@
 from datetime import datetime
+from logging import Logger
 from typing import Optional
 
 from click import Context
@@ -69,3 +70,17 @@ class HistoryEntry(ACABase):
             data=data,
             reason=reason,
         )
+
+    def log(self, level: int, *logger: Logger, show_null: bool = True):
+        if show_null:
+            msg: str = f"{self.operation} {self.uuid=} {self.data=} {self.reason=}"
+        else:
+            msg: str = (
+                f"{self.operation}"
+                + (f" {self.uuid=}" if self.uuid is not None else "")
+                + (f" {self.data=}" if self.data is not None else "")
+                + (f" {self.reason=}" if self.reason is not None else "")
+            )
+
+        for logger in logger:
+            logger.log(level, msg)
