@@ -39,17 +39,9 @@ def get_actions(use_cache: bool = True) -> dict[str, Action]:
 
     The data is fetched from the repository with a cached web request.
 
-    Args:
-        use_cache (bool): Use cached data if True, otherwise fetch data regardless of cache status.
-
-    Returns:
-        dict[str, Action]: A dictionary with PUID keys and Action values.
-
-    Raises:
-        urllib.error.HTTPError: If there is an issue with the request.
-
-    See Also:
-        https://github.com/aarhusstadsarkiv/reference-files/blob/main/actions.yml
+    :param use_cache: Use cached data if True, otherwise fetch data regardless of cache status, defaults to True.
+    :raises See Also: https://github.com/aarhusstadsarkiv/reference-files/blob/main/actions.yml.
+    :return: A dictionary with PUID keys and Action values.
     """
     return (
         _get_actions(f"{download_url.rstrip('/')}/{actions_file.lstrip('/')}")
@@ -64,17 +56,9 @@ def get_custom_signatures(use_cache: bool = True) -> list[CustomSignature]:
 
     The data is fetched from the repository with a cached web request.
 
-    Args:
-        use_cache (bool): Use cached data if True, otherwise fetch data regardless of cache status
-
-    Returns:
-        list[CustomSignature]: A list of CustomSignature objects.
-
-    Raises:
-        urllib.error.HTTPError: If there is an issue with the request.
-
-    See Also:
-        https://github.com/aarhusstadsarkiv/reference-files/blob/main/custom_signatures.json
+    :param use_cache: Use cached data if True, otherwise fetch data regardless of cache status, defaults to True.
+    :raises See Also: https://github.com/aarhusstadsarkiv/reference-files/blob/main/custom_signatures.json.
+    :return: A list of CustomSignature objects.
     """
     return (
         _get_custom_signatures(f"{download_url.rstrip('/')}/{custom_signatures_file.lstrip('/')}")

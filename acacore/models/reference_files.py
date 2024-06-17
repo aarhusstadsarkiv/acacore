@@ -29,8 +29,6 @@ ReplaceTemplateEnum: tuple[TReplaceTemplate, ...] = get_type_args(TReplaceTempla
 
 
 class CustomSignature(BaseModel):
-    """Data model for the `custom_signatures` from reference_files."""
-
     bof: str | None = None
     eof: str | None = None
     operator: str | None = None
@@ -43,9 +41,8 @@ class ConvertAction(BaseModel):
     """
     Class representing an action to convert a file to a different format.
 
-    Attributes:
-        converter (str): The converter to use for the conversion.
-        outputs (list[str]): The list of file types to convert to.
+    :ivar converter: The converter to use for the conversion.
+    :ivar outputs: The list of file types to convert to.
     """
 
     converter: str
@@ -57,10 +54,9 @@ class ExtractAction(BaseModel):
     """
     Class representing an action to extract data from a file.
 
-    Attributes:
-        tool (str): The name of the tool used for extraction.
-        extension (str | None): The suffix that the file should have. Defaults to None.
-        dir_suffix (str): The output directory where the extracted data will be saved.
+    :ivar tool: The name of the tool used for extraction.
+    :ivar extension: The suffix that the file should have. Defaults to None.
+    :ivar dir_suffix: The output directory where the extracted data will be saved.
     """
 
     tool: str
@@ -72,10 +68,8 @@ class ReplaceAction(BaseModel):
     """
     Class representing a replacement action.
 
-    Attributes:
-        template (str): The replacement template.
-        template_text (str | None): Optional. Text to use instead of the default template,
-            if template is set to "text".
+    :ivar template: The replacement template.
+    :ivar template_text: Optional. Text to use instead of the default template, if template is set to "text".
     """
 
     template: TReplaceTemplate
@@ -86,9 +80,8 @@ class ManualAction(BaseModel):
     """
     Class representing a manual action in a workflow.
 
-    Attributes:
-        reason (str): The reason behind the manual action.
-        process (str): The process for performing the manual action.
+    :ivar reason: The reason behind the manual action.
+    :ivar process: The process for performing the manual action.
     """
 
     reason: str
@@ -101,13 +94,12 @@ class IgnoreIfAction(BaseModel):
 
     The pixel counts and sizes are considered as the minimum allowed value.
 
-    Attributes:
-        pixel_total (int | None): Total amount of pixels (width times height) for images.
-        pixel_width (int | None): Width for images.
-        pixel_height (int | None): Height for images.
-        size (int | None): Size for all files.
-        binary_size (int | None): Size for binary files.
-        reason (int | None): A reason for the specific condition.
+    :ivar pixel_total: Total amount of pixels (width times height) for images.
+    :ivar pixel_width: Width for images.
+    :ivar pixel_height: Height for images.
+    :ivar size: Size for all files.
+    :ivar binary_size: Size for binary files.
+    :ivar reason: A reason for the specific condition.
     """
 
     pixel_total: int | None = Field(None, gt=0)
@@ -122,9 +114,8 @@ class IgnoreAction(BaseModel):
     """
     Class representing an action to ignore a specific file based on the given reason.
 
-    Attributes:
-        reason (str): The reason for ignoring the file.
-        ignore_if (list[IgnoreIfAction]): An optional list of ignore conditions.
+    :ivar reason: The reason for ignoring the file.
+    :ivar ignore_if: An optional list of ignore conditions.
     """
 
     reason: str | None = None
@@ -135,8 +126,7 @@ class ReIdentifyAction(BaseModel):
     """
     Class representing an action to ignore a specific file based on the given reason.
 
-    Attributes:
-        reason (str): The reason for ignoring the file.
+    :ivar reason: The reason for ignoring the file.
     """
 
     reason: str
@@ -147,8 +137,7 @@ class RenameAction(BaseModel):
     """
     Class representing an action to change file's extension.
 
-    Attributes:
-        extension (str): A string representing the new extension for the file.
+    :ivar extension: A string representing the new extension for the file.
     """
 
     extension: str
@@ -162,21 +151,20 @@ class ActionData(BaseModel):
 
     Separate from Action to avoid duplicating information in the File object.
 
-    Attributes:
-        convert (list[ConvertAction | None]): A list of ConvertAction objects representing the conversion
-            actions to be performed. Defaults to None.
-        extract (ExtractAction | None): An ExtractAction object representing the extraction action to be
-            performed. Defaults to None.
-        replace (ReplaceAction | None): A ReplaceAction object representing the replacement action to be
-            performed. Defaults to None.
-        manual (ManualAction | None): A ManualAction object representing the manual action to be
-            performed. Defaults to None.
-        rename (RenameAction | None): A RenameAction object representing the renaming action to be
-            performed. Defaults to None.
-        ignore (IgnoreAction | None): An IgnoreAction object representing the ignore action to be
-            performed. Defaults to None.
-        reidentify (ReIdentifyAction | None): A ReIdentifyAction object representing the re-identification
-            action to be performed. Defaults to None.
+    :ivar convert: A list of ConvertAction objects representing the conversion actions to be performed.
+        Defaults to None.
+    :ivar extract: An ExtractAction object representing the extraction action to be performed.
+        Defaults to None.
+    :ivar replace: A ReplaceAction object representing the replacement action to be performed.
+        Defaults to None.
+    :ivar manual: A ManualAction object representing the manual action to be performed.
+        Defaults to None.
+    :ivar rename: A RenameAction object representing the renaming action to be performed.
+        Defaults to None.
+    :ivar ignore: An IgnoreAction object representing the ignore action to be performed.
+        Defaults to None.
+    :ivar reidentify: A ReIdentifyAction object representing the re-identification action to be performed.
+        Defaults to None.
     """
 
     convert: list[ConvertAction | None] = None
@@ -192,16 +180,14 @@ class Action(ActionData):
     """
     Class representing an Action.
 
-    Follows the format as outlined in the reference files repository.
-    Subclasses ActionData to avoid duplicated properties in the File object.
+    Follows the format as outlined in the reference files repository. Subclasses ActionData to avoid duplicated
+    properties in the File object.
 
     See Also:
         https://github.com/aarhusstadsarkiv/reference-files/blob/main/fileformats.schema.json
-
-    Attributes:
-        name (str): The name of the action.
-        description (str | None): The description of the action.
-        action (TActionType | None): The type of action.
+    :ivar name: The name of the action.
+    :ivar description: The description of the action.
+    :ivar action: The type of action.
     """
 
     name: str
@@ -213,8 +199,7 @@ class Action(ActionData):
         """
         Return only the ActionData portion of the object.
 
-        Returns:
-            ActionData: The action data.
+        :return: The action data.
         """
         return ActionData(
             convert=self.convert,

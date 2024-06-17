@@ -32,18 +32,15 @@ class HistoryEntry(ACABase):
         """
         Create a HistoryEntry for a command.
 
-        Args:
-            ctx: The context object representing the current command execution.
-            operation: The name of the operation for which the command history entry is being created.
-            uuid: Optional. The UUID associated with the command history entry. Default is None.
-            data: Optional. Additional data or parameters associated with the command history entry.
-                It defaults to the params property of the context, if it is a click.Context object, otherwise None.
-            reason: Optional. The reason for the command execution. Default is None.
-            time: Optional. The timestamp of the command execution. Default is None.
-            add_params_to_data: If true, add context parameters to data
-
-        Returns:
-            HistoryEntry: A `HistoryEntry` instance representing the command history entry.
+        :param ctx: The context object representing the current command execution.
+        :param operation: The name of the operation for which the command history entry is being created.
+        :param uuid: Optional. The UUID associated with the command history entry, defaults to None.
+        :param data: Optional. Additional data or parameters associated with the command history entry.
+            It Context object, otherwise None, defaults to None.
+        :param reason: Optional. The reason for the command execution, defaults to None.
+        :param time: Optional. The timestamp of the command execution, defaults to None.
+        :param add_params_to_data: If true, add context parameters to data, defaults to False.
+        :return: A `HistoryEntry` instance representing the command history entry.
         """
         command: str
         current: Context = ctx

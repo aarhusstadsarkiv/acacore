@@ -6,8 +6,6 @@ from .base import ACABase
 
 
 class Identification(ACABase):
-    """File identification datamodel."""
-
     puid: str | None
     signature: str | None
     warning: str | None
@@ -17,7 +15,6 @@ class Identification(ACABase):
     @model_validator(mode="before")
     @classmethod
     def check_puid_sig(cls, data: dict[Any, Any]) -> dict[Any, Any]:
-        """Validate that a PUID cannot have an empty signature or vice versa."""
         puid, signature = data.get("puid"), data.get("signature")
 
         if puid is not None and signature is None:

@@ -23,16 +23,11 @@ def setup_logger(log_name: str, *, files: list[Path] | None = None, streams: lis
     """
     Set up a logger that prints to files and/or streams.
 
-    Args:
-        log_name: The name of the logger.
-        files: A list of Path objects representing the log files.
-        streams: A list of IO objects representing the log streams.
-
-    Returns:
-        The configured Logger object.
-
-    Raises:
-        AssertionError: If neither files nor streams are given.
+    :param log_name: The name of the logger.
+    :param files: A list of Path objects representing the log files, defaults to None.
+    :param streams: A list of IO objects representing the log streams, defaults to None.
+    :raises AssertionError: If neither files nor streams are given.
+    :return: The configured Logger object.
     """
     assert files or streams, "At least one file or stream must be set."
 

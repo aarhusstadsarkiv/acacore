@@ -258,20 +258,19 @@ class Column(Generic[T, V]):
         """
         A class that stores information regarding a table column.
 
-        Args:
-            name: The name of the column.
-            sql_type: The SQL type to use when creating a table.
-            to_entry: A function that returns a type supported by SQLite
-                (str, bytes, int, float, bool, datetime, or None).
-            from_entry: A function that takes a type returned by SQLite (str, bytes, int, float, or None)
-                and returns another object.
-            unique: True if the column should be set as UNIQUE.
-            primary_key: True if the column is a PRIMARY KEY.
-            not_null: True if the column is NOT NULL.
-            check: A string containing a CHECK expression, {name} substrings will be substituted
-                with the name of the column.
-            default: The column's DEFAULT value, which will be converted using `to_entry`.
-                Note that None is considered a valid default value; to set it to empty use Ellipsis (...).
+        :param name: The name of the column.
+        :param sql_type: The SQL type to use when creating a table.
+        :param to_entry: A function that returns a type supported by SQLite
+            (str, bytes, int, float, bool, datetime, or None).
+        :param from_entry: A function that takes a type returned by SQLite (str, bytes, int, float, or None) and
+            returns another object.
+        :param unique: True if the column should be set as UNIQUE, defaults to False.
+        :param primary_key: True if the column is a PRIMARY KEY, defaults to False.
+        :param not_null: True if the column is NOT NULL, defaults to False.
+        :param check: A string containing a CHECK expression, {name} substrings will be substituted with the name of
+            the column, defaults to None.
+        :param default: The column's DEFAULT value, which will be converted using `to_entry`.
+            Note that None is considered a valid default value; to set it to empty use Ellipsis (...), defaults to ....
         """
         self.name: str = name
         self.sql_type: str = sql_type
@@ -311,11 +310,8 @@ class Column(Generic[T, V]):
         """
         Get the default value of the column formatted as an SQL parameter.
 
-        Returns:
-            An object of the return type of the column's to_entry function.
-
-        Raises:
-            ValueError: If the column does not have a set default value.
+        :raises ValueError: If the column does not have a set default value.
+        :return: An object of the return type of the column's to_entry function.
         """
         if self.default is Ellipsis:
             raise ValueError("Column does not have a default value")
@@ -325,8 +321,7 @@ class Column(Generic[T, V]):
         """
         Generate the statement that creates the column.
 
-        Returns:
-            A column statement for a CREATE TABLE expression.
+        :return: A column statement for a CREATE TABLE expression.
         """
         elements: list[str] = [self.name, self.sql_type]
         if self.unique:
@@ -351,12 +346,11 @@ class SelectColumn(Column, Generic[T, V]):
         """
         A subclass of Column for SELECT expressions that need complex statements and/or an alias.
 
-        Args:
-            name: The name or select statement for the select expression (e.g., count(*)).
-            from_entry: A function that takes a type returned by SQLite (str, bytes, int, float, or None)
-                and returns another object.
-            alias: An alternative name for the select statement, it will be used with the AS keyword
-                and as a key by Cursor.
+        :param name: The name or select statement for the select expression (e.g., count(*)).
+        :param from_entry: A function that takes a type returned by SQLite (str, bytes, int, float, or None) and
+            returns another object.
+        :param alias: An alternative name for the select statement, it will be used with the AS keyword and as a key
+            by Cursor, defaults to None.
         """
         super().__init__(name, "", lambda x: x, from_entry)
         self.alias: str | None = alias
@@ -366,13 +360,10 @@ class SelectColumn(Column, Generic[T, V]):
         """
         Take a Column object and create a SelectColumn with the given alias.
 
-        Args:
-            column: The Column object to be converted.
-            alias: An alternative name for the select statement, it will be used with the AS keyword
-                and as a key by Cursor.
-
-        Returns:
-            SelectColumn: A SelectColumn object.
+        :param column: The Column object to be converted.
+        :param alias: An alternative name for the select statement, it will be used with the AS keyword and as a key
+            by Cursor, defaults to None.
+        :return: A SelectColumn object.
         """
         select_column = SelectColumn(column.name, column.from_entry, alias)
         select_column.sql_type = column.sql_type
@@ -393,10 +384,9 @@ class Index:
         """
         A class that stores information regarding an index.
 
-        Args:
-            name: The name of the index
-            columns: The list of columns that the index applies to.
-            unique: Whether the index is unique or not.
+        :param name: The name of the index.
+        :param columns: The list of columns that the index applies to.
+        :param unique: Whether the index is unique or not, defaults to False.
         """
         self.name: str = name
         self.columns: list[Column] = list(columns)
@@ -415,12 +405,9 @@ class Index:
         """
         Generate the expression that creates the index.
 
-        Args:
-            table: The name of the table.
-            exist_ok: True if existing tables with the same name should be ignored.
-
-        Returns:
-            A CREATE TABLE expression.
+        :param table: The name of the table.
+        :param exist_ok: True if existing tables with the same name should be ignored, defaults to True.
+        :return: A CREATE TABLE expression.
         """
         return (
             f"create {'unique' if self.unique else ''} index {'if not exists' if exist_ok else ''} {self.name}"

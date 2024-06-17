@@ -7,17 +7,15 @@ class ExceptionManager:
     """
     A context manager class that catches specified exceptions and stores the exception and traceback for later use.
 
-    Exceptions whose class is explicitly declared in the 'catch' argument are always caught,
-    even if they subclass from classes passed int the 'allow' argument.
+    Exceptions whose class is explicitly declared in the 'catch' argument are always caught, even if they subclass from
+    classes passed int the 'allow' argument.
 
-    Args:
-        *catch (Type[BaseException]): Exception types that should be caught and not allowed to rise.
-
-    Attributes:
-        exception (BaseException | None): The exception that was raised within the context, if any.
-        traceback (TracebackType | None): The traceback associated with the exception, if any.
-        catch (tuple[Type[BaseException], ...]): Tuple of exceptions that should be caught instead of letting them rise.
-        allow (tuple[Type[BaseException], ...]): Tuple of exceptions that should be allowed to rise.
+    :param allow: Defaults to None.
+    :param *catch: Exception types that should be caught and not allowed to rise.
+    :ivar exception: The exception that was raised within the context, if any.
+    :ivar traceback: The traceback associated with the exception, if any.
+    :ivar catch: Tuple of exceptions that should be caught instead of letting them rise.
+    :ivar allow: Tuple of exceptions that should be allowed to rise.
     """
 
     __slots__ = ("exception", "traceback", "catch", "allow")

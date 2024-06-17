@@ -23,16 +23,12 @@ class HistoryEntryPath(HistoryEntry):
 
 
 class SignatureCount(ACABase):
-    """Signature count datamodel."""
-
     puid: str | None
     signature: str | None
     count: int | None
 
 
 class ChecksumCount(ACABase):
-    """Signature count datamodel."""
-
     checksum: str
     count: int
 
@@ -58,21 +54,21 @@ class FileDB(FileDBBase):
         """
         A class that handles the SQLite database used by AArhus City Archives to process data archives.
 
-        Args:
-            database: The path or URI to the database.
-            timeout: How many seconds the connection should wait before raising an OperationalError
-                when a table is locked.
-            detect_types: Control whether and how data types not natively supported by SQLite are looked up to be
-                converted to Python types.
-            isolation_level: The isolation_level of the connection, controlling whether
-                and how transactions are implicitly opened.
-            check_same_thread: If True (default), ProgrammingError will be raised if the database connection
-                is used by a thread other than the one that created it.
-            factory: A custom subclass of Connection to create the connection with,
-                if not the default Connection class.
-            cached_statements: The number of statements that sqlite3 should internally cache for this connection,
-                to avoid parsing overhead.
-            uri: If set to True, database is interpreted as a URI with a file path and an optional query string.
+        :param database: The path or URI to the database.
+        :param timeout: How many seconds the connection should wait before raising an OperationalError when a table
+            is locked, defaults to 5.0.
+        :param detect_types: Control whether and how data types not natively supported by SQLite are looked up to be
+            converted to Python types, defaults to 0.
+        :param isolation_level: The isolation_level of the connection, controlling whether and how transactions are
+            implicitly opened, defaults to "DEFERRED".
+        :param check_same_thread: If True (default), ProgrammingError will be raised if the database connection is
+            used by a thread other than the one that created it, defaults to True.
+        :param factory: A custom subclass of Connection to create the connection with, if not the default Connection
+            class, defaults to Connection.
+        :param cached_statements: The number of statements that sqlite3 should internally cache for this connection,
+            to avoid parsing overhead, defaults to 100.
+        :param uri: If set to True, database is interpreted as a URI with a file path and an optional query string,
+            defaults to False.
         """
         super().__init__(
             database,
@@ -204,7 +200,6 @@ class FileDB(FileDBBase):
         )
 
     def init(self):
-        """Create the default tables and views."""
         self.files.create(True)
         self.history.create(True)
         self.metadata.create(True)

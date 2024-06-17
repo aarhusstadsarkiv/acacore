@@ -60,19 +60,18 @@ class File(ACABase):
     """
     File model containing all information used by the rest of the archival suite of tools.
 
-    Attributes:
-        uuid (UUID4): The UUID of the file.
-        checksum (str): The checksum of the file.
-        puid (str | None): The PUID (PRONOM Unique Identifier) of the file.
-        relative_path (Path): The relative path to the file.
-        is_binary (bool): Indicates whether the file is binary.
-        size (int): The size of the file.
-        signature (str | None): The signature of the file.
-        warning (str | None): Any warning associated with the file PUID.
-        action (str | None): The name of the main action for the file's PUID, if one exists.
-        action_data (ActionData | None): The data for the action for the file's PUID, if one exists.
-        processed (bool): True if the file has been processed, false otherwise.
-        root (Path | None): The root directory for the file.
+    :ivar uuid: The UUID of the file.
+    :ivar checksum: The checksum of the file.
+    :ivar puid: The PUID (PRONOM Unique Identifier) of the file.
+    :ivar relative_path: The relative path to the file.
+    :ivar is_binary: Indicates whether the file is binary.
+    :ivar size: The size of the file.
+    :ivar signature: The signature of the file.
+    :ivar warning: Any warning associated with the file PUID.
+    :ivar action: The name of the main action for the file's PUID, if one exists.
+    :ivar action_data: The data for the action for the file's PUID, if one exists.
+    :ivar processed: True if the file has been processed, false otherwise.
+    :ivar root: The root directory for the file.
     """
 
     uuid: UUID4 = DBField(default_factory=uuid4, index=["idx_uuid"])
@@ -109,17 +108,14 @@ class File(ACABase):
 
         Given a list of CustomSignatures, the file identification will be refined.
 
-        Args:
-            path: The path to the file.
-            root: Optionally, the root to be used to compute the relative path to the file.
-            siegfried: A Siegfried class object to identify the file.
-            actions: A dictionary with PUID keys and Action values to assign an action.
-            custom_signatures: A list of CustomSignature objects to refine the identification.
-            uuid: Optionally, a specific UUID to use for the file.
-            processed: Optionally, the value to be used for the processed property.
-
-        Returns:
-            File: A File object.
+        :param path: The path to the file.
+        :param root: Optionally, the root to be used to compute the relative path to the file, defaults to None.
+        :param siegfried: A Siegfried class object to identify the file, defaults to None.
+        :param actions: A dictionary with PUID keys and Action values to assign an action, defaults to None.
+        :param custom_signatures: A list of CustomSignature objects to refine the identification, defaults to None.
+        :param uuid: Optionally, a specific UUID to use for the file, defaults to None.
+        :param processed: Optionally, the value to be used for the processed property, defaults to False.
+        :return: A File object.
         """
         file = cls(
             uuid=uuid or uuid4(),
@@ -175,12 +171,9 @@ class File(ACABase):
         """
         Identify the file using `siegfried`.
 
-        Args:
-            sf (Siegfried): A Siegfried class object
-            set_match (bool): Set results of Siegfried match if True
-
-        Returns:
-            SiegfriedFile: A dataclass object containing the results from the identification
+        :param sf: A Siegfried class object.
+        :param set_match: Set results of Siegfried match if True, defaults to False.
+        :return: A dataclass object containing the results from the identification.
         """
         result = sf.identify(self.get_absolute_path(self.root)).files[0]
         match = result.best_match()
@@ -199,12 +192,11 @@ class File(ACABase):
         """
         Uses the BOF and EOF to try to determine a ACAUID for the file.
 
-        The custom_sigs list should be found on the `reference_files` repo.
-        If no match can be found, the method does nothing.
+        The custom_sigs list should be found on the `reference_files` repo. If no match can be found, the method does
+        nothing.
 
-        Args:
-            custom_signatures: A list of the custom_signatures that the file should be checked against
-            set_match (bool): Set results of match if True
+        :param custom_signatures: A list of the custom_signatures that the file should be checked against.
+        :param set_match: Set results of match if True, defaults to False.
         """
         bof = get_bof(self.get_absolute_path(self.root)).hex()
         eof = get_eof(self.get_absolute_path(self.root)).hex()
@@ -282,8 +274,7 @@ class File(ACABase):
         """
         Get file name.
 
-        Returns:
-            str: File name.
+        :return: File name.
         """
         return self.relative_path.name
 
@@ -296,8 +287,7 @@ class File(ACABase):
         """
         Get file suffix.
 
-        Returns:
-            str: File extension.
+        :return: File extension.
         """
         return self.relative_path.suffix.lower()
 
