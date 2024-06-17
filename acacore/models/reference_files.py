@@ -51,7 +51,7 @@ class ConvertAction(BaseModel):
 
     converter: str
     converter_type: Literal["master", "statutory", "access"]
-    outputs: list[str] = Field(min_items=1)
+    outputs: list[str] = Field(min_length=1)
 
 
 class ExtractAction(BaseModel):
