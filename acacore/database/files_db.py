@@ -235,7 +235,7 @@ class FileDB(FileDBBase):
             operation=operation,
             data=data,
             reason=reason,
-            time=time or datetime.now(),  # noqa: DTZ005
+            time=time or datetime.now(),
         )
         self.history.insert(entry)
         return entry
