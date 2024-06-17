@@ -6,10 +6,12 @@ from pathlib import Path
 from re import Pattern
 from typing import Any
 from typing import Callable
+from typing import Generic
 from typing import Literal
 from typing import Optional
 from typing import Sequence
 from typing import Type
+from typing import TypeVar
 from uuid import UUID
 
 from pydantic import AliasChoices
@@ -26,6 +28,8 @@ from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined
 
 SQLValue = str | bytes | int | float | bool | datetime | None
+T = TypeVar("T")
+V = TypeVar("V", str, bytes, int, float, bool, datetime, None)
 
 
 # noinspection PyPep8Naming
@@ -170,7 +174,7 @@ def dump_object(obj: list | tuple | dict | BaseModel) -> list | dict:
         return obj
 
 
-def _schema_to_column[T, V](name: str, schema: dict, defs: dict[str, dict] | None = None) -> Optional["Column"]:
+def _schema_to_column(name: str, schema: dict, defs: dict[str, dict] | None = None) -> Optional["Column"]:
     if schema.get("ignore"):
         return None
 
@@ -238,7 +242,7 @@ def model_to_indices(model: Type[BaseModel]) -> list["Index"]:
     return [Index(n, cs) for n, cs in indices_merged.items()]
 
 
-class Column[T, V: SQLValue]:
+class Column(Generic[T, V]):
     def __init__(
         self,
         name: str,
@@ -337,7 +341,7 @@ class Column[T, V: SQLValue]:
         return " ".join(elements)
 
 
-class SelectColumn[T, V: SQLValue](Column):
+class SelectColumn(Column, Generic[T, V]):
     def __init__(
         self,
         name: str,

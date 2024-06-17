@@ -9,11 +9,13 @@ from sqlite3 import OperationalError
 from types import TracebackType
 from typing import Any
 from typing import Generator
+from typing import Generic
 from typing import Iterator
 from typing import Optional
 from typing import overload
 from typing import Sequence
 from typing import Type
+from typing import TypeVar
 
 from pydantic.main import BaseModel
 
@@ -26,6 +28,8 @@ from .column import model_to_columns
 from .column import model_to_indices
 from .column import SelectColumn
 from .column import SQLValue
+
+M = TypeVar("M", bound=BaseModel)
 
 
 class Cursor:
@@ -78,10 +82,10 @@ class Cursor:
         ...
 
     @overload
-    def fetchall[M: BaseModel](self, model: Type[M]) -> Generator[M, None, None]:
+    def fetchall(self, model: Type[M]) -> Generator[M, None, None]:
         ...
 
-    def fetchall[M: BaseModel](self, model: Type[M] | None = None) -> Generator[dict[str, Any] | M, None, None]:
+    def fetchall(self, model: Type[M] | None = None) -> Generator[dict[str, Any] | M, None, None]:
         """
         Fetch all results from the cursor and return them as dicts, with the columns' names/aliases used as keys.
 
@@ -108,12 +112,10 @@ class Cursor:
         ...
 
     @overload
-    def fetchmany[M: BaseModel](self, size: int, model: Type[M]) -> Generator[M, None, None]:
+    def fetchmany(self, size: int, model: Type[M]) -> Generator[M, None, None]:
         ...
 
-    def fetchmany[
-        M: BaseModel
-    ](self, size: int, model: Type[M] | None = None) -> Generator[dict[str, Any] | M, None, None]:
+    def fetchmany(self, size: int, model: Type[M] | None = None) -> Generator[dict[str, Any] | M, None, None]:
         """
         Fetch `size` results from the cursor and return them as dicts, with the columns' names/aliases used as keys.
 
@@ -144,10 +146,10 @@ class Cursor:
         ...
 
     @overload
-    def fetchone[M: BaseModel](self, model: Type[M]) -> M | None:
+    def fetchone(self, model: Type[M]) -> M | None:
         ...
 
-    def fetchone[M: BaseModel](self, model: Type[M] | None = None) -> dict[str, Any] | M | None:
+    def fetchone(self, model: Type[M] | None = None) -> dict[str, Any] | M | None:
         """
         Fetch one result from the cursor and return it as a dict, with the columns' names/aliases used as keys.
 
@@ -168,7 +170,7 @@ class Cursor:
         return model.model_validate(entry) if model else entry
 
 
-class ModelCursor[M: BaseModel](Cursor):
+class ModelCursor(Cursor, Generic[M]):
     def __init__(
         self,
         cursor: SQLiteCursor,
@@ -431,7 +433,7 @@ class Table:
         self.connection.execute(" ".join(elements), [v for _, v in values])
 
 
-class ModelTable[M: BaseModel](Table):
+class ModelTable(Table, Generic[M]):
     def __init__(
         self,
         connection: "FileDBBase",
@@ -606,7 +608,7 @@ class KeysTable:
             self.connection.execute(f"insert or replace into {self.name} (KEY, VALUE) values (?, ?)", [key, value])
 
 
-class ModelKeysTable[M: BaseModel](KeysTable):
+class ModelKeysTable(KeysTable, Generic[M]):
     def __init__(self, connection: "FileDBBase", name: str, model: Type[M]) -> None:
         """
         A class that holds information about a key-value pairs table using a BaseModel for validation and parsing.
@@ -789,7 +791,7 @@ class View(Table):
         raise OperationalError("Cannot insert into view")
 
 
-class ModelView[M: BaseModel](View):
+class ModelView(View, Generic[M]):
     def __init__(
         self,
         connection: "FileDBBase",
@@ -927,18 +929,19 @@ class FileDBBase(Connection):
             return False
 
     @overload
-    def create_table[
-        M: BaseModel
-    ](self, name: str, columns: Type[M], indices: list[Index] | None = None) -> ModelTable[M]:
+    def create_table(self, name: str, columns: Type[M], indices: list[Index] | None = None) -> ModelTable[M]:
         ...
 
     @overload
     def create_table(self, name: str, columns: list[Column], indices: list[Index] | None = None) -> Table:
         ...
 
-    def create_table[
-        M: BaseModel
-    ](self, name: str, columns: Type[M] | list[Column], indices: list[Index] | None = None) -> Table | ModelTable[M]:
+    def create_table(
+        self,
+        name: str,
+        columns: Type[M] | list[Column],
+        indices: list[Index] | None = None,
+    ) -> Table | ModelTable[M]:
         """Create a table in the database.
 
         When the `columns` argument is a subclass of BadeModel, a ModelTable object is returned.
@@ -954,16 +957,14 @@ class FileDBBase(Connection):
             return Table(self, name, columns, indices)
 
     @overload
-    def create_keys_table[M: BaseModel](self, name: str, columns: Type[M]) -> ModelKeysTable[M]:
+    def create_keys_table(self, name: str, columns: Type[M]) -> ModelKeysTable[M]:
         ...
 
     @overload
     def create_keys_table(self, name: str, columns: list[Column]) -> KeysTable:
         ...
 
-    def create_keys_table[
-        M: BaseModel
-    ](self, name: str, columns: Type[M] | list[Column]) -> KeysTable | ModelKeysTable[M]:
+    def create_keys_table(self, name: str, columns: Type[M] | list[Column]) -> KeysTable | ModelKeysTable[M]:
         """
         Create a key-value pairs table in the database.
 
@@ -979,9 +980,7 @@ class FileDBBase(Connection):
             return KeysTable(self, name, columns)
 
     @overload
-    def create_view[
-        M: BaseModel
-    ](
+    def create_view(
         self,
         name: str,
         on: Table | str,
@@ -1010,9 +1009,7 @@ class FileDBBase(Connection):
     ) -> View:
         ...
 
-    def create_view[
-        M: BaseModel
-    ](
+    def create_view(
         self,
         name: str,
         on: Table | str,
@@ -1024,7 +1021,7 @@ class FileDBBase(Connection):
         joins: list[str] | None = None,
         *,
         select_columns: list[Column | SelectColumn] | None = None,
-    ) -> (View | ModelView[M]):
+    ) -> View | ModelView[M]:
         """Create a view in the database.
 
         When the `columns` argument is a subclass of BadeModel, a ModelView object is returned.
