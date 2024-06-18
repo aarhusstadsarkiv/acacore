@@ -21,7 +21,7 @@ class HistoryEntry(ACABase):
     @classmethod
     def command_history(
         cls,
-        ctx: Context,
+        ctx: Context | str,
         operation: str,
         uuid: UUID4 | None = None,
         data: object | None = None,
@@ -43,16 +43,25 @@ class HistoryEntry(ACABase):
         :return: A `HistoryEntry` instance representing the command history entry.
         """
         command: str
-        current: Context = ctx
-        command_parts: list[str] = []
-        while current:
-            command_parts.insert(0, current.command.name)
-            current = current.parent
-        command = ".".join(command_parts)
+
+        if isinstance(ctx, Context):
+            current: Context = ctx
+            command_parts: list[str] = [current.command.name]
+            while current.parent is not None:
+                current = current.parent
+                command_parts.insert(0, current.command.name)
+            command = ".".join(command_parts)
+        else:
+            command = ctx
 
         operation = f"{command.strip(':.')}:{operation.strip(':')}"
 
-        if add_params_to_data and isinstance(data, dict):
+        if add_params_to_data and not isinstance(ctx, Context):
+            raise TypeError(f"add_params_to_data is not compatible with ctx of type {type(ctx)}")
+
+        if add_params_to_data and data is None:
+            data = {"acacore": __version__, "params": ctx.params}
+        elif add_params_to_data and isinstance(data, dict):
             data |= {"acacore": __version__, "params": ctx.params}
         elif add_params_to_data and isinstance(data, list):
             data.append({"acacore": __version__, "params": ctx.params})
