@@ -283,6 +283,19 @@ class File(BaseModel):
         self.relative_path = self.relative_path.with_name(new_name)
 
     @property
+    def stem(self) -> str:
+        """
+        Get file stem.
+
+        :return: File stem.
+        """
+        return self.relative_path.name
+
+    @stem.setter
+    def stem(self, new_stem: str):
+        self.relative_path = self.relative_path.with_name(new_stem)
+
+    @property
     def suffix(self) -> str:
         """
         Get file suffix.
