@@ -290,18 +290,3 @@ class Siegfried:
             return SiegfriedResult.model_validate_json(process.stdout)
         except ValueError as err:
             raise IdentificationError(err)
-
-    def identify_many(self, paths: list[Path]) -> tuple[tuple[Path, SiegfriedFile]]:
-        """
-        Identify multiple files.
-
-        :param paths: The paths to the files.
-        :raises IdentificationError: If there is an error calling Siegfried or processing its results.
-        :return: A tuple of tuples joining the paths with their SiegfriedFile result
-        """
-        process: CompletedProcess = self.run("-sig", self.signature, "-json", "-multi", "1024", *map(str, paths))
-        try:
-            result = SiegfriedResult.model_validate_json(process.stdout)
-            return tuple(zip(paths, result.files))
-        except ValueError as err:
-            raise IdentificationError(err)
