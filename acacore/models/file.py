@@ -92,7 +92,7 @@ class File(BaseModel):
         cls,
         path: Path,
         root: Path | None = None,
-        siegfried: Siegfried | None = None,
+        siegfried: Siegfried | SiegfriedFile | None = None,
         actions: dict[str, Action] | None = None,
         custom_signatures: list[CustomSignature | None] | None = None,
         *,
@@ -110,7 +110,7 @@ class File(BaseModel):
 
         :param path: The path to the file.
         :param root: Optionally, the root to be used to compute the relative path to the file, defaults to None.
-        :param siegfried: A Siegfried class object to identify the file, defaults to None.
+        :param siegfried: A Siegfried or SiegfriedFile object to identify the file, defaults to None.
         :param actions: A dictionary with PUID keys and Action values to assign an action, defaults to None.
         :param custom_signatures: A list of CustomSignature objects to refine the identification, defaults to None.
         :param uuid: Optionally, a specific UUID to use for the file, defaults to None.
