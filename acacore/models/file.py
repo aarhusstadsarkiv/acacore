@@ -131,6 +131,7 @@ class File(BaseModel):
             processed=processed,
         )
         match_classes: list[TSiegfriedClass] = []
+        action: Action | None = None
 
         if siegfried:
             siegfried_match = file.identify(siegfried, set_match=True).best_match()
@@ -140,7 +141,7 @@ class File(BaseModel):
             file.identify_custom(custom_signatures, set_match=True)
 
         if actions:
-            file.get_action(actions, match_classes)
+            action = file.get_action(actions, match_classes)
 
         if custom_signatures and file.action == "reidentify":
             custom_match = file.identify_custom(custom_signatures)
@@ -151,10 +152,11 @@ class File(BaseModel):
                 if custom_match.extension and file.suffix != custom_match.extension:
                     file.warning.append("extension mismatch")
                 file.warning = file.warning or None
-                file.get_action(actions, match_classes)
+                action = file.get_action(actions, match_classes)
             elif file.action_data.reidentify and file.action_data.reidentify.onfail:
                 file.action = file.action_data.reidentify.onfail
             else:
+                action = None
                 file.action = "manual"
                 file.action_data = ActionData(manual=ManualAction(reason="Re-identify failure", process=""))
                 file.puid = file.signature = file.warning = None
@@ -164,6 +166,10 @@ class File(BaseModel):
 
         if file.action != "ignore" and actions and "*" in actions:
             file = _ignore_if(file, actions["*"].ignore.ignore_if if actions["*"].ignore else [])
+
+        if action and file.warning:
+            file.warning = [w for w in file.warning if w.lower() not in [aw.lower() for aw in action.ignore_warnings]]
+            file.warning = file.warning or None
 
         return file
 
