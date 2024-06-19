@@ -177,7 +177,7 @@ class SiegfriedFile(BaseModel):
     :ivar matches: The list of matches found for the file.
     """
 
-    filename: str
+    filename: Path
     filesize: int
     modified: datetime
     errors: str
