@@ -11,7 +11,7 @@ class ExceptionManager:
     classes passed int the 'allow' argument.
 
     :param allow: Defaults to None.
-    :param *catch: Exception types that should be caught and not allowed to rise.
+    :param catch: Exception types that should be caught and not allowed to rise.
     :ivar exception: The exception that was raised within the context, if any.
     :ivar traceback: The traceback associated with the exception, if any.
     :ivar catch: Tuple of exceptions that should be caught instead of letting them rise.
