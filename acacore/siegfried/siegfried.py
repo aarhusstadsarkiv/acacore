@@ -251,7 +251,7 @@ class Siegfried:
         """
         Run the Siegfried command.
 
-        :param *args: The arguments to be given to Siegfried (excluding the binary path/name).
+        :param args: The arguments to be given to Siegfried (excluding the binary path/name).
         :raises IdentificationError: If Siegfried exits with a non-zero status code.
         :return: A subprocess.CompletedProcess object.
         """
@@ -265,7 +265,6 @@ class Siegfried:
 
         :param signature: The name of signatures provider; one of: "pronom", "loc", "tika", "freedesktop",, defaults
             to None.
-        :param "pronom-tika-loc", "deluxe", "archivematica".:
         :param set_signature: Set to True to automatically change the signature to the newly updated one, defaults
             to True.
         :raises IdentificationError: If Siegfried exits with a non-zero status code.
