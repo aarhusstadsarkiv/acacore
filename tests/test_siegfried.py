@@ -61,23 +61,23 @@ def test_fail(siegfried: Siegfried):
 
 
 def test_identify(siegfried: Siegfried, test_files: Path, test_files_data: dict[str, dict]):
-    for filename, filedata in test_files_data.items():
-        result = siegfried.identify(test_files / filename).files[0]
-        assert result.filesize == filedata["filesize"]
+    for name, data in test_files_data.items():
+        result = siegfried.identify(test_files / name).files[0]
+        assert result.filesize == data["filesize"]
         assert result.matches
-        assert result.matches[0].model_dump() == filedata["matches"]
+        assert result.matches[0].model_dump() == data["matches"]
         assert (
-            result.best_match() is None and filedata["matches"]["id"] is None
-        ) or result.best_match().model_dump() == filedata["matches"]
+            result.best_match() is None and data["matches"]["id"] is None
+        ) or result.best_match().model_dump() == data["matches"]
 
 
 def test_identify_many(siegfried: Siegfried, test_files: Path, test_files_data: dict[str, dict]):
     results = siegfried.identify(*(test_files / filename for filename in test_files_data.keys()))
     assert {f.filename.name for f in results.files} == {*test_files_data.keys()}
     for result in results.files:
-        filedata = test_files_data[result.filename.name]
-        assert result.filesize == filedata["filesize"]
+        file_data = test_files_data[result.filename.name]
+        assert result.filesize == file_data["filesize"]
         assert result.matches
         assert (
-            result.best_match() is None and filedata["matches"]["id"] is None
-        ) or result.best_match().model_dump() == filedata["matches"]
+            result.best_match() is None and file_data["matches"]["id"] is None
+        ) or result.best_match().model_dump() == file_data["matches"]
