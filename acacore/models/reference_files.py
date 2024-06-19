@@ -193,6 +193,7 @@ class Action(ActionData):
     name: str
     description: str | None = None
     action: TActionType
+    ignore_warnings: list[str] = Field(default_factory=list, alias="ignore-warnings")
 
     @property
     def action_data(self) -> ActionData:
