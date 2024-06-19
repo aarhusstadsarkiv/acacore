@@ -183,8 +183,8 @@ class Action(ActionData):
     Follows the format as outlined in the reference files repository. Subclasses ActionData to avoid duplicated
     properties in the File object.
 
-    See Also:
-        https://github.com/aarhusstadsarkiv/reference-files/blob/main/fileformats.schema.json
+    `JSON schema <https://github.com/aarhusstadsarkiv/reference-files/blob/main/fileformats.schema.json>`_
+
     :ivar name: The name of the action.
     :ivar description: The description of the action.
     :ivar action: The type of action.
