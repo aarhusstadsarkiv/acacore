@@ -222,6 +222,10 @@ class SiegfriedResult(BaseModel):
     files: list[SiegfriedFile]
     model_config = ConfigDict(extra="forbid")
 
+    @property
+    def files_dict(self) -> dict[Path, SiegfriedFile]:
+        return {f.filename: f for f in self.files}
+
 
 class Siegfried:
     """
