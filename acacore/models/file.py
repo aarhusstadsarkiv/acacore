@@ -2,6 +2,7 @@ from pathlib import Path
 from re import compile as re_compile
 from uuid import uuid4
 
+from pydantic import BaseModel
 from pydantic import UUID4
 
 from acacore.database.column import DBField
@@ -14,7 +15,6 @@ from acacore.utils.functions import get_eof
 from acacore.utils.functions import image_size
 from acacore.utils.functions import is_binary
 
-from .base import ACABase
 from .identification import Identification
 from .reference_files import Action
 from .reference_files import ActionData
@@ -56,7 +56,7 @@ def _ignore_if(file: "File", ignore_ifs: list[IgnoreIfAction]) -> "File":
     return file
 
 
-class File(ACABase):
+class File(BaseModel):
     """
     File model containing all information used by the rest of the archival suite of tools.
 
@@ -300,7 +300,7 @@ class ArchiveFile(Identification, File):
     """ArchiveFile data model."""
 
 
-class ConvertedFile(ACABase):
+class ConvertedFile(BaseModel):
     file_id: int = DBField(primary_key=True)
     uuid: UUID4 = DBField(primary_key=True)
     status: str

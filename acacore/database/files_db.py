@@ -5,7 +5,8 @@ from sqlite3 import Connection
 from typing import Type
 from uuid import UUID
 
-from acacore.models.base import ACABase
+from pydantic import BaseModel
+
 from acacore.models.file import File
 from acacore.models.history import HistoryEntry
 from acacore.models.metadata import Metadata
@@ -22,18 +23,18 @@ class HistoryEntryPath(HistoryEntry):
     relative_path: Path | None = None
 
 
-class SignatureCount(ACABase):
+class SignatureCount(BaseModel):
     puid: str | None
     signature: str | None
     count: int | None
 
 
-class ChecksumCount(ACABase):
+class ChecksumCount(BaseModel):
     checksum: str
     count: int
 
 
-class ActionCount(ACABase):
+class ActionCount(BaseModel):
     action: TActionType
     count: int
 

@@ -1,7 +1,7 @@
+from pydantic import BaseModel
+
 from acacore.__version__ import __version__
 
-from .base import ACABase
 
-
-class Metadata(ACABase):
+class Metadata(BaseModel):
     version: str = __version__

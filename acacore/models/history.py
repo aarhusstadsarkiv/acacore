@@ -2,16 +2,15 @@ from datetime import datetime
 from logging import Logger
 
 from click import Context
+from pydantic import BaseModel
 from pydantic import Field
 from pydantic import UUID4
 
 from acacore.__version__ import __version__
 from acacore.database.column import DBField
 
-from .base import ACABase
 
-
-class HistoryEntry(ACABase):
+class HistoryEntry(BaseModel):
     uuid: UUID4 | None = DBField(default=None, index=["idx_uuid_history"])
     time: datetime = Field(default_factory=datetime.now)
     operation: str

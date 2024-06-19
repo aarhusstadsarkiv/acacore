@@ -1,11 +1,10 @@
 from typing import Any
 
+from pydantic import BaseModel
 from pydantic import model_validator
 
-from .base import ACABase
 
-
-class Identification(ACABase):
+class Identification(BaseModel):
     puid: str | None
     signature: str | None
     warning: str | None
