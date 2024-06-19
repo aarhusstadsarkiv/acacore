@@ -173,7 +173,7 @@ class File(BaseModel):
 
         return file
 
-    def identify(self, sf: Siegfried, *, set_match: bool = False) -> SiegfriedFile:
+    def identify(self, sf: Siegfried | SiegfriedFile | None, *, set_match: bool = False) -> SiegfriedFile:
         """
         Identify the file using `siegfried`.
 
@@ -181,12 +181,17 @@ class File(BaseModel):
         :param set_match: Set results of Siegfried match if True, defaults to False.
         :return: A dataclass object containing the results from the identification.
         """
-        result = sf.identify(self.get_absolute_path(self.root)).files[0]
-        match = result.best_match()
-        if set_match:
-            self.puid = match.id if match else None
-            self.signature = match.format if match else None
-            self.warning = (match.warning or None) if match else None
+        result: SiegfriedFile
+
+        result = sf.identify(self.get_absolute_path(self.root)).files[0] if isinstance(sf, Siegfried) else sf
+
+        if set_match and (match := result.best_match()):
+            self.puid = match.id
+            self.signature = match.format
+            self.warning = match.warning or None
+        elif set_match:
+            self.puid = self.signature = self.warning = None
+
         return result
 
     def identify_custom(
