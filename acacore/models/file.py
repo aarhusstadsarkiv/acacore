@@ -280,7 +280,7 @@ class File(BaseModel):
 
     @name.setter
     def name(self, new_name: str):
-        self.relative_path = self.relative_path.with_name(new_name).with_suffix(self.suffix)
+        self.relative_path = self.relative_path.with_name(new_name)
 
     @property
     def suffix(self) -> str:
