@@ -277,7 +277,7 @@ class Siegfried:
         if set_signature:
             self.signature = signature_file
 
-    def identify(self, path: str | PathLike) -> SiegfriedResult:
+    def identify(self, *path: str | PathLike) -> SiegfriedResult:
         """
         Identify a file.
 
@@ -285,7 +285,7 @@ class Siegfried:
         :raises IdentificationError: If there is an error calling Siegfried or processing its results.
         :return: A SiegfriedResult object
         """
-        process: CompletedProcess = self.run("-sig", self.signature, "-json", "-multi", "1024", str(path))
+        process: CompletedProcess = self.run("-sig", self.signature, "-json", "-multi", "1024", *map(str, path))
         try:
             return SiegfriedResult.model_validate_json(process.stdout)
         except ValueError as err:
