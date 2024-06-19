@@ -72,9 +72,10 @@ def test_identify(siegfried: Siegfried, test_files: Path, test_files_data: dict[
 
 
 def test_identify_many(siegfried: Siegfried, test_files: Path, test_files_data: dict[str, dict]):
-    results = siegfried.identify_many([test_files / name for name in test_files_data])
-    for [_, result], [filename, filedata] in zip(results, test_files_data.items()):
-        assert result.filename == str(test_files / filename)
+    results = siegfried.identify(*(test_files / filename for filename in test_files_data.keys()))
+    assert {f.filename.name for f in results.files} == {*test_files_data.keys()}
+    for result in results.files:
+        filedata = test_files_data[result.filename.name]
         assert result.filesize == filedata["filesize"]
         assert result.matches
         assert (
