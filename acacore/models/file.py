@@ -130,18 +130,18 @@ class File(BaseModel):
             root=root,
             processed=processed,
         )
-        match_classes: list[TSiegfriedClass] = []
+        file_classes: list[TSiegfriedClass] = []
         action: Action | None = None
 
         if siegfried:
             siegfried_match = file.identify(siegfried, set_match=True).best_match()
-            match_classes.extend(siegfried_match.match_class if siegfried_match else [])
+            file_classes.extend(siegfried_match.match_class if siegfried_match else [])
 
         if custom_signatures and not file.puid:
             file.identify_custom(custom_signatures, set_match=True)
 
         if actions:
-            action = file.get_action(actions, match_classes)
+            action = file.get_action(actions, file_classes)
 
         if custom_signatures and file.action == "reidentify":
             custom_match = file.identify_custom(custom_signatures)
@@ -152,7 +152,7 @@ class File(BaseModel):
                 if custom_match.extension and file.suffix != custom_match.extension:
                     file.warning.append("extension mismatch")
                 file.warning = file.warning or None
-                action = file.get_action(actions, match_classes)
+                action = file.get_action(actions, file_classes)
             elif file.action_data.reidentify and file.action_data.reidentify.onfail:
                 file.action = file.action_data.reidentify.onfail
             else:
