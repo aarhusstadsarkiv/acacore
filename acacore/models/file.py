@@ -181,9 +181,7 @@ class File(BaseModel):
         :param set_match: Set results of Siegfried match if True, defaults to False.
         :return: A dataclass object containing the results from the identification.
         """
-        result: SiegfriedFile
-
-        result = sf.identify(self.get_absolute_path(self.root)).files[0] if isinstance(sf, Siegfried) else sf
+        result: SiegfriedFile = sf.identify(self.get_absolute_path()).files[0] if isinstance(sf, Siegfried) else sf
 
         if set_match and (match := result.best_match()):
             self.puid = match.id
