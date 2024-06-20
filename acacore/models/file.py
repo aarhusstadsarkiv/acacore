@@ -15,7 +15,6 @@ from acacore.utils.functions import get_eof
 from acacore.utils.functions import image_size
 from acacore.utils.functions import is_binary
 
-from .identification import Identification
 from .reference_files import Action
 from .reference_files import ActionData
 from .reference_files import CustomSignature
@@ -318,13 +317,3 @@ class File(BaseModel):
     @suffix.setter
     def suffix(self, new_suffix: str):
         self.relative_path = self.relative_path.with_suffix(new_suffix)
-
-
-class ArchiveFile(Identification, File):
-    """ArchiveFile data model."""
-
-
-class ConvertedFile(BaseModel):
-    file_id: int = DBField(primary_key=True)
-    uuid: UUID4 = DBField(primary_key=True)
-    status: str
