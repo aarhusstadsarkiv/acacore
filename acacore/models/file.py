@@ -9,7 +9,7 @@ from pydantic import UUID4
 from acacore.database.column import DBField
 from acacore.siegfried.siegfried import Siegfried
 from acacore.siegfried.siegfried import SiegfriedFile
-from acacore.siegfried.siegfried import TSiegfriedClass
+from acacore.siegfried.siegfried import TSiegfriedFileClass
 from acacore.utils.functions import file_checksum
 from acacore.utils.functions import get_bof
 from acacore.utils.functions import get_eof
@@ -130,7 +130,7 @@ class File(BaseModel):
             root=root,
             processed=processed,
         )
-        file_classes: list[TSiegfriedClass] = []
+        file_classes: list[TSiegfriedFileClass] = []
         action: Action | None = None
 
         if siegfried:
@@ -245,7 +245,7 @@ class File(BaseModel):
     def get_action(
         self,
         actions: dict[str, Action],
-        file_classes: list[TSiegfriedClass | None] | None = None,
+        file_classes: list[TSiegfriedFileClass | None] | None = None,
         *,
         set_match: bool = True,
     ) -> Action | None:

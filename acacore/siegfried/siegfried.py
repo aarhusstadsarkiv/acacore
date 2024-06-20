@@ -19,7 +19,7 @@ _byte_match_regexp_single = re_compile(r"^byte match at (\d+), *(\d+)( *\([^)]*\
 _byte_match_regexp_multi = re_compile(r"^byte match at \[\[(\d+) +(\d+)]( \[\d+ +\d+])*]( \([^)]*\))?$")
 _extension_match = re_compile(r"^extension match (.+)$")
 TSignature = Literal["pronom", "loc", "tika", "freedesktop", "pronom-tika-loc", "deluxe", "archivematica"]
-TSiegfriedClass = Literal[
+TSiegfriedFileClass = Literal[
     "aggregate",
     "audio",
     "database",
@@ -86,7 +86,7 @@ class SiegfriedMatch(BaseModel):
     format: str  # noqa: A003
     version: str | None = None
     mime: str
-    match_class: list[TSiegfriedClass] | None = Field(None, alias="class")
+    match_class: list[TSiegfriedFileClass] | None = Field(None, alias="class")
     basis: list[str]
     warning: list[str]
     URI: AnyUrl | None = None
