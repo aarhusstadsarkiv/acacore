@@ -255,7 +255,7 @@ class File(BaseModel):
         :param set_match: Set the matched action if True, defaults to False.
         :return: An instance of Action or None if no action is found.
         """
-        identifiers: list[str] = [self.puid, *(file_classes or [])]
+        identifiers: list[str] = [self.puid or "", *(f"!{c}" for c in file_classes or [])]
 
         if self.suffix:
             identifiers.append(f"!ext={''.join(self.get_absolute_path().suffixes)}")
