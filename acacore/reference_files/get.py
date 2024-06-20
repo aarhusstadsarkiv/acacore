@@ -17,7 +17,7 @@ custom_signatures_file: str = "custom_signatures.yml"
 
 
 @lru_cache
-def _get_yaml(url: str) -> Any:
+def _get_yaml(url: str) -> Any:  # noqa: ANN401
     response: HTTPResponse = urlopen(url)
     if response.getcode() != 200:
         raise HTTPError(url, response.getcode(), "", response.headers, response)
