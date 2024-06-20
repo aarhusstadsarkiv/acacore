@@ -180,7 +180,7 @@ class ActionData(NoDefaultsModel):
         Defaults to None.
     """
 
-    convert: list[ConvertAction | None] = None
+    convert: list[ConvertAction] = None
     extract: ExtractAction | None = None
     replace: ReplaceAction | None = None
     manual: ManualAction | None = None
