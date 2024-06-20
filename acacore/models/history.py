@@ -85,13 +85,13 @@ class HistoryEntry(BaseModel):
         :param show_null: Flag indicating whether to include null values in the log message. Default is False.
         """
         if show_null:
-            msg: str = f"{self.operation} {self.uuid=} {self.data=} {self.reason=}"
+            msg: str = f"{self.operation} uuid={self.uuid} data={self.data} reason={self.reason}"
         else:
             msg: str = (
                 f"{self.operation}"
-                + (f" {self.uuid=}" if self.uuid is not None else "")
-                + (f" {self.data=}" if self.data is not None else "")
-                + (f" {self.reason=}" if self.reason is not None else "")
+                + (f" uuid={self.uuid}" if self.uuid is not None else "")
+                + (f" data={self.data}" if self.data is not None else "")
+                + (f" reason={self.reason}" if self.reason is not None else "")
             )
 
         for logger in logger:
