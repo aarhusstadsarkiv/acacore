@@ -94,7 +94,7 @@ class FileDB(FileDBBase):
                 SelectColumn("F.relative_path", str, "relative_path"),
                 *model_to_columns(HistoryEntry),
             ],
-            joins=[f"left join {self.files.name} F on {self.files.name}.UUID = F.uuid"],
+            joins=[f"left join {self.files.name} F on F.UUID = {self.history.name}.uuid"],
         )
         self.identification_warnings = self.create_view(
             "_IdentificationWarnings",
