@@ -215,12 +215,4 @@ class Action(ActionData):
 
         :return: The action data.
         """
-        return ActionData(
-            convert=self.convert,
-            extract=self.extract,
-            replace=self.replace,
-            manual=self.manual,
-            rename=self.rename,
-            ignore=self.ignore,
-            reidentify=self.reidentify,
-        )
+        return ActionData.model_validate(super().model_dump())
