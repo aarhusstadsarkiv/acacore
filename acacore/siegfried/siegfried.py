@@ -267,7 +267,7 @@ class Siegfried:
         """
         Update or fetch signature files.
 
-        :param signature: The name of signatures provider; one of: "pronom", "loc", "tika", "freedesktop",, defaults
+        :param signature: The name of signatures provider; one of: "pronom", "loc", "tika", "freedesktop", defaults
             to None.
         :param set_signature: Set to True to automatically change the signature to the newly updated one, defaults
             to True.

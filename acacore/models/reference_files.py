@@ -31,6 +31,17 @@ ReplaceTemplateEnum: tuple[TReplaceTemplate, ...] = get_type_args(TReplaceTempla
 
 
 class CustomSignature(BaseModel):
+    """
+    Class representing a custom signature used for file identification.
+
+    :param bof: The hexadecimal regex pattern representing the beginning of the file.
+    :param eof: The hexadecimal regex pattern representing the end of the file.
+    :param operator: The operator used for combining the begging and end of file patterns.
+    :param puid: The PUID (PRONOM Unique Identifier) associated with the signature.
+    :param signature: The long name of the signature.
+    :param extension: The file extension associated with the signature.
+    """
+
     bof: str | None = None
     eof: str | None = None
     operator: str | None = None

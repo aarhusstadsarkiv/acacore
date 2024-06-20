@@ -10,8 +10,6 @@ class ExceptionManager:
     Exceptions whose class is explicitly declared in the 'catch' argument are always caught, even if they subclass from
     classes passed int the 'allow' argument.
 
-    :param allow: Defaults to None.
-    :param catch: Exception types that should be caught and not allowed to rise.
     :ivar exception: The exception that was raised within the context, if any.
     :ivar traceback: The traceback associated with the exception, if any.
     :ivar catch: Tuple of exceptions that should be caught instead of letting them rise.
@@ -21,6 +19,10 @@ class ExceptionManager:
     __slots__ = ("exception", "traceback", "catch", "allow")
 
     def __init__(self, *catch: Type[BaseException], allow: Sequence[Type[BaseException]] | None = None) -> None:
+        """
+        :param allow: Defaults to None.
+        :param catch: Exception types that should be caught and not allowed to rise.
+        """  # noqa: D205
         self.exception: BaseException | None = None
         self.traceback: TracebackType | None = None
         self.catch: tuple[Type[BaseException], ...] = catch

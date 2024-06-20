@@ -35,7 +35,6 @@ class HistoryEntry(BaseModel):
         :param operation: The name of the operation for which the command history entry is being created.
         :param uuid: Optional. The UUID associated with the command history entry, defaults to None.
         :param data: Optional. Additional data or parameters associated with the command history entry.
-            It Context object, otherwise None, defaults to None.
         :param reason: Optional. The reason for the command execution, defaults to None.
         :param time: Optional. The timestamp of the command execution, defaults to None.
         :param add_params_to_data: If true, add context parameters to data, defaults to False.

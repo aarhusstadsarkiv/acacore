@@ -246,6 +246,13 @@ class File(BaseModel):
         actions: dict[str, Action],
         match_classes: list[TSiegfriedClass | None] | None = None,
     ) -> Action | None:
+        """
+        Returns the Action matching the file.
+
+        :param actions: A dictionary containing the available actions.
+        :param match_classes: A list of file classes or None.
+        :return: An instance of Action or None if no action is found.
+        """
         action: Action | None = None
 
         identifiers: list[str] = [
@@ -268,14 +275,32 @@ class File(BaseModel):
         return action
 
     def get_absolute_path(self, root: Path | None = None) -> Path:
+        """
+        Get the absolute path of the file.
+
+        Joins the root path and file's relative path or resolves the relative path if the root path is not provided.
+
+        :param root: Optional root path to join with the relative path. If not provided, the file's root path is used.
+        :return: The absolute path.
+        """
         root = root or self.root
         return root.joinpath(self.relative_path) if root else self.relative_path.resolve()
 
     def get_checksum(self) -> str:
+        """
+        Get the checksum of the file.
+
+        :return: The checksum of the file as a hex digest string.
+        """
         self.checksum = file_checksum(self.get_absolute_path(self.root))
         return self.checksum
 
     def get_size(self) -> int:
+        """
+        Returns the size of the file.
+
+        :return: The size of the file in bytes.
+        """
         self.size = self.get_absolute_path(self.root).stat().st_size
         return self.size
 

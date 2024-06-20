@@ -72,6 +72,57 @@ def DBField(
     index: list[str] | None = PydanticUndefined,
     ignore: bool | None = PydanticUndefined,
 ) -> FieldInfo:
+    """
+    A wrapper around ``pydantic.Field`` with added parameters for database specs.
+
+    :param primary_key: Whether the field is a primary key.
+    :param index: A list of indices the field belongs to.
+    :param ignore: Whether the field should be ignored when creating the table spec.
+    :param default: Default value if the field is not set.
+    :param default_factory: A callable to generate the default value, such as ``~datetime.utcnow``.
+    :param alias: The name to use for the attribute when validating or serializing by alias.
+        This is often used for things like converting between snake and camel case.
+    :param alias_priority: Priority of the alias. This affects whether an alias generator is used.
+    :param validation_alias: Like ``alias``, but only affects validation, not serialization.
+    :param serialization_alias: Like `alias`, but only affects serialization, not validation.
+    :param title: Human-readable title.
+    :param description: Human-readable description.
+    :param examples: Example values for this field.
+    :param exclude: Whether to exclude the field from the model serialization.
+    :param discriminator: Field name or Discriminator for discriminating the type in a tagged union.
+    :param deprecated: A deprecation message, an instance of ``warnings.deprecated`` or the
+        ``typing_extensions.deprecated`` backport, or a boolean. If ``True``, a default deprecation message will be
+        emitted when accessing the field.
+    :param json_schema_extra: A dict or callable to provide extra JSON schema properties.
+    :param frozen: Whether the field is frozen. If true, attempts to change the value on an instance will raise an
+        error.
+    :param validate_default: If ``True``, apply validation to the default value every time you create an instance.
+        Otherwise, for performance reasons, the default value of the field is trusted and not validated.
+    :param in_repr: A boolean indicating whether to include the field in the ``__repr__`` output.
+    :param init: Whether the field should be included in the constructor of the dataclass.
+        (Only applies to dataclasses.)
+    :param init_var: Whether the field should _only_ be included in the constructor of the dataclass.
+        (Only applies to dataclasses.)
+    :param kw_only: Whether the field should be a keyword-only argument in the constructor of the dataclass.
+        (Only applies to dataclasses.)
+    :param coerce_numbers_to_str: Whether to enable coercion of any ``Number`` type to ``str`` (not applicable in
+        ``strict`` mode).
+    :param strict: If ``True``, strict validation is applied to the field.
+    :param gt: Greater than. If set, value must be greater than this. Only applicable to numbers.
+    :param ge: Greater than or equal. If set, value must be greater than or equal to this. Only applicable to numbers.
+    :param lt: Less than. If set, value must be less than this. Only applicable to numbers.
+    :param le: Less than or equal. If set, value must be less than or equal to this. Only applicable to numbers.
+    :param multiple_of: Value must be a multiple of this. Only applicable to numbers.
+    :param min_length: Minimum length for iterables.
+    :param max_length: Maximum length for iterables.
+    :param pattern: Pattern for strings (a regular expression).
+    :param allow_inf_nan: Allow ``inf``, ``-inf``, ``nan``. Only applicable to numbers.
+    :param max_digits: Maximum number of allow digits for strings.
+    :param decimal_places: Maximum number of decimal places allowed for numbers.
+    :param union_mode: The strategy to apply when validating a union. Can be ``smart`` (the default), or
+        ``left_to_right``.
+    :return: A FieldInfo object
+    """
     extra: dict = (
         json_schema_extra
         if isinstance(json_schema_extra, dict)
