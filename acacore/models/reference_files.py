@@ -5,6 +5,8 @@ from typing import Literal
 from pydantic import BaseModel
 from pydantic import Field
 
+from .base import NoDefaultsModel
+
 TActionType = Literal[
     "convert",
     "extract",
@@ -37,7 +39,7 @@ class CustomSignature(BaseModel):
     extension: str | None = None
 
 
-class ConvertAction(BaseModel):
+class ConvertAction(NoDefaultsModel):
     """
     Class representing an action to convert a file to a different format.
 
@@ -50,7 +52,7 @@ class ConvertAction(BaseModel):
     outputs: list[str] = Field(min_length=1)
 
 
-class ExtractAction(BaseModel):
+class ExtractAction(NoDefaultsModel):
     """
     Class representing an action to extract data from a file.
 
@@ -64,7 +66,7 @@ class ExtractAction(BaseModel):
     dir_suffix: str
 
 
-class ReplaceAction(BaseModel):
+class ReplaceAction(NoDefaultsModel):
     """
     Class representing a replacement action.
 
@@ -76,7 +78,7 @@ class ReplaceAction(BaseModel):
     template_text: str | None = None
 
 
-class ManualAction(BaseModel):
+class ManualAction(NoDefaultsModel):
     """
     Class representing a manual action in a workflow.
 
@@ -88,7 +90,7 @@ class ManualAction(BaseModel):
     process: str
 
 
-class IgnoreIfAction(BaseModel):
+class IgnoreIfAction(NoDefaultsModel):
     """
     Class representing conditions to ignore a file.
 
@@ -110,7 +112,7 @@ class IgnoreIfAction(BaseModel):
     reason: str | None = None
 
 
-class IgnoreAction(BaseModel):
+class IgnoreAction(NoDefaultsModel):
     """
     Class representing an action to ignore a specific file based on the given reason.
 
@@ -122,7 +124,7 @@ class IgnoreAction(BaseModel):
     ignore_if: list[IgnoreIfAction] = Field(default_factory=list)
 
 
-class ReIdentifyAction(BaseModel):
+class ReIdentifyAction(NoDefaultsModel):
     """
     Class representing an action to ignore a specific file based on the given reason.
 
@@ -133,7 +135,7 @@ class ReIdentifyAction(BaseModel):
     onfail: TActionType | None = None
 
 
-class RenameAction(BaseModel):
+class RenameAction(NoDefaultsModel):
     """
     Class representing an action to change file's extension.
 
@@ -145,7 +147,7 @@ class RenameAction(BaseModel):
     on_extension_mismatch: bool = False
 
 
-class ActionData(BaseModel):
+class ActionData(NoDefaultsModel):
     """
     A class representing the data for a specific action.
 
