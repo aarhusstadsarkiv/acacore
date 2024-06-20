@@ -1,3 +1,4 @@
+from functools import reduce
 from pathlib import Path
 from re import compile as re_compile
 from uuid import uuid4
@@ -244,21 +245,20 @@ class File(BaseModel):
     def get_action(
         self,
         actions: dict[str, Action],
-        match_classes: list[TSiegfriedClass | None] | None = None,
+        file_classes: list[TSiegfriedClass | None] | None = None,
+        *,
+        set_match: bool = True,
     ) -> Action | None:
         """
         Returns the Action matching the file.
 
         :param actions: A dictionary containing the available actions.
-        :param match_classes: A list of file classes or None.
+        :param file_classes: A list of file classes or None.
+        :param set_match: Set the matched action if True, defaults to False.
         :return: An instance of Action or None if no action is found.
         """
-        action: Action | None = None
+        identifiers: list[str] = [self.puid, *(file_classes or [])]
 
-        identifiers: list[str] = [
-            self.puid,
-            *(match_classes or []),
-        ]
         if self.suffix:
             identifiers.append(f"!ext={''.join(self.get_absolute_path().suffixes)}")
         if self.is_binary:
@@ -266,12 +266,11 @@ class File(BaseModel):
         if not self.size:
             identifiers.insert(0, "!empty")
 
-        for identifier in identifiers:
-            action = actions.get(identifier)
-            if action:
-                break
+        action: Action | None = reduce(lambda acc, cur: acc or actions.get(cur, None), identifiers, None)
 
-        self.action, self.action_data = action.action if action else None, action.action_data if action else None
+        if set_match:
+            self.action, self.action_data = action.action if action else None, action.action_data if action else None
+
         return action
 
     def get_absolute_path(self, root: Path | None = None) -> Path:
