@@ -4,6 +4,7 @@ from pathlib import Path
 from re import compile as re_compile
 from subprocess import CompletedProcess
 from subprocess import run
+from typing import get_args as get_type_args
 from typing import Literal
 
 from pydantic import BaseModel
@@ -244,7 +245,7 @@ class Siegfried:
         Initializes a new instance of the Siegfried class.
 
         :param binary: The path or name of the Siegfried binary, defaults to "sf".
-        :param signature: The name of the signature file to use. sig", defaults to "default.sig".
+        :param signature: The name of the signature file to use, defaults to "default.sig".
         :param home: The location of the Siegfried home folder, defaults to None.
         """
         self.binary: str = str(binary)
@@ -273,6 +274,8 @@ class Siegfried:
             to True.
         :raises IdentificationError: If Siegfried exits with a non-zero status code.
         """
+        if signature is not None and signature not in get_type_args(TSignaturesProvider):
+            raise IdentificationError(f"Unknown signature provider {signature!r}")
         signature = signature.lower() if signature else self.signature.removesuffix(".sig")
         signature_file = f"{signature}.sig" if signature else self.signature
 
