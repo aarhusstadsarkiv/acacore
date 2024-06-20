@@ -18,7 +18,7 @@ from acacore.exceptions.files import IdentificationError
 _byte_match_regexp_single = re_compile(r"^byte match at (\d+), *(\d+)( *\([^)]*\))?$")
 _byte_match_regexp_multi = re_compile(r"^byte match at \[\[(\d+) +(\d+)]( \[\d+ +\d+])*]( \([^)]*\))?$")
 _extension_match = re_compile(r"^extension match (.+)$")
-TSignature = Literal["pronom", "loc", "tika", "freedesktop", "pronom-tika-loc", "deluxe", "archivematica"]
+TSignaturesProvider = Literal["pronom", "loc", "tika", "freedesktop", "pronom-tika-loc", "deluxe", "archivematica"]
 TSiegfriedFileClass = Literal[
     "aggregate",
     "audio",
@@ -263,7 +263,7 @@ class Siegfried:
             args = ("-home", str(self.home), *args)
         return _check_process(run([self.binary, *args], capture_output=True, encoding="utf-8"))  # noqa: PLW1510
 
-    def update(self, signature: TSignature | None = None, *, set_signature: bool = True):
+    def update(self, signature: TSignaturesProvider | None = None, *, set_signature: bool = True):
         """
         Update or fetch signature files.
 
