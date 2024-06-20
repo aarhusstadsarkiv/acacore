@@ -75,7 +75,7 @@ class HistoryEntry(BaseModel):
             reason=reason,
         )
 
-    def log(self, level: int, *logger: Logger, show_null: bool = False, **extra: Any):
+    def log(self, level: int, *logger: Logger, show_null: bool = False, show_args: bool = True, **extra: Any):
         """
         Log the event with the given loggers.
 
@@ -84,8 +84,12 @@ class HistoryEntry(BaseModel):
         :param level: The logging level to be used for the log message.
         :param logger: The logger(s) to which the log message will be sent.
         :param show_null: Flag indicating whether to include null values in the log message. Default is False.
+        :param show_args: Flag indicating whether to include arguments (uuid, data, etc.) in the log message. Default is True.
+        :param extra: Additional arguments to be shown in the log message.
         """
-        if show_null:
+        if not show_args:
+            msg: str = self.operation
+        elif show_null:
             msg: str = f"{self.operation} uuid={self.uuid} data={self.data} reason={self.reason}"
         else:
             msg: str = (
