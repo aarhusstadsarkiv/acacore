@@ -75,7 +75,14 @@ class HistoryEntry(BaseModel):
             reason=reason,
         )
 
-    def log(self, level: int, *logger: Logger, show_null: bool = False, show_args: bool = True, **extra: Any):
+    def log(
+        self,
+        level: int,
+        *logger: Logger,
+        show_null: bool = False,
+        show_args: bool = True,
+        **extra: Any,  # noqa: ANN401
+    ):
         """
         Log the event with the given loggers.
 
