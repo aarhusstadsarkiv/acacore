@@ -1,5 +1,6 @@
 from datetime import datetime
 from logging import Logger
+from typing import Any
 
 from click import Context
 from pydantic import BaseModel
@@ -74,7 +75,7 @@ class HistoryEntry(BaseModel):
             reason=reason,
         )
 
-    def log(self, level: int, *logger: Logger, show_null: bool = False):
+    def log(self, level: int, *logger: Logger, show_null: bool = False, **extra: Any):
         """
         Log the event with the given loggers.
 
@@ -91,8 +92,11 @@ class HistoryEntry(BaseModel):
                 f"{self.operation}"
                 + (f" uuid={self.uuid}" if self.uuid is not None else "")
                 + (f" data={self.data}" if self.data is not None else "")
-                + (f" reason={self.reason}" if self.reason is not None else "")
+                + (f" reason={self.reason.strip()}" if self.reason is not None else "")
             )
+
+        for keyword, value in extra.items():
+            msg += f" {keyword.strip()}={value}"
 
         for logger in logger:
             logger.log(level, msg)
