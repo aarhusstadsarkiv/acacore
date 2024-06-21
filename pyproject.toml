@@ -91,6 +91,7 @@ ignore = [
     "D212",    # multi-line docstring summary should start at the first line,
     "D213",    # multi-line docstring summary should start at the second line,
     "D300",    # use triple docstring
+    "D401",    # first line of docstring should be in imperative mood
     "DTZ005",  # datetime.datetime.now() called without a tz argument
     "E712",    # comparison to True/False, we ignore because we use sqlalchemy
     "FBT001",  # boolean arguement in function definition
@@ -124,7 +125,7 @@ force-single-line = true
 order-by-type = false
 
 [tool.ruff.lint.pydocstyle]
-convention = "google"
+convention = "pep257"
 ignore-decorators = ["pytest.fixture"]
 
 [tool.ruff.lint.pycodestyle]
