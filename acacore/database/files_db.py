@@ -13,10 +13,10 @@ from acacore.models.metadata import Metadata
 from acacore.models.reference_files import TActionType
 from acacore.utils.functions import or_none
 
-from . import model_to_columns
 from .base import Column
 from .base import FileDBBase
 from .base import SelectColumn
+from .column import model_to_columns
 
 
 class HistoryEntryPath(HistoryEntry):
@@ -199,6 +199,42 @@ class FileDB(FileDBBase):
                 ),
             ],
         )
+
+    def is_initialised(self, *, check_views: bool = True, check_indices: bool = True) -> bool:
+        tables: set[str] = {n.lower() for [n] in self.execute("select type, name from sqlite_master group by type")}
+        if not {self.files.name.lower(), self.history.name.lower(), self.metadata.name.lower()}.issubset(set(tables)):
+            return False
+
+        if check_views:
+            views: set[str] = {n.lower() for [n] in self.execute("select name from sqlite_master where type = 'view'")}
+            expected_views: set[str] = {
+                self.history_paths.name.lower(),
+                self.identification_warnings.name.lower(),
+                self.checksum_count.name.lower(),
+                self.signature_count.name.lower(),
+                self.actions_count.name.lower(),
+            }
+            if not expected_views.issubset(views):
+                return False
+
+        if check_indices:
+            indices: set[str] = {
+                n.lower() for [n] in self.execute("select name from sqlite_master where type = 'index'")
+            }
+            expected_indices: set[str] = {
+                i.name.lower()
+                for i in [
+                    *self.history_paths.indices,
+                    *self.identification_warnings.indices,
+                    *self.checksum_count.indices,
+                    *self.signature_count.indices,
+                    *self.actions_count.indices,
+                ]
+            }
+            if not expected_indices.issubset(indices):
+                return False
+
+        return True
 
     def init(self):
         self.files.create(True)
