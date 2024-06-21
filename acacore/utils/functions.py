@@ -111,7 +111,7 @@ def get_eof(path: Path, chunk_size: int = 1024) -> bytes:
     """
     with path.open("rb") as f:
         file_size: int = path.stat().st_size
-        f.seek(file_size if chunk_size > file_size else chunk_size)
+        f.seek(0 if chunk_size > file_size else (file_size - chunk_size))
         return f.read(chunk_size)
 
 
