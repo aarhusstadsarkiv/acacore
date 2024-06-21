@@ -23,7 +23,7 @@ jobs:
       - name: ruff check
         run: poetry run ruff check acacore
       - name: ruff format
-        run: poetry run format --check acacore
+        run: poetry run ruff format --check acacore
 
   version:
     name: Test Version
