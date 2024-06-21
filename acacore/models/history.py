@@ -1,6 +1,7 @@
 from datetime import datetime
 from logging import Logger
 from typing import Any
+from typing import Sequence
 
 from click import Context
 from pydantic import BaseModel
@@ -80,30 +81,39 @@ class HistoryEntry(BaseModel):
         level: int,
         *logger: Logger,
         show_null: bool = False,
-        show_args: bool = True,
+        show_args: bool | Sequence[str] = True,
         **extra: Any,  # noqa: ANN401
     ):
         """
         Log the event with the given loggers.
 
-        The message uses the format ``{self.operation} {self.uuid=} {self.data=} {self.reason=}``
+        The message uses the format ``{operation} uuid={uuid} data={data} reason={reason}``.
+        All ``extra`` arguments are added with the format ``{key}={value}``.
 
         :param level: The logging level to be used for the log message.
         :param logger: The logger(s) to which the log message will be sent.
         :param show_null: Flag indicating whether to include null values in the log message. Default is False.
-        :param show_args: Flag indicating whether to include arguments (uuid, data, etc.) in the log message. Default is True.
+        :param show_args: Set to true to show all arguments (uuid, data, reason) in the log message, or a list of
+            argument names to show only specific ones. Default is True.
         :param extra: Additional arguments to be shown in the log message.
         """
         if not show_args:
             msg: str = self.operation
-        elif show_null:
+        elif show_args is True and show_null:
             msg: str = f"{self.operation} uuid={self.uuid} data={self.data} reason={self.reason}"
-        else:
+        elif show_args is True:
             msg: str = (
                 f"{self.operation}"
                 + (f" uuid={self.uuid}" if self.uuid is not None else "")
                 + (f" data={self.data}" if self.data is not None else "")
                 + (f" reason={self.reason.strip()}" if self.reason is not None else "")
+            )
+        else:
+            msg: str = (
+                f"{self.operation}"
+                + (f" uuid={self.uuid}" if "uuid" in show_args else "")
+                + (f" data={self.data}" if "data" in show_args else "")
+                + (f" reason={self.reason.strip()}" if "reason" in show_args else "")
             )
 
         for keyword, value in extra.items():
