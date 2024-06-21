@@ -71,6 +71,7 @@ class File(BaseModel):
     :ivar action: The name of the main action for the file's PUID, if one exists.
     :ivar action_data: The data for the action for the file's PUID, if one exists.
     :ivar processed: True if the file has been processed, false otherwise.
+    :ivar lock: True if the file is locked for edits, false otherwise.
     :ivar root: The root directory for the file.
     """
 
@@ -85,6 +86,7 @@ class File(BaseModel):
     action: TActionType | None = DBField(index=["idx_action"])
     action_data: ActionData | None = None
     processed: bool = False
+    lock: bool = False
     root: Path | None = DBField(None, ignore=True)
 
     @classmethod
