@@ -15,8 +15,7 @@ imagesize = "^1.4.1"
 
 
 [tool.poetry.group.dev.dependencies]
-ruff = "^0.0.286"
-black = "^23.7.0"
+ruff = "^0.4.10"
 pytest = "^7.4.3"
 coverage = "^7.3.2"
 
@@ -24,12 +23,13 @@ coverage = "^7.3.2"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-
-[tool.black]
-line-length = 120
-
 [tool.ruff]
 line-length = 120
+
+[tool.ruff.format]
+line-ending = "lf"
+
+[tool.ruff.lint]
 select = [
     "C",
     "E",
@@ -47,7 +47,7 @@ select = [
     "BLE",
     # "FBT", Will asks us to remove boolean flags
     "A",
-    "COM",
+    # "COM",
     "C4",
     "DTZ",
     "T10",
@@ -118,14 +118,14 @@ exclude = [
     "__init__.py"
 ]
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 combine-as-imports = false
 force-single-line = true
 order-by-type = false
 
-[tool.ruff.pydocstyle]
+[tool.ruff.lint.pydocstyle]
 convention = "google"
 ignore-decorators = ["pytest.fixture"]
 
-[tool.ruff.pycodestyle]
-max-doc-length = 300 # We dont care about length of docstrings
+[tool.ruff.lint.pycodestyle]
+max-doc-length = 300
