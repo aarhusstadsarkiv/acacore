@@ -4,7 +4,7 @@ from typing import Callable
 from typing import Generator
 from typing import TypeVar
 
-from PIL import Image
+from imagesize import get as get_image_size
 
 T = TypeVar("T")
 R = TypeVar("R")
@@ -119,11 +119,12 @@ def image_size(path: Path) -> tuple[int, int]:
     """
     Calculate the size of an image.
 
+    Supports PNG, JPEG, JPEG2000, GIF, TIFF, SVG, Netpbm, WebP.
+
     :param path: The path to the image file.
     :raises FileNotFoundError: If the provided path does not exist.
     :raises IsADirectoryError: If the provided path points to a directory instead of a file.
-    :raises PIL.UnidentifiedImageError: If the provided file is not a valid image file.
+    :raises ValueError: If the provided file is not a valid image file.
     :return: A tuple representing the width and height of the image.
     """
-    with Image.open(path) as i:
-        return i.size
+    return get_image_size(path)
