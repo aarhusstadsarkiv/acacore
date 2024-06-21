@@ -266,7 +266,7 @@ class File(BaseModel):
         if not self.size:
             identifiers.insert(0, "!empty")
 
-        action: Action | None = reduce(lambda acc, cur: acc or actions.get(cur, None), identifiers, None)
+        action: Action | None = reduce(lambda acc, cur: acc or actions.get(cur), identifiers, None)
 
         if set_match:
             self.action, self.action_data = action.action if action else None, action.action_data if action else None

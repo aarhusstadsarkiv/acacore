@@ -10,13 +10,11 @@ from typing import overload
 
 
 @overload
-def setup_logger(log_name: str, *, files: list[Path], streams: list[IO] | None = None) -> Logger:
-    ...
+def setup_logger(log_name: str, *, files: list[Path], streams: list[IO] | None = None) -> Logger: ...
 
 
 @overload
-def setup_logger(log_name: str, *, files: list[Path] | None = None, streams: list[IO]) -> Logger:
-    ...
+def setup_logger(log_name: str, *, files: list[Path] | None = None, streams: list[IO]) -> Logger: ...
 
 
 def setup_logger(log_name: str, *, files: list[Path] | None = None, streams: list[IO] | None = None) -> Logger:

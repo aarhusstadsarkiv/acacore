@@ -83,8 +83,8 @@ class SiegfriedMatch(BaseModel):
     """
 
     ns: str
-    id: str | None  # noqa: A003
-    format: str  # noqa: A003
+    id: str | None
+    format: str
     version: str | None = None
     mime: str
     match_class: list[TSiegfriedFileClass] | None = Field(None, alias="class")

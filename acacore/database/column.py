@@ -232,7 +232,7 @@ def _schema_to_column(name: str, schema: dict, defs: dict[str, dict] | None = No
     defs = defs or {}
     if schema.get("$ref"):
         schema.update(defs[schema.get("$ref", "").removeprefix("#/$defs/")])
-    schema_type: str | None = schema.get("type", None)
+    schema_type: str | None = schema.get("type")
     schema_any_of: list[dict] = schema.get("anyOf", [])
 
     sql_type: str
@@ -241,7 +241,7 @@ def _schema_to_column(name: str, schema: dict, defs: dict[str, dict] | None = No
     not_null: bool = (schema_any_of or [{}])[-1].get("type", None) != "null"
 
     if schema_type:
-        sql_type = _sql_schema_types.get(schema_type, None)
+        sql_type = _sql_schema_types.get(schema_type)
         type_name: str = schema.get("format", schema_type)
 
         if schema.get("enum") is not None:

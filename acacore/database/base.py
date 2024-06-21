@@ -76,12 +76,10 @@ class Cursor:
         return tuple(c.from_entry(v) for c, v in zip(self.columns, vs)) if vs else None
 
     @overload
-    def fetchall(self) -> Generator[dict[str, Any], None, None]:
-        ...
+    def fetchall(self) -> Generator[dict[str, Any], None, None]: ...
 
     @overload
-    def fetchall(self, model: Type[M]) -> Generator[M, None, None]:
-        ...
+    def fetchall(self, model: Type[M]) -> Generator[M, None, None]: ...
 
     def fetchall(self, model: Type[M] | None = None) -> Generator[dict[str, Any] | M, None, None]:
         """
@@ -103,12 +101,10 @@ class Cursor:
         return ({c.alias or c.name: c.from_entry(v) for c, v in zip(select_columns, vs)} for vs in self.cursor)
 
     @overload
-    def fetchmany(self, size: int) -> Generator[dict[str, Any], None, None]:
-        ...
+    def fetchmany(self, size: int) -> Generator[dict[str, Any], None, None]: ...
 
     @overload
-    def fetchmany(self, size: int, model: Type[M]) -> Generator[M, None, None]:
-        ...
+    def fetchmany(self, size: int, model: Type[M]) -> Generator[M, None, None]: ...
 
     def fetchmany(self, size: int, model: Type[M] | None = None) -> Generator[dict[str, Any] | M, None, None]:
         """
@@ -134,12 +130,10 @@ class Cursor:
         )
 
     @overload
-    def fetchone(self) -> dict[str, Any] | None:
-        ...
+    def fetchone(self) -> dict[str, Any] | None: ...
 
     @overload
-    def fetchone(self, model: Type[M]) -> M | None:
-        ...
+    def fetchone(self, model: Type[M]) -> M | None: ...
 
     def fetchone(self, model: Type[M] | None = None) -> dict[str, Any] | M | None:
         """
@@ -232,7 +226,7 @@ class Table:
         :param columns: The columns of the table.
         :param indices: The indices to create in the table, defaults to None.
         """
-        self.connection: "FileDBBase" = connection
+        self.connection: FileDBBase = connection
         self.name: str = name
         self.columns: list[Column] = columns
         self.indices: list[Index] = indices or []
@@ -526,7 +520,7 @@ class KeysTable:
         :param keys: The keys of the table.
         """
         self.keys: list[Column] = keys
-        self.connection: "FileDBBase" = connection
+        self.connection: FileDBBase = connection
         self.name: str = name
         self.columns: list[Column] = [
             Column("KEY", "text", str, str, True, True),
@@ -886,12 +880,10 @@ class FileDBBase(Connection):
             return False
 
     @overload
-    def create_table(self, name: str, columns: Type[M], indices: list[Index] | None = None) -> ModelTable[M]:
-        ...
+    def create_table(self, name: str, columns: Type[M], indices: list[Index] | None = None) -> ModelTable[M]: ...
 
     @overload
-    def create_table(self, name: str, columns: list[Column], indices: list[Index] | None = None) -> Table:
-        ...
+    def create_table(self, name: str, columns: list[Column], indices: list[Index] | None = None) -> Table: ...
 
     def create_table(
         self,
@@ -914,12 +906,10 @@ class FileDBBase(Connection):
             return Table(self, name, columns, indices)
 
     @overload
-    def create_keys_table(self, name: str, columns: Type[M]) -> ModelKeysTable[M]:
-        ...
+    def create_keys_table(self, name: str, columns: Type[M]) -> ModelKeysTable[M]: ...
 
     @overload
-    def create_keys_table(self, name: str, columns: list[Column]) -> KeysTable:
-        ...
+    def create_keys_table(self, name: str, columns: list[Column]) -> KeysTable: ...
 
     def create_keys_table(self, name: str, columns: Type[M] | list[Column]) -> KeysTable | ModelKeysTable[M]:
         """
@@ -948,8 +938,7 @@ class FileDBBase(Connection):
         joins: list[str] | None = None,
         *,
         select_columns: list[Column | SelectColumn] | None = None,
-    ) -> ModelView[M]:
-        ...
+    ) -> ModelView[M]: ...
 
     @overload
     def create_view(
@@ -962,8 +951,7 @@ class FileDBBase(Connection):
         order_by: list[tuple[str | Column, str]] | None = None,
         limit: int | None = None,
         joins: list[str] | None = None,
-    ) -> View:
-        ...
+    ) -> View: ...
 
     def create_view(
         self,

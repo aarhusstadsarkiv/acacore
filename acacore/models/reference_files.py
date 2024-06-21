@@ -1,4 +1,5 @@
 """Data models for the data on saved to different .json files on the `reference_files` repo."""
+
 from typing import get_args as get_type_args
 from typing import Literal
 
