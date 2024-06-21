@@ -20,10 +20,10 @@ jobs:
         with:
           poetry-version: ${{ env.POETRY_VERSION }}
       - run: poetry install
-      - name: ruff
+      - name: ruff check
         run: poetry run ruff check acacore
-      - name: black
-        run: poetry run black --check acacore
+      - name: ruff format
+        run: poetry run format --check acacore
 
   version:
     name: Test Version
