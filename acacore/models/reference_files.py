@@ -17,7 +17,7 @@ TActionType = Literal[
     "ignore",
     "reidentify",
 ]
-TReplaceTemplate = Literal[
+TTemplateType = Literal[
     "text",
     "empty",
     "password-protected",
@@ -28,7 +28,7 @@ TReplaceTemplate = Literal[
 ]
 
 ActionTypeEnum: tuple[TActionType, ...] = get_type_args(TActionType)
-ReplaceTemplateEnum: tuple[TReplaceTemplate, ...] = get_type_args(TReplaceTemplate)
+TemplateTypeEnum: tuple[TTemplateType, ...] = get_type_args(TTemplateType)
 
 
 class CustomSignature(BaseModel):
@@ -78,15 +78,15 @@ class ExtractAction(NoDefaultsModel):
     dir_suffix: str
 
 
-class ReplaceAction(NoDefaultsModel):
+class TemplateAction(NoDefaultsModel):
     """
-    Class representing a replacement action.
+    Class representing a template replacement action.
 
     :ivar template: The replacement template.
     :ivar template_text: Optional. Text to use instead of the default template, if template is set to "text".
     """
 
-    template: TReplaceTemplate
+    template: TTemplateType
     template_text: str | None = None
 
 
@@ -169,7 +169,7 @@ class ActionData(NoDefaultsModel):
         Defaults to None.
     :ivar extract: An ExtractAction object representing the extraction action to be performed.
         Defaults to None.
-    :ivar replace: A ReplaceAction object representing the replacement action to be performed.
+    :ivar template: A TemplateAction object representing the template replacement action to be performed.
         Defaults to None.
     :ivar manual: A ManualAction object representing the manual action to be performed.
         Defaults to None.
@@ -183,7 +183,8 @@ class ActionData(NoDefaultsModel):
 
     convert: list[ConvertAction] | None = None
     extract: ExtractAction | None = None
-    replace: ReplaceAction | None = None
+    # "replace" alias for template to support older versions of fileformats
+    template: TemplateAction | None = Field(None, alias="replace")
     manual: ManualAction | None = None
     rename: RenameAction | None = None
     ignore: IgnoreAction | None = None
