@@ -1,4 +1,3 @@
-from datetime import datetime
 from json import dumps
 from json import loads
 from os import PathLike
@@ -17,7 +16,6 @@ from typing import overload
 from typing import Sequence
 from typing import Type
 from typing import TypeVar
-from typing import Union
 
 from pydantic.main import BaseModel
 
@@ -29,75 +27,66 @@ from .column import Index
 from .column import model_to_columns
 from .column import model_to_indices
 from .column import SelectColumn
+from .column import SQLValue
 
-T = TypeVar("T")
-R = TypeVar("R")
 M = TypeVar("M", bound=BaseModel)
-V = Union[str, bytes, int, float, bool, datetime, None]
 
 
 class Cursor:
     def __init__(
         self,
         cursor: SQLiteCursor,
-        columns: list[Union[Column, SelectColumn]],
+        columns: list[Column | SelectColumn],
         table: Optional["Table"] = None,
     ) -> None:
         """
         A wrapper class for an SQLite cursor that returns its results as dicts (or objects).
 
-        Args:
-            cursor: An SQLite cursor from a select transaction.
-            columns: A list of columns to use to convert the tuples returned by the cursor.
-            table: Optionally, the Table from which on which the select transaction was executed.
+        :param cursor: An SQLite cursor from a select transaction.
+        :param columns: A list of columns to use to convert the tuples returned by the cursor.
+        :param table: Optionally, the Table from which on which the select transaction was executed, defaults to
+            None.
         """
         self.cursor: SQLiteCursor = cursor
-        self.columns: list[Union[Column, SelectColumn]] = columns
-        self.table: Optional[Table] = table
+        self.columns: list[Column | SelectColumn] = columns
+        self.table: Table | None = table
 
     def __iter__(self) -> Generator[dict[str, Any], None, None]:
         return self.fetchall()
 
-    def __next__(self) -> Optional[dict[str, Any]]:
+    def __next__(self) -> dict[str, Any] | None:
         return self.fetchone()
 
     def fetchalltuples(self) -> Generator[tuple, None, None]:
         """
         Fetch all the results from the cursor as tuples and convert the data using the given columns.
 
-        Returns:
-            Generator: A generator for the tuples in the cursor.
+        :return: A generator for the tuples in the cursor.
         """
         return (tuple(c.from_entry(v) for c, v in zip(self.columns, vs)) for vs in self.cursor.fetchall())
 
-    def fetchonetuple(self) -> Optional[tuple]:
+    def fetchonetuple(self) -> tuple | None:
         """
         Fetch one result from the cursor as tuples and convert the data using the given columns.
 
-        Returns:
-            tuple: A single tuple from the cursor.
+        :return: A single tuple from the cursor.
         """
         vs: tuple = self.cursor.fetchone()
 
         return tuple(c.from_entry(v) for c, v in zip(self.columns, vs)) if vs else None
 
     @overload
-    def fetchall(self) -> Generator[dict[str, Any], None, None]:
-        ...
+    def fetchall(self) -> Generator[dict[str, Any], None, None]: ...
 
     @overload
-    def fetchall(self, model: Type[M]) -> Generator[M, None, None]:
-        ...
+    def fetchall(self, model: Type[M]) -> Generator[M, None, None]: ...
 
-    def fetchall(self, model: Optional[Type[M]] = None) -> Generator[Union[dict[str, Any], M], None, None]:
+    def fetchall(self, model: Type[M] | None = None) -> Generator[dict[str, Any] | M, None, None]:
         """
         Fetch all results from the cursor and return them as dicts, with the columns' names/aliases used as keys.
 
-        Args:
-            model: Optionally, a pydantic.BaseModel class to use instead of a dict.
-
-        Returns:
-            Generator: A generator for converted dicts (or models).
+        :param model: Optionally, a pydantic.BaseModel class to use instead of a dict, defaults to None.
+        :return: A generator for converted dicts (or models).
         """
         select_columns: list[SelectColumn] = [SelectColumn.from_column(c) for c in self.columns]
 
@@ -112,23 +101,18 @@ class Cursor:
         return ({c.alias or c.name: c.from_entry(v) for c, v in zip(select_columns, vs)} for vs in self.cursor)
 
     @overload
-    def fetchmany(self, size: int) -> Generator[dict[str, Any], None, None]:
-        ...
+    def fetchmany(self, size: int) -> Generator[dict[str, Any], None, None]: ...
 
     @overload
-    def fetchmany(self, size: int, model: Type[M]) -> Generator[M, None, None]:
-        ...
+    def fetchmany(self, size: int, model: Type[M]) -> Generator[M, None, None]: ...
 
-    def fetchmany(self, size: int, model: Optional[Type[M]] = None) -> Generator[Union[dict[str, Any], M], None, None]:
+    def fetchmany(self, size: int, model: Type[M] | None = None) -> Generator[dict[str, Any] | M, None, None]:
         """
         Fetch `size` results from the cursor and return them as dicts, with the columns' names/aliases used as keys.
 
-        Args:
-            size: The amount of results to fetch.
-            model: Optionally, a pydantic.BaseModel class to use instead of a dict.
-
-        Returns:
-            Generator: A generator for converted dicts (or models).
+        :param size: The amount of results to fetch.
+        :param model: Optionally, a pydantic.BaseModel class to use instead of a dict, defaults to None.
+        :return: A generator for converted dicts (or models).
         """
         select_columns: list[SelectColumn] = [SelectColumn.from_column(c) for c in self.columns]
 
@@ -146,25 +130,17 @@ class Cursor:
         )
 
     @overload
-    def fetchone(self) -> Optional[dict[str, Any]]:
-        ...
+    def fetchone(self) -> dict[str, Any] | None: ...
 
     @overload
-    def fetchone(self, model: Type[M]) -> Optional[M]:
-        ...
+    def fetchone(self, model: Type[M]) -> M | None: ...
 
-    def fetchone(
-        self,
-        model: Optional[Type[M]] = None,
-    ) -> Optional[Union[dict[str, Any], M]]:
+    def fetchone(self, model: Type[M] | None = None) -> dict[str, Any] | M | None:
         """
         Fetch one result from the cursor and return it as a dict, with the columns' names/aliases used as keys.
 
-        Args:
-            model: Optionally, a pydantic.BaseModel class to use instead of a dict.
-
-        Returns:
-            dict: A single dict (or model) if the cursor is not exhausted, otherwise None.
+        :param model: Optionally, a pydantic.BaseModel class to use instead of a dict, defaults to None.
+        :return: A single dict (or model) if the cursor is not exhausted, otherwise None.
         """
         select_columns: list[SelectColumn] = [SelectColumn.from_column(c) for c in self.columns]
         vs: tuple = self.cursor.fetchone()
@@ -187,10 +163,10 @@ class ModelCursor(Cursor, Generic[M]):
         """
         A wrapper class for an SQLite cursor that returns its results as model objects.
 
-        Args:
-            cursor: An SQLite cursor from a select transaction.
-            model: A model representing the objects in the cursor.
-            table: Optionally, the Table from which on which the select transaction was executed.
+        :param cursor: An SQLite cursor from a select transaction.
+        :param model: A model representing the objects in the cursor.
+        :param table: Optionally, the Table from which on which the select transaction was executed, defaults to
+            None.
         """
         super().__init__(cursor, model_to_columns(model), table)
         self.model: Type[M] = model
@@ -198,43 +174,37 @@ class ModelCursor(Cursor, Generic[M]):
     def __iter__(self) -> Generator[M, None, None]:
         return self.fetchall()
 
-    def __next__(self) -> Optional[M]:
+    def __next__(self) -> M | None:
         return self.fetchone()
 
-    def fetchall(self, model: Optional[Type[M]] = None) -> Generator[M, None, None]:
+    def fetchall(self, model: Type[M] | None = None) -> Generator[M, None, None]:
         """
         Fetch all results from the cursor and return them as model objects.
 
-        Args:
-            model: Optionally, a different pydantic.BaseModel class to use instead of the one in the ModelCursor.
-
-        Returns:
-            Generator: A generator for converted objects.
+        :param model: Optionally, a different pydantic.BaseModel class to use instead of the one in the ModelCursor,
+            defaults to None.
+        :return: A generator for converted objects.
         """
         return super().fetchall(model or self.model)
 
-    def fetchmany(self, size: int, model: Optional[Type[M]] = None) -> Generator[Union[dict[str, Any], M], None, None]:
+    def fetchmany(self, size: int, model: Type[M] | None = None) -> Generator[dict[str, Any] | M, None, None]:
         """
         Fetch `size` results from the cursor and return them as model objects.
 
-        Args:
-            size: The amount of results to fetch.
-            model: Optionally, a different pydantic.BaseModel class to use instead of the one in the ModelCursor.
-
-        Returns:
-            Generator: A generator for converted objects.
+        :param size: The amount of results to fetch.
+        :param model: Optionally, a different pydantic.BaseModel class to use instead of the one in the ModelCursor,
+            defaults to None.
+        :return: A generator for converted objects.
         """
         return super().fetchmany(size, model or self.model)
 
-    def fetchone(self, model: Optional[Type[M]] = None) -> Optional[M]:
+    def fetchone(self, model: Type[M] | None = None) -> M | None:
         """
         Fetch one result from the cursor and return it as model object.
 
-        Args:
-            model: Optionally, a different pydantic.BaseModel class to use instead of the one in the ModelCursor.
-
-        Returns:
-            object: A single object if the cursor is not exhausted, otherwise None.
+        :param model: Optionally, a different pydantic.BaseModel class to use instead of the one in the ModelCursor,
+            defaults to None.
+        :return: A single object if the cursor is not exhausted, otherwise None.
         """
         return super().fetchone(model or self.model)
 
@@ -246,18 +216,17 @@ class Table:
         connection: "FileDBBase",
         name: str,
         columns: list[Column],
-        indices: Optional[list[Index]] = None,
+        indices: list[Index] | None = None,
     ) -> None:
         """
         A class that holds information about a table.
 
-        Args:
-            connection: A FileDBBase object connected to the database the table belongs to.
-            name: The name of the table.
-            columns: The columns of the table.
-            indices: The indices to create in the table.
+        :param connection: A FileDBBase object connected to the database the table belongs to.
+        :param name: The name of the table.
+        :param columns: The columns of the table.
+        :param indices: The indices to create in the table, defaults to None.
         """
-        self.connection: "FileDBBase" = connection
+        self.connection: FileDBBase = connection
         self.name: str = name
         self.columns: list[Column] = columns
         self.indices: list[Index] = indices or []
@@ -276,8 +245,7 @@ class Table:
         """
         The list of PRIMARY KEY columns in the table.
 
-        Returns:
-            A list of Column objects whose `primary_key` field is set to True.
+        :return: A list of Column objects whose `primary_key` field is set to True.
         """
         return [c for c in self.columns if c.primary_key]
 
@@ -285,11 +253,8 @@ class Table:
         """
         Generate the expression that creates the table.
 
-        Args:
-            exist_ok: True if existing tables with the same name should be ignored.
-
-        Returns:
-            A CREATE TABLE expression.
+        :param exist_ok: True if existing tables with the same name should be ignored, defaults to True.
+        :return: A CREATE TABLE expression.
         """
         elements: list[str] = ["create table"]
 
@@ -315,25 +280,23 @@ class Table:
 
     def select(
         self,
-        columns: Optional[list[Union[Column, SelectColumn]]] = None,
-        where: Optional[str] = None,
-        order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
-        limit: Optional[int] = None,
-        parameters: Optional[list[Any]] = None,
+        columns: list[Column | SelectColumn] | None = None,
+        where: str | None = None,
+        order_by: list[tuple[str | Column, str]] | None = None,
+        limit: int | None = None,
+        parameters: list[Any | None] | None = None,
     ) -> Cursor:
         """
         Select entries from the table.
 
-        Args:
-            columns: A list of columns to be selected, defaults to all the existing columns in the table.
-            where: A WHERE expression.
-            order_by: A list tuples containing one column (either as Column or string)
-                and a sorting direction ("ASC", or "DESC").
-            limit: The number of rows to limit the results to.
-            parameters: Values to substitute in the SELECT expression, both in the `where` and SelectColumn statements.
-
-        Returns:
-            Cursor: A Cursor object wrapping the SQLite cursor returned by the SELECT transaction.
+        :param columns: A list of columns to be selected, defaults to None.
+        :param where: A WHERE expression, defaults to None.
+        :param order_by: A list tuples containing one column (either as Column or string) and a sorting direction
+            ("ASC", or "DESC"), defaults to None.
+        :param limit: The number of rows to limit the results to, defaults to None.
+        :param parameters: Values to substitute in the SELECT expression, both in the `where` and SelectColumn
+            statements, defaults to None.
+        :return: A Cursor object wrapping the SQLite cursor returned by the SELECT transaction.
         """
         columns = columns or self.columns
         parameters = parameters or []
@@ -362,13 +325,16 @@ class Table:
         """
         Insert a row in the table. Existing rows with matching keys can be ignored or replaced.
 
-        Args:
-            entry: The row to be inserted as a dict with keys matching the names of the columns.
-                The values need not be converted beforehand.
-            exist_ok: True if existing rows with the same keys should be ignored, False otherwise
-            replace: True if existing rows with the same keys should be replaced, False otherwise.
+        :param entry: The row to be inserted as a dict with keys matching the names of the columns.
+            The values need not be converted beforehand.
+        :param exist_ok: True if existing rows with the same keys should be ignored, False otherwise, defaults to
+            False.
+        :param replace: True if existing rows with the same keys should be replaced, False otherwise, defaults to
+            False.
         """
-        values: list[V] = [c.to_entry(entry[c.name]) if c.name in entry else c.default_value() for c in self.columns]
+        values: list[SQLValue] = [
+            c.to_entry(entry[c.name]) if c.name in entry else c.default_value() for c in self.columns
+        ]
 
         elements: list[str] = ["INSERT"]
 
@@ -386,45 +352,47 @@ class Table:
 
     def insert_many(
         self,
-        entries: Union[Sequence[dict[str, Any]], Iterator[dict[str, Any]]],
+        entries: Sequence[dict[str, Any]] | Iterator[dict[str, Any]],
         exist_ok: bool = False,
         replace: bool = False,
     ):
         """
         Insert multiple rows in the table. Existing rows with matching keys can be ignored or replaced.
 
-        Args:
-            entries: The rows to be inserted as a list (or iterator) of dicts with keys matching the names of
-                the columns. The values need not be converted beforehand.
-            exist_ok: True if existing rows with the same keys should be ignored, False otherwise
-            replace: True if existing rows with the same keys should be replaced, False otherwise.
+        :param entries: The rows to be inserted as a list (or iterator) of dicts with keys matching the names of the
+            columns. The values need not be converted beforehand.
+        :param exist_ok: True if existing rows with the same keys should be ignored, False otherwise, defaults to
+            False.
+        :param replace: True if existing rows with the same keys should be replaced, False otherwise, defaults to
+            False.
         """
         for entry in entries:
             self.insert(entry, exist_ok, replace)
 
-    def update(self, entry: dict[str, Any], where: Optional[dict[str, Any]] = None):
+    def update(self, entry: dict[str, Any], where: dict[str, Any] | None = None):
         """
         Update a row.
 
-        If ``where`` is provided, then the WHERE clause is computed with those, otherwise the table's keys and values
-        in ``entry`` are used.
+        If ``where`` is provided, then the WHERE clause is computed with those, otherwise the table's keys and values in
+        ``entry`` are used.
 
-        Raises:
-             OperationalError: If ``where`` is not provided and the table has no keys.
-             KeyError: If ``where`` is not provided and one of the table's keys is missing from ``entry``.
-
-        Args:
-            entry: The values of the row to be updated as a dict with keys matching the names of the columns.
-                The values need not be converted beforehand.
-            where: Optionally, the columns and values to use in the WHERE statement. The values need not be converted
-                beforehand.
+        :param entry: The values of the row to be updated as a dict with keys matching the names of the columns.
+            The values need not be converted beforehand.
+        :param where: Optionally, the columns and values to use in the WHERE statement. The values need not be
+            converted beforehand, defaults to None.
+        :raises OperationalError: If ``where`` is not provided and the table has no keys.
+        :raises KeyError: If ``where`` is not provided and one of the table's keys is missing from ``entry``.
         """
-        values: list[tuple[str, V]] = [(c.name, c.to_entry(entry[c.name])) for c in self.columns if c.name in entry]
+        values: list[tuple[str, SQLValue]] = [
+            (c.name, c.to_entry(entry[c.name])) for c in self.columns if c.name in entry
+        ]
         elements: list[str] = [f"UPDATE {self.name} SET", ", ".join(f"{c} = ?" for c, _ in values)]
         if where:
-            where_entry: dict[str, V] = {c.name: c.to_entry(where[c.name]) for c in self.columns if c.name in where}
+            where_entry: dict[str, SQLValue] = {
+                c.name: c.to_entry(where[c.name]) for c in self.columns if c.name in where
+            }
         elif self.keys:
-            where_entry: dict[str, V] = {c.name: c.to_entry(entry[c.name]) for c in self.keys}
+            where_entry: dict[str, SQLValue] = {c.name: c.to_entry(entry[c.name]) for c in self.keys}
         else:
             raise OperationalError("Table has no keys.")
         elements.append("WHERE")
@@ -440,16 +408,15 @@ class ModelTable(Table, Generic[M]):
         connection: "FileDBBase",
         name: str,
         model: Type[M],
-        indices: Optional[list[Index]] = None,
+        indices: list[Index] | None = None,
     ) -> None:
         """
         A class that holds information about a table using a model.
 
-        Args:
-            connection: A FileDBBase object connected to the database the table belongs to.
-            name: The name of the table.
-            model: The model representing the table.
-            indices: The indices to create in the table.
+        :param connection: A FileDBBase object connected to the database the table belongs to.
+        :param name: The name of the table.
+        :param model: The model representing the table.
+        :param indices: The indices to create in the table, defaults to None.
         """
         super().__init__(connection, name, model_to_columns(model), indices)
         self.model: Type[M] = model
@@ -462,25 +429,23 @@ class ModelTable(Table, Generic[M]):
 
     def select(
         self,
-        model: Optional[Type[M]] = None,
-        where: Optional[str] = None,
-        order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
-        limit: Optional[int] = None,
-        parameters: Optional[list[Any]] = None,
+        model: Type[M] | None = None,
+        where: str | None = None,
+        order_by: list[tuple[str | Column, str]] | None = None,
+        limit: int | None = None,
+        parameters: list[Any] | None = None,
     ) -> ModelCursor[M]:
         """
         Select entries from the table.
 
-        Args:
-            model: A model with the fields to be selected, defaults to the table's model.
-            where: A WHERE expression.
-            order_by: A list tuples containing one column (either as Column or string)
-                and a sorting direction ("ASC", or "DESC").
-            limit: The number of rows to limit the results to.
-            parameters: Values to substitute in the SELECT expression, both in the `where` and SelectColumn statements.
-
-        Returns:
-            Cursor: A Cursor object wrapping the SQLite cursor returned by the SELECT transaction.
+        :param model: A model with the fields to be selected, defaults to None.
+        :param where: A WHERE expression, defaults to None.
+        :param order_by: A list tuples containing one column (either as Column or string) and a sorting direction
+            ("ASC", or "DESC"), defaults to None.
+        :param limit: The number of rows to limit the results to, defaults to None.
+        :param parameters: Values to substitute in the SELECT expression, both in the `where` and SelectColumn
+            statements, defaults to None.
+        :return: A Cursor object wrapping the SQLite cursor returned by the SELECT transaction.
         """
         return ModelCursor[M](
             super()
@@ -500,47 +465,46 @@ class ModelTable(Table, Generic[M]):
         """
         Insert a row in the table. Existing rows with matching keys can be ignored or replaced.
 
-        Args:
-            entry: The row to be inserted as a model object with attributes matching the names of the columns.
-            exist_ok: True if existing rows with the same keys should be ignored, False otherwise
-            replace: True if existing rows with the same keys should be replaced, False otherwise.
+        :param entry: The row to be inserted as a model object with attributes matching the names of the columns.
+        :param exist_ok: True if existing rows with the same keys should be ignored, False otherwise, defaults to
+            False.
+        :param replace: True if existing rows with the same keys should be replaced, False otherwise, defaults to
+            False.
         """
         super().insert(entry.model_dump(), exist_ok, replace)
 
     def insert_many(
         self,
-        entries: Union[Sequence[M], Iterator[M]],
+        entries: Sequence[M] | Iterator[M],
         exist_ok: bool = False,
         replace: bool = False,
     ):
         """
         Insert multiple rows in the table. Existing rows with matching keys can be ignored or replaced.
 
-        Args:
-            entries: The rows to be inserted as a list (or iterator) of model objects with attributes matching
-                the names of the columns.
-            exist_ok: True if existing rows with the same keys should be ignored, False otherwise
-            replace: True if existing rows with the same keys should be replaced, False otherwise.
+        :param entries: The rows to be inserted as a list (or iterator) of model objects with attributes matching
+            the names of the columns.
+        :param exist_ok: True if existing rows with the same keys should be ignored, False otherwise, defaults to
+            False.
+        :param replace: True if existing rows with the same keys should be replaced, False otherwise, defaults to
+            False.
         """
         for entry in entries:
             self.insert(entry, exist_ok, replace)
 
-    def update(self, entry: Union[M, dict[str, Any]], where: Optional[dict[str, Any]] = None):
+    def update(self, entry: M | dict[str, Any], where: dict[str, Any] | None = None):
         """
         Update a row.
 
-        If ``where`` is provided, then the WHERE clause is computed with those, otherwise the table's keys and values
-        in ``entry`` are used.
+        If ``where`` is provided, then the WHERE clause is computed with those, otherwise the table's keys and values in
+        ``entry`` are used.
 
-        Raises:
-             OperationalError: If ``where`` is not provided and the table has no keys.
-             KeyError: If ``where`` is not provided and one of the table's keys is missing from ``entry``.
-
-        Args:
-            entry: The row to be inserted as a model object with attributes matching the names of the columns.
-                Alternatively, a dict with keys matching the names of the columns.
-            where: Optionally, the columns and values to use in the WHERE statement. The values need not be converted
-                beforehand.
+        :param entry: The row to be inserted as a model object with attributes matching the names of the columns.
+            Alternatively, a dict with keys matching the names of the columns.
+        :param where: Optionally, the columns and values to use in the WHERE statement. The values need not be
+            converted beforehand, defaults to None.
+        :raises OperationalError: If ``where`` is not provided and the table has no keys.
+        :raises KeyError: If ``where`` is not provided and one of the table's keys is missing from ``entry``.
         """
         super().update(entry if isinstance(entry, dict) else entry.model_dump(), where)
 
@@ -551,13 +515,12 @@ class KeysTable:
         """
         A class that holds information about a key-value pairs table.
 
-        Args:
-            connection: A FileDBBase object connected to the database the table belongs to.
-            name: The name of the table.
-            keys: The keys of the table.
+        :param connection: A FileDBBase object connected to the database the table belongs to.
+        :param name: The name of the table.
+        :param keys: The keys of the table.
         """
         self.keys: list[Column] = keys
-        self.connection: "FileDBBase" = connection
+        self.connection: FileDBBase = connection
         self.name: str = name
         self.columns: list[Column] = [
             Column("KEY", "text", str, str, True, True),
@@ -577,19 +540,15 @@ class KeysTable:
         """
         Generate the expression that creates the table.
 
-        Args:
-            exist_ok: True if existing tables with the same name should be ignored.
-
-        Returns:
-            A CREATE TABLE expression.
+        :param exist_ok: True if existing tables with the same name should be ignored, defaults to True.
+        :return: A CREATE TABLE expression.
         """
         return Table(self.connection, self.name, self.columns).create_statement(exist_ok)
 
     def create(self, exist_ok: bool = True):
         self.connection.execute(self.create_statement(exist_ok))
 
-    def select(self) -> Optional[dict[str, Any]]:
-        """Return the data in the table as a dictionary."""
+    def select(self) -> dict[str, Any] | None:
         data = dict(self.connection.execute(f"select KEY, VALUE from {self.name}").fetchall())
         return {c.name: c.from_entry(data[c.name]) for c in self.keys} if data else None
 
@@ -599,8 +558,7 @@ class KeysTable:
 
         Existing key-value pairs are replaced if the new entry contains an existing key.
 
-        Args:
-            entry: A dictionary with string keys.
+        :param entry: A dictionary with string keys.
         """
         entry = {k.lower(): v for k, v in entry.items()}
         entry = {c.name: c.to_entry(entry[c.name.lower()]) if c.name in entry else c.default_value() for c in self.keys}
@@ -614,10 +572,9 @@ class ModelKeysTable(KeysTable, Generic[M]):
         """
         A class that holds information about a key-value pairs table using a BaseModel for validation and parsing.
 
-        Args:
-            connection: A FileDBBase object connected to the database the table belongs to.
-            name: The name of the table.
-            model: The model of the table.
+        :param connection: A FileDBBase object connected to the database the table belongs to.
+        :param name: The name of the table.
+        :param model: The model of the table.
         """
         self.model: Type[M] = model
         super().__init__(connection, name, model_to_columns(model))
@@ -625,8 +582,7 @@ class ModelKeysTable(KeysTable, Generic[M]):
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}[{self.model.__name__}]("{self.name}")'
 
-    def select(self) -> Optional[M]:
-        """Return the data in the table using the BaseModel object stored in the object."""
+    def select(self) -> M | None:
         data = super().select()
         return self.model.model_validate(data) if data else None
 
@@ -636,8 +592,7 @@ class ModelKeysTable(KeysTable, Generic[M]):
 
         Existing key-value pairs are replaced if the new entry contains an existing key.
 
-        Args:
-            entry: A BaseModel object.
+        :param entry: A BaseModel object.
         """
         assert issubclass(type(entry), self.model), f"{type(entry).__name__} is not a subclass of {self.model.__name__}"
         super().update(entry.model_dump())
@@ -649,36 +604,35 @@ class View(Table):
         self,
         connection: "FileDBBase",
         name: str,
-        on: Union[Table, str],
-        columns: list[Union[Column, SelectColumn]],
-        where: Optional[str] = None,
-        group_by: Optional[list[Union[Column, SelectColumn]]] = None,
-        order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
-        limit: Optional[int] = None,
-        joins: Optional[list[str]] = None,
+        on: Table | str,
+        columns: list[Column | SelectColumn],
+        where: str | None = None,
+        group_by: list[Column | SelectColumn] | None = None,
+        order_by: list[tuple[str | Column, str]] | None = None,
+        limit: int | None = None,
+        joins: list[str] | None = None,
     ) -> None:
         """
         A subclass of Table to handle views.
 
-        Args:
-            connection: A FileDBBase object connected to the database the view belongs to.
-            name: The name of the table.
-            on: The table the view is based on.
-            columns: The columns of the view.
-            where: A WHERE expression for the view.
-            group_by: A GROUP BY expression for the view.
-            order_by: A list tuples containing one column (either as Column or string)
-                and a sorting direction ("ASC", or "DESC").
-            limit: The number of rows to limit the results to.
-            joins: Join operations to apply to the view.
+        :param connection: A FileDBBase object connected to the database the view belongs to.
+        :param name: The name of the table.
+        :param on: The table the view is based on.
+        :param columns: The columns of the view.
+        :param where: A WHERE expression for the view, defaults to None.
+        :param group_by: A GROUP BY expression for the view, defaults to None.
+        :param order_by: A list tuples containing one column (either as Column or string) and a sorting direction
+            ("ASC", or "DESC"), defaults to None.
+        :param limit: The number of rows to limit the results to, defaults to None.
+        :param joins: Join operations to apply to the view, defaults to None.
         """
         assert columns, "Views must have columns"
         super().__init__(connection, name, columns)
-        self.on: Union[Table, str] = on
+        self.on: Table | str = on
         self.where: str = where
-        self.group_by: list[Union[Column, SelectColumn]] = group_by or []
-        self.order_by: Optional[list[tuple[Union[str, Column], str]]] = order_by or []
-        self.limit: Optional[int] = limit
+        self.group_by: list[Column | SelectColumn] = group_by or []
+        self.order_by: list[tuple[str | Column, str]] | None = order_by or []
+        self.limit: int | None = limit
         self.joins: list[str] = joins or []
 
     def __repr__(self) -> str:
@@ -688,11 +642,8 @@ class View(Table):
         """
         Generate the expression that creates the view.
 
-        Args:
-            exist_ok: True if existing views with the same name should be ignored.
-
-        Returns:
-            A CREATE VIEW expression.
+        :param exist_ok: True if existing views with the same name should be ignored, defaults to True.
+        :return: A CREATE VIEW expression.
         """
         on_table: str = self.on.name if isinstance(self.on, Table) else self.on
         elements: list[str] = ["CREATE VIEW"]
@@ -741,25 +692,23 @@ class View(Table):
 
     def select(
         self,
-        columns: Optional[list[Union[Column, SelectColumn]]] = None,
-        where: Optional[str] = None,
-        order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
-        limit: Optional[int] = None,
-        parameters: Optional[list[Any]] = None,
+        columns: list[Column | SelectColumn] | None = None,
+        where: str | None = None,
+        order_by: list[tuple[str | Column, str]] | None = None,
+        limit: int | None = None,
+        parameters: list[Any] | None = None,
     ) -> Cursor:
         """
         Select entries from the view.
 
-        Args:
-            columns: A list of columns to be selected, defaults to all the existing columns in the view.
-            where: A WHERE expression.
-            order_by: A list tuples containing one column (either as Column or string)
-                and a sorting direction ("ASC", or "DESC").
-            limit: The number of rows to limit the results to.
-            parameters: Values to substitute in the SELECT expression, both in the `where` and SelectColumn statements.
-
-        Returns:
-            Cursor: A Cursor object wrapping the SQLite cursor returned by the SELECT transaction.
+        :param columns: A list of columns to be selected, defaults to None.
+        :param where: A WHERE expression, defaults to None.
+        :param order_by: A list tuples containing one column (either as Column or string) and a sorting direction
+            ("ASC", or "DESC"), defaults to None.
+        :param limit: The number of rows to limit the results to, defaults to None.
+        :param parameters: Values to substitute in the SELECT expression, both in the `where` and SelectColumn
+            statements, defaults to None.
+        :return: A Cursor object wrapping the SQLite cursor returned by the SELECT transaction.
         """
         columns = columns or [
             Column(
@@ -779,16 +728,18 @@ class View(Table):
 
     def insert(self, *_args, **_kwargs):
         """
-        Raises:
-            OperationalError: Insert transactions are not allowed on views.
-        """  # noqa: D205
+        Insert function.
+
+        :raises OperationalError: Insert transactions are not allowed on views.
+        """
         raise OperationalError("Cannot insert into view")
 
     def insert_many(self, *_args, **_kwargs):
         """
-        Raises:
-            OperationalError: Insert transactions are not allowed on views.
-        """  # noqa: D205
+        Insert many.
+
+        :raises OperationalError: Insert transactions are not allowed on views.
+        """
         raise OperationalError("Cannot insert into view")
 
 
@@ -797,30 +748,29 @@ class ModelView(View, Generic[M]):
         self,
         connection: "FileDBBase",
         name: str,
-        on: Union[Table, str],
+        on: Table | str,
         model: Type[M],
-        columns: Optional[list[Union[Column, SelectColumn]]] = None,
-        where: Optional[str] = None,
-        group_by: Optional[list[Union[Column, SelectColumn]]] = None,
-        order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
-        limit: Optional[int] = None,
-        joins: Optional[list[str]] = None,
+        columns: list[Column | SelectColumn] | None = None,
+        where: str | None = None,
+        group_by: list[Column | SelectColumn] | None = None,
+        order_by: list[tuple[str | Column, str]] | None = None,
+        limit: int | None = None,
+        joins: list[str] | None = None,
     ) -> None:
         """
         A subclass of Table to handle views with models.
 
-        Args:
-            connection: A FileDBBase object connected to the database the view belongs to.
-            name: The name of the table.
-            on: The table the view is based on.
-            model: A BaseModel subclass.
-            columns: Optionally, the columns of the view if the model is too limited.
-            where: A WHERE expression for the view.
-            group_by: A GROUP BY expression for the view.
-            order_by: A list tuples containing one column (either as Column or string)
-                and a sorting direction ("ASC", or "DESC").
-            limit: The number of rows to limit the results to.
-            joins: Join operations to apply to the view.
+        :param connection: A FileDBBase object connected to the database the view belongs to.
+        :param name: The name of the table.
+        :param on: The table the view is based on.
+        :param model: A BaseModel subclass.
+        :param columns: Optionally, the columns of the view if the model is too limited, defaults to None.
+        :param where: A WHERE expression for the view, defaults to None.
+        :param group_by: A GROUP BY expression for the view, defaults to None.
+        :param order_by: A list tuples containing one column (either as Column or string) and a sorting direction
+            ("ASC", or "DESC"), defaults to None.
+        :param limit: The number of rows to limit the results to, defaults to None.
+        :param joins: Join operations to apply to the view, defaults to None.
         """
         super().__init__(
             connection,
@@ -840,11 +790,11 @@ class ModelView(View, Generic[M]):
 
     def select(
         self,
-        model: Optional[Type[M]] = None,
-        where: Optional[str] = None,
-        order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
-        limit: Optional[int] = None,
-        parameters: Optional[list[Any]] = None,
+        model: Type[M] | None = None,
+        where: str | None = None,
+        order_by: list[tuple[str | Column, str]] | None = None,
+        limit: int | None = None,
+        parameters: list[Any] | None = None,
     ) -> ModelCursor[M]:
         return ModelCursor[M](
             super()
@@ -864,34 +814,34 @@ class ModelView(View, Generic[M]):
 class FileDBBase(Connection):
     def __init__(
         self,
-        database: Union[str, bytes, PathLike[str], PathLike[bytes]],
+        database: str | bytes | PathLike[str] | PathLike[bytes],
         *,
         timeout: float = 5.0,
         detect_types: int = 0,
-        isolation_level: Optional[str] = "DEFERRED",
+        isolation_level: str | None = "DEFERRED",
         check_same_thread: bool = True,
-        factory: Optional[Type[Connection]] = Connection,
+        factory: Type[Connection] | None = Connection,
         cached_statements: int = 100,
         uri: bool = False,
     ) -> None:
         """
         A wrapper class for an SQLite connection.
 
-        Args:
-            database: The path or URI to the database.
-            timeout: How many seconds the connection should wait before raising an OperationalError
-                when a table is locked.
-            detect_types: Control whether and how data types not natively supported by SQLite are looked up to be
-                converted to Python types.
-            isolation_level: The isolation_level of the connection, controlling whether
-                and how transactions are implicitly opened.
-            check_same_thread: If True (default), ProgrammingError will be raised if the database connection
-                is used by a thread other than the one that created it.
-            factory: A custom subclass of Connection to create the connection with,
-                if not the default Connection class.
-            cached_statements: The number of statements that sqlite3 should internally cache for this connection,
-                to avoid parsing overhead.
-            uri: If set to True, database is interpreted as a URI with a file path and an optional query string.
+        :param database: The path or URI to the database.
+        :param timeout: How many seconds the connection should wait before raising an OperationalError when a table
+            is locked, defaults to 5.0.
+        :param detect_types: Control whether and how data types not natively supported by SQLite are looked up to be
+            converted to Python types, defaults to 0.
+        :param isolation_level: The isolation_level of the connection, controlling whether and how transactions are
+            implicitly opened, defaults to "DEFERRED".
+        :param check_same_thread: If True (default), ProgrammingError will be raised if the database connection is
+            used by a thread other than the one that created it, defaults to True.
+        :param factory: A custom subclass of Connection to create the connection with, if not the default Connection
+            class, defaults to Connection.
+        :param cached_statements: The number of statements that sqlite3 should internally cache for this connection,
+            to avoid parsing overhead, defaults to 100.
+        :param uri: If set to True, database is interpreted as a URI with a file path and an optional query string,
+            defaults to False.
         """
         super().__init__(
             database,
@@ -914,7 +864,7 @@ class FileDBBase(Connection):
         self.close()
 
     @property
-    def path(self) -> Optional[Path]:
+    def path(self) -> Path | None:
         for _, name, filename in self.execute("PRAGMA database_list"):
             if name == "main" and filename:
                 return Path(filename)
@@ -930,27 +880,25 @@ class FileDBBase(Connection):
             return False
 
     @overload
-    def create_table(self, name: str, columns: Type[M], indices: Optional[list[Index]] = None) -> ModelTable[M]:
-        ...
+    def create_table(self, name: str, columns: Type[M], indices: list[Index] | None = None) -> ModelTable[M]: ...
 
     @overload
-    def create_table(self, name: str, columns: list[Column], indices: Optional[list[Index]] = None) -> Table:
-        ...
+    def create_table(self, name: str, columns: list[Column], indices: list[Index] | None = None) -> Table: ...
 
     def create_table(
         self,
         name: str,
-        columns: Union[Type[M], list[Column]],
-        indices: Optional[list[Index]] = None,
-    ) -> Union[Table, ModelTable[M]]:
-        """Create a table in the database.
+        columns: Type[M] | list[Column],
+        indices: list[Index] | None = None,
+    ) -> Table | ModelTable[M]:
+        """
+        Create a table in the database.
 
         When the `columns` argument is a subclass of BadeModel, a ModelTable object is returned.
 
-        Args:
-            name: The name of the table.
-            columns: A BaseModel subclass or the columns of the table.
-            indices: The indices to create in the table.
+        :param name: The name of the table.
+        :param columns: A BaseModel subclass or the columns of the table.
+        :param indices: The indices to create in the table, defaults to None.
         """
         if issubclass(columns, BaseModel):
             return ModelTable[M](self, name, columns, model_to_indices(columns) if indices is None else indices)
@@ -958,26 +906,19 @@ class FileDBBase(Connection):
             return Table(self, name, columns, indices)
 
     @overload
-    def create_keys_table(self, name: str, columns: Type[M]) -> ModelKeysTable[M]:
-        ...
+    def create_keys_table(self, name: str, columns: Type[M]) -> ModelKeysTable[M]: ...
 
     @overload
-    def create_keys_table(self, name: str, columns: list[Column]) -> KeysTable:
-        ...
+    def create_keys_table(self, name: str, columns: list[Column]) -> KeysTable: ...
 
-    def create_keys_table(
-        self,
-        name: str,
-        columns: Union[Type[M], list[Column]],
-    ) -> Union[KeysTable, ModelKeysTable[M]]:
+    def create_keys_table(self, name: str, columns: Type[M] | list[Column]) -> KeysTable | ModelKeysTable[M]:
         """
         Create a key-value pairs table in the database.
 
         When the `columns` argument is a subclass of BaseModel, a ModelTable object is returned.
 
-        Args:
-            name: The name of the table.
-            columns: A BaseModel subclass or the columns of the table.
+        :param name: The name of the table.
+        :param columns: A BaseModel subclass or the columns of the table.
         """
         if issubclass(columns, BaseModel):
             return ModelKeysTable[M](self, name, columns)
@@ -988,60 +929,59 @@ class FileDBBase(Connection):
     def create_view(
         self,
         name: str,
-        on: Union[Table, str],
+        on: Table | str,
         columns: Type[M],
-        where: Optional[str] = None,
-        group_by: Optional[list[Union[Column, SelectColumn]]] = None,
-        order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
-        limit: Optional[int] = None,
-        joins: Optional[list[str]] = None,
+        where: str | None = None,
+        group_by: list[Column | SelectColumn] | None = None,
+        order_by: list[tuple[str | Column, str]] | None = None,
+        limit: int | None = None,
+        joins: list[str] | None = None,
         *,
-        select_columns: Optional[list[Union[Column, SelectColumn]]] = None,
-    ) -> ModelView[M]:
-        ...
+        select_columns: list[Column | SelectColumn] | None = None,
+    ) -> ModelView[M]: ...
 
     @overload
     def create_view(
         self,
         name: str,
-        on: Union[Table, str],
-        columns: list[Union[Column, SelectColumn]],
-        where: Optional[str] = None,
-        group_by: Optional[list[Union[Column, SelectColumn]]] = None,
-        order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
-        limit: Optional[int] = None,
-        joins: Optional[list[str]] = None,
-    ) -> View:
-        ...
+        on: Table | str,
+        columns: list[Column | SelectColumn],
+        where: str | None = None,
+        group_by: list[Column | SelectColumn] | None = None,
+        order_by: list[tuple[str | Column, str]] | None = None,
+        limit: int | None = None,
+        joins: list[str] | None = None,
+    ) -> View: ...
 
     def create_view(
         self,
         name: str,
-        on: Union[Table, str],
-        columns: Union[list[Union[Column, SelectColumn]], Type[M]],
-        where: Optional[str] = None,
-        group_by: Optional[list[Union[Column, SelectColumn]]] = None,
-        order_by: Optional[list[tuple[Union[str, Column], str]]] = None,
-        limit: Optional[int] = None,
-        joins: Optional[list[str]] = None,
+        on: Table | str,
+        columns: list[Column | SelectColumn] | Type[M],
+        where: str | None = None,
+        group_by: list[Column | SelectColumn] | None = None,
+        order_by: list[tuple[str | Column, str]] | None = None,
+        limit: int | None = None,
+        joins: list[str] | None = None,
         *,
-        select_columns: Optional[list[Union[Column, SelectColumn]]] = None,
-    ) -> Union[View, ModelView[M]]:
-        """Create a view in the database.
+        select_columns: list[Column | SelectColumn] | None = None,
+    ) -> View | ModelView[M]:
+        """
+        Create a view in the database.
 
         When the `columns` argument is a subclass of BadeModel, a ModelView object is returned.
 
-        Args:
-            name: The name of the table.
-            on: The table the view is based on.
-            columns: A BaseModel subclass or the columns of the view.
-            where: A WHERE expression for the view.
-            group_by: A GROUP BY expression for the view.
-            order_by: A list tuples containing one column (either as Column or string)
-                and a sorting direction ("ASC", or "DESC").
-            limit: The number of rows to limit the results to.
-            select_columns: Optionally, the columns of the view if a model is given and is too limited.
-            joins: Join operations to apply to the view.
+        :param name: The name of the table.
+        :param on: The table the view is based on.
+        :param columns: A BaseModel subclass or the columns of the view.
+        :param where: A WHERE expression for the view, defaults to None.
+        :param group_by: A GROUP BY expression for the view, defaults to None.
+        :param order_by: A list tuples containing one column (either as Column or string) and a sorting direction
+            ("ASC", or "DESC"), defaults to None.
+        :param limit: The number of rows to limit the results to, defaults to None.
+        :param select_columns: Optionally, the columns of the view if a model is given and is too limited, defaults
+            to None.
+        :param joins: Join operations to apply to the view, defaults to None.
         """
         if issubclass(columns, BaseModel):
             return ModelView[M](self, name, on, columns, select_columns, where, group_by, order_by, limit, joins)

@@ -3,19 +3,176 @@ from functools import reduce
 from json import dumps
 from json import loads
 from pathlib import Path
+from re import Pattern
+from typing import Any
 from typing import Callable
 from typing import Generic
+from typing import Literal
 from typing import Optional
 from typing import Sequence
 from typing import Type
 from typing import TypeVar
-from typing import Union
 from uuid import UUID
 
+from pydantic import AliasChoices
+from pydantic import AliasPath
 from pydantic import BaseModel
+from pydantic import Discriminator
+from pydantic import Field
 
+# noinspection PyProtectedMember
+from pydantic.config import JsonDict
+
+# noinspection PyProtectedMember
+from pydantic.fields import FieldInfo
+from pydantic_core import PydanticUndefined
+
+SQLValue = str | bytes | int | float | bool | datetime | None
 T = TypeVar("T")
-V = Union[str, bytes, int, float, bool, datetime, None]
+V = TypeVar("V", str, bytes, int, float, bool, datetime, None)
+
+
+# noinspection PyPep8Naming
+def DBField(
+    default: Any = PydanticUndefined,  # noqa: ANN401
+    *,
+    default_factory: Callable[[], Any] | None = PydanticUndefined,
+    alias: str | None = PydanticUndefined,
+    alias_priority: int | None = PydanticUndefined,
+    validation_alias: str | AliasPath | AliasChoices | None = PydanticUndefined,
+    serialization_alias: str | None = PydanticUndefined,
+    title: str | None = PydanticUndefined,
+    description: str | None = PydanticUndefined,
+    examples: list[Any] | None = PydanticUndefined,
+    exclude: bool | None = PydanticUndefined,
+    discriminator: str | Discriminator | None = PydanticUndefined,
+    deprecated: str | bool | None = PydanticUndefined,
+    json_schema_extra: JsonDict | Callable[[JsonDict], None] | None = PydanticUndefined,
+    frozen: bool | None = PydanticUndefined,
+    validate_default: bool | None = PydanticUndefined,
+    in_repr: bool = PydanticUndefined,
+    init: bool | None = PydanticUndefined,
+    init_var: bool | None = PydanticUndefined,
+    kw_only: bool | None = PydanticUndefined,
+    pattern: str | Pattern[str] | None = PydanticUndefined,
+    strict: bool | None = PydanticUndefined,
+    coerce_numbers_to_str: bool | None = PydanticUndefined,
+    gt: float | None = PydanticUndefined,
+    ge: float | None = PydanticUndefined,
+    lt: float | None = PydanticUndefined,
+    le: float | None = PydanticUndefined,
+    multiple_of: float | None = PydanticUndefined,
+    allow_inf_nan: bool | None = PydanticUndefined,
+    max_digits: int | None = PydanticUndefined,
+    decimal_places: int | None = PydanticUndefined,
+    min_length: int | None = PydanticUndefined,
+    max_length: int | None = PydanticUndefined,
+    union_mode: Literal["smart", "left_to_right"] = PydanticUndefined,
+    primary_key: bool | None = PydanticUndefined,
+    index: list[str] | None = PydanticUndefined,
+    ignore: bool | None = PydanticUndefined,
+) -> FieldInfo:
+    """
+    A wrapper around ``pydantic.Field`` with added parameters for database specs.
+
+    :param primary_key: Whether the field is a primary key.
+    :param index: A list of indices the field belongs to.
+    :param ignore: Whether the field should be ignored when creating the table spec.
+    :param default: Default value if the field is not set.
+    :param default_factory: A callable to generate the default value, such as ``~datetime.utcnow``.
+    :param alias: The name to use for the attribute when validating or serializing by alias.
+        This is often used for things like converting between snake and camel case.
+    :param alias_priority: Priority of the alias. This affects whether an alias generator is used.
+    :param validation_alias: Like ``alias``, but only affects validation, not serialization.
+    :param serialization_alias: Like `alias`, but only affects serialization, not validation.
+    :param title: Human-readable title.
+    :param description: Human-readable description.
+    :param examples: Example values for this field.
+    :param exclude: Whether to exclude the field from the model serialization.
+    :param discriminator: Field name or Discriminator for discriminating the type in a tagged union.
+    :param deprecated: A deprecation message, an instance of ``warnings.deprecated`` or the
+        ``typing_extensions.deprecated`` backport, or a boolean. If ``True``, a default deprecation message will be
+        emitted when accessing the field.
+    :param json_schema_extra: A dict or callable to provide extra JSON schema properties.
+    :param frozen: Whether the field is frozen. If true, attempts to change the value on an instance will raise an
+        error.
+    :param validate_default: If ``True``, apply validation to the default value every time you create an instance.
+        Otherwise, for performance reasons, the default value of the field is trusted and not validated.
+    :param in_repr: A boolean indicating whether to include the field in the ``__repr__`` output.
+    :param init: Whether the field should be included in the constructor of the dataclass.
+        (Only applies to dataclasses.)
+    :param init_var: Whether the field should _only_ be included in the constructor of the dataclass.
+        (Only applies to dataclasses.)
+    :param kw_only: Whether the field should be a keyword-only argument in the constructor of the dataclass.
+        (Only applies to dataclasses.)
+    :param coerce_numbers_to_str: Whether to enable coercion of any ``Number`` type to ``str`` (not applicable in
+        ``strict`` mode).
+    :param strict: If ``True``, strict validation is applied to the field.
+    :param gt: Greater than. If set, value must be greater than this. Only applicable to numbers.
+    :param ge: Greater than or equal. If set, value must be greater than or equal to this. Only applicable to numbers.
+    :param lt: Less than. If set, value must be less than this. Only applicable to numbers.
+    :param le: Less than or equal. If set, value must be less than or equal to this. Only applicable to numbers.
+    :param multiple_of: Value must be a multiple of this. Only applicable to numbers.
+    :param min_length: Minimum length for iterables.
+    :param max_length: Maximum length for iterables.
+    :param pattern: Pattern for strings (a regular expression).
+    :param allow_inf_nan: Allow ``inf``, ``-inf``, ``nan``. Only applicable to numbers.
+    :param max_digits: Maximum number of allow digits for strings.
+    :param decimal_places: Maximum number of decimal places allowed for numbers.
+    :param union_mode: The strategy to apply when validating a union. Can be ``smart`` (the default), or
+        ``left_to_right``.
+    :return: A FieldInfo object
+    """
+    extra: dict = (
+        json_schema_extra
+        if isinstance(json_schema_extra, dict)
+        else json_schema_extra()
+        if callable(json_schema_extra)
+        else {}
+    )
+    if primary_key is not PydanticUndefined:
+        extra["primary_key"] = primary_key
+    if index is not PydanticUndefined:
+        extra["index"] = index
+    if ignore is not PydanticUndefined:
+        extra["ignore"] = ignore
+
+    return Field(
+        default=default,
+        default_factory=default_factory,
+        alias=alias,
+        alias_priority=alias_priority,
+        validation_alias=validation_alias,
+        serialization_alias=serialization_alias,
+        title=title,
+        description=description,
+        examples=examples,
+        exclude=exclude,
+        discriminator=discriminator,
+        deprecated=deprecated,
+        frozen=frozen,
+        validate_default=validate_default,
+        repr=in_repr,
+        init=init,
+        init_var=init_var,
+        kw_only=kw_only,
+        pattern=pattern,
+        strict=strict,
+        coerce_numbers_to_str=coerce_numbers_to_str,
+        gt=gt,
+        ge=ge,
+        lt=lt,
+        le=le,
+        multiple_of=multiple_of,
+        allow_inf_nan=allow_inf_nan,
+        max_digits=max_digits,
+        decimal_places=decimal_places,
+        min_length=min_length,
+        max_length=max_length,
+        union_mode=union_mode,
+        json_schema_extra=extra,
+    )
+
 
 _sql_schema_types: dict[str, str] = {
     "string": "text",
@@ -28,7 +185,7 @@ _sql_schema_types: dict[str, str] = {
 
 _sql_schema_type_converters: dict[
     str,
-    tuple[Callable[[Optional[T]], V], Callable[[V], Optional[T]]],
+    tuple[Callable[[Any | None], SQLValue], Callable[[SQLValue], Any | None]],
 ] = {
     "path": (str, Path),
     "date-time": (datetime.isoformat, datetime.fromisoformat),
@@ -42,7 +199,7 @@ _sql_schema_type_converters: dict[
 }
 
 
-def _value_to_sql(value: V) -> str:
+def _value_to_sql(value: SQLValue) -> str:
     if value is None:
         return "null"
     elif isinstance(value, str):
@@ -57,7 +214,7 @@ def _value_to_sql(value: V) -> str:
         return str(value)
 
 
-def dump_object(obj: Union[list, tuple, dict, BaseModel]) -> Union[list, dict]:
+def dump_object(obj: list | tuple | dict | BaseModel) -> list | dict:
     if isinstance(obj, dict):
         return obj
     elif issubclass(type(obj), BaseModel):
@@ -68,23 +225,23 @@ def dump_object(obj: Union[list, tuple, dict, BaseModel]) -> Union[list, dict]:
         return obj
 
 
-def _schema_to_column(name: str, schema: dict, defs: Optional[dict[str, dict]] = None) -> Optional["Column"]:
+def _schema_to_column(name: str, schema: dict, defs: dict[str, dict] | None = None) -> Optional["Column"]:
     if schema.get("ignore"):
         return None
 
     defs = defs or {}
     if schema.get("$ref"):
         schema.update(defs[schema.get("$ref", "").removeprefix("#/$defs/")])
-    schema_type: Optional[str] = schema.get("type", None)
+    schema_type: str | None = schema.get("type")
     schema_any_of: list[dict] = schema.get("anyOf", [])
 
     sql_type: str
-    to_entry: Callable[[Optional[T]], V]
-    from_entry: Callable[[V], Optional[T]]
+    to_entry: Callable[[T | None], V]
+    from_entry: Callable[[V], T | None]
     not_null: bool = (schema_any_of or [{}])[-1].get("type", None) != "null"
 
     if schema_type:
-        sql_type = _sql_schema_types.get(schema_type, None)
+        sql_type = _sql_schema_types.get(schema_type)
         type_name: str = schema.get("format", schema_type)
 
         if schema.get("enum") is not None:
@@ -136,7 +293,7 @@ def model_to_indices(model: Type[BaseModel]) -> list["Index"]:
     return [Index(n, cs) for n, cs in indices_merged.items()]
 
 
-class Column(Generic[T]):
+class Column(Generic[T, V]):
     def __init__(
         self,
         name: str,
@@ -146,26 +303,25 @@ class Column(Generic[T]):
         unique: bool = False,
         primary_key: bool = False,
         not_null: bool = False,
-        check: Optional[str] = None,
-        default: Optional[T] = ...,
+        check: str | None = None,
+        default: T | None = ...,
     ) -> None:
         """
         A class that stores information regarding a table column.
 
-        Args:
-            name: The name of the column.
-            sql_type: The SQL type to use when creating a table.
-            to_entry: A function that returns a type supported by SQLite
-                (str, bytes, int, float, bool, datetime, or None).
-            from_entry: A function that takes a type returned by SQLite (str, bytes, int, float, or None)
-                and returns another object.
-            unique: True if the column should be set as UNIQUE.
-            primary_key: True if the column is a PRIMARY KEY.
-            not_null: True if the column is NOT NULL.
-            check: A string containing a CHECK expression, {name} substrings will be substituted
-                with the name of the column.
-            default: The column's DEFAULT value, which will be converted using `to_entry`.
-                Note that None is considered a valid default value; to set it to empty use Ellipsis (...).
+        :param name: The name of the column.
+        :param sql_type: The SQL type to use when creating a table.
+        :param to_entry: A function that returns a type supported by SQLite
+            (str, bytes, int, float, bool, datetime, or None).
+        :param from_entry: A function that takes a type returned by SQLite (str, bytes, int, float, or None) and
+            returns another object.
+        :param unique: True if the column should be set as UNIQUE, defaults to False.
+        :param primary_key: True if the column is a PRIMARY KEY, defaults to False.
+        :param not_null: True if the column is NOT NULL, defaults to False.
+        :param check: A string containing a CHECK expression, {name} substrings will be substituted with the name of
+            the column, defaults to None.
+        :param default: The column's DEFAULT value, which will be converted using `to_entry`.
+            Note that None is considered a valid default value; to set it to empty use Ellipsis (...), defaults to ....
         """
         self.name: str = name
         self.sql_type: str = sql_type
@@ -175,7 +331,7 @@ class Column(Generic[T]):
         self.primary_key: bool = primary_key
         self.not_null: bool = not_null
         self._check: str = check or ""
-        self.default: Union[Optional[T], Ellipsis] = default
+        self.default: T | Ellipsis | None = default
 
     def __repr__(self) -> str:
         return (
@@ -198,18 +354,15 @@ class Column(Generic[T]):
         return self._check.format(name=self.name) if self._check else ""
 
     @check.setter
-    def check(self, check: Optional[str]):
+    def check(self, check: str | None):
         self._check = check
 
     def default_value(self) -> V:
         """
         Get the default value of the column formatted as an SQL parameter.
 
-        Returns:
-            An object of the return type of the column's to_entry function.
-
-        Raises:
-            ValueError: If the column does not have a set default value.
+        :raises ValueError: If the column does not have a set default value.
+        :return: An object of the return type of the column's to_entry function.
         """
         if self.default is Ellipsis:
             raise ValueError("Column does not have a default value")
@@ -219,8 +372,7 @@ class Column(Generic[T]):
         """
         Generate the statement that creates the column.
 
-        Returns:
-            A column statement for a CREATE TABLE expression.
+        :return: A column statement for a CREATE TABLE expression.
         """
         elements: list[str] = [self.name, self.sql_type]
         if self.unique:
@@ -235,38 +387,34 @@ class Column(Generic[T]):
         return " ".join(elements)
 
 
-class SelectColumn(Column):
+class SelectColumn(Column, Generic[T, V]):
     def __init__(
         self,
         name: str,
         from_entry: Callable[[V], T],
-        alias: Optional[str] = None,
+        alias: str | None = None,
     ) -> None:
         """
         A subclass of Column for SELECT expressions that need complex statements and/or an alias.
 
-        Args:
-            name: The name or select statement for the select expression (e.g., count(*)).
-            from_entry: A function that takes a type returned by SQLite (str, bytes, int, float, or None)
-                and returns another object.
-            alias: An alternative name for the select statement, it will be used with the AS keyword
-                and as a key by Cursor.
+        :param name: The name or select statement for the select expression (e.g., count(*)).
+        :param from_entry: A function that takes a type returned by SQLite (str, bytes, int, float, or None) and
+            returns another object.
+        :param alias: An alternative name for the select statement, it will be used with the AS keyword and as a key
+            by Cursor, defaults to None.
         """
         super().__init__(name, "", lambda x: x, from_entry)
-        self.alias: Optional[str] = alias
+        self.alias: str | None = alias
 
     @classmethod
-    def from_column(cls, column: Column, alias: Optional[str] = None) -> "SelectColumn":
+    def from_column(cls, column: Column, alias: str | None = None) -> "SelectColumn":
         """
         Take a Column object and create a SelectColumn with the given alias.
 
-        Args:
-            column: The Column object to be converted.
-            alias: An alternative name for the select statement, it will be used with the AS keyword
-                and as a key by Cursor.
-
-        Returns:
-            SelectColumn: A SelectColumn object.
+        :param column: The Column object to be converted.
+        :param alias: An alternative name for the select statement, it will be used with the AS keyword and as a key
+            by Cursor, defaults to None.
+        :return: A SelectColumn object.
         """
         select_column = SelectColumn(column.name, column.from_entry, alias)
         select_column.sql_type = column.sql_type
@@ -287,10 +435,9 @@ class Index:
         """
         A class that stores information regarding an index.
 
-        Args:
-            name: The name of the index
-            columns: The list of columns that the index applies to.
-            unique: Whether the index is unique or not.
+        :param name: The name of the index.
+        :param columns: The list of columns that the index applies to.
+        :param unique: Whether the index is unique or not, defaults to False.
         """
         self.name: str = name
         self.columns: list[Column] = list(columns)
@@ -309,12 +456,9 @@ class Index:
         """
         Generate the expression that creates the index.
 
-        Args:
-            table: The name of the table.
-            exist_ok: True if existing tables with the same name should be ignored.
-
-        Returns:
-            A CREATE TABLE expression.
+        :param table: The name of the table.
+        :param exist_ok: True if existing tables with the same name should be ignored, defaults to True.
+        :return: A CREATE TABLE expression.
         """
         return (
             f"create {'unique' if self.unique else ''} index {'if not exists' if exist_ok else ''} {self.name}"

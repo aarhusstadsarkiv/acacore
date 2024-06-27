@@ -1,2 +1,2 @@
 class ACAException(Exception):
-    pass
+    """Base class for acacore exceptions."""

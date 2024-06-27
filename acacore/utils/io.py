@@ -5,16 +5,10 @@ binary_units = ["B", "KiB", "MiB", "GiB", "TiB"]
 
 def size_fmt(size: float) -> str:
     """
-    Formats a file size in binary multiples to a human readable string.
+    Formats a file size in binary multiples to a human-readable string.
 
-    Parameters
-    ----------
-    size:
-        The file size in bytes.
-
-    Returns:
-    -------
-    Human readable string representing size in binary multiples.
+    :param size: The file size in bytes.
+    :return: Human-readable string representing size in binary multiples.
     """
     unit: int = int(log2(size) // 10)
     unit = unit if unit < len(binary_units) else len(binary_units) - 1
