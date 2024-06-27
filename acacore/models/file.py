@@ -84,7 +84,7 @@ class File(BaseModel):
     signature: str | None
     warning: list[str] | None = None
     action: TActionType | None = DBField(index=["idx_action"])
-    action_data: ActionData = ActionData()
+    action_data: ActionData = Field(default_factory=ActionData)
     processed: bool = False
     lock: bool = False
     root: Path | None = DBField(None, ignore=True)
