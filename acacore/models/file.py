@@ -84,7 +84,7 @@ class File(BaseModel):
     signature: str | None
     warning: list[str] | None = None
     action: TActionType | None = DBField(index=["idx_action"])
-    action_data: ActionData | None = None
+    action_data: ActionData = ActionData()
     processed: bool = False
     lock: bool = False
     root: Path | None = DBField(None, ignore=True)
@@ -269,7 +269,7 @@ class File(BaseModel):
         action: Action | None = reduce(lambda acc, cur: acc or actions.get(cur), identifiers, None)
 
         if set_match:
-            self.action, self.action_data = action.action if action else None, action.action_data if action else None
+            self.action, self.action_data = action.action if action else None, action.action_data if action else ActionData()
 
         return action
 
