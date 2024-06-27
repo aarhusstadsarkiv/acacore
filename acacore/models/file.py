@@ -4,6 +4,7 @@ from re import compile as re_compile
 from uuid import uuid4
 
 from pydantic import BaseModel
+from pydantic import Field
 from pydantic import UUID4
 
 from acacore.database.column import DBField
