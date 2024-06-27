@@ -94,7 +94,7 @@ class File(BaseModel):
     
     @field_validator("action_data")
     @classmethod
-    def _validate_action_data(cls, v: None | dict) -> dict
+    def _validate_action_data(cls, v: None | dict) -> dict:
         return {} if v is None else v
 
     @classmethod
