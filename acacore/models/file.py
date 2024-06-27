@@ -1,8 +1,10 @@
 from functools import reduce
 from pathlib import Path
 from re import compile as re_compile
+from typing import Any
 from uuid import uuid4
 
+from pydantic import field_validator
 from pydantic import BaseModel
 from pydantic import Field
 from pydantic import UUID4
@@ -89,6 +91,11 @@ class File(BaseModel):
     processed: bool = False
     lock: bool = False
     root: Path | None = DBField(None, ignore=True)
+    
+    @field_validator("action_data")
+    @classmethod
+    def _validate_action_data(cls, v: None | dict) -> dict
+        return {} if v is None else v
 
     @classmethod
     def from_file(
