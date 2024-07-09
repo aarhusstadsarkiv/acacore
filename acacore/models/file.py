@@ -1,12 +1,11 @@
 from functools import reduce
 from pathlib import Path
 from re import compile as re_compile
-from typing import Any
 from uuid import uuid4
 
-from pydantic import field_validator
 from pydantic import BaseModel
 from pydantic import Field
+from pydantic import field_validator
 from pydantic import UUID4
 
 from acacore.database.column import DBField
@@ -91,7 +90,8 @@ class File(BaseModel):
     processed: bool = False
     lock: bool = False
     root: Path | None = DBField(None, ignore=True)
-    
+
+    # noinspection PyNestedDecorators
     @field_validator("action_data")
     @classmethod
     def _validate_action_data(cls, v: None | dict) -> dict:
@@ -277,7 +277,10 @@ class File(BaseModel):
         action: Action | None = reduce(lambda acc, cur: acc or actions.get(cur), identifiers, None)
 
         if set_match:
-            self.action, self.action_data = action.action if action else None, action.action_data if action else ActionData()
+            self.action, self.action_data = (
+                action.action if action else None,
+                action.action_data if action else ActionData(),
+            )
 
         return action
 
