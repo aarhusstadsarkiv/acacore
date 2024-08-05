@@ -203,8 +203,9 @@ class FileDB(FileDBBase):
             ],
         )
 
-        if self.is_initialised() and check_version:
-            is_latest(self, raise_on_difference=True)
+        if self.is_initialised():
+            if check_version:
+                is_latest(self, raise_on_difference=True)
         else:
             self.init()
 
