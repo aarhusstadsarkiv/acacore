@@ -36,7 +36,8 @@ def get_upgrade_function(current_version: Version, latest_version: Version) -> C
 
 # noinspection SqlResolve
 def upgrade_1to2(db: FileDB) -> Version:
-    db.execute("alter table Files add column lock boolean default false")
+    if not db.execute("select 1 from pragma_table_info('Files') where name = 'lock'").fetchone():
+        db.execute("alter table Files add column lock boolean default false")
     db.execute("update Files set lock = false where lock is null")
     db.execute("update Files set action = 'template' where action = 'replace'")
     for file in db.files.select():
