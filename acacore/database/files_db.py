@@ -17,6 +17,7 @@ from .base import Column
 from .base import FileDBBase
 from .base import SelectColumn
 from .column import model_to_columns
+from .update import is_latest
 
 
 class HistoryEntryPath(HistoryEntry):
@@ -199,6 +200,11 @@ class FileDB(FileDBBase):
                 ),
             ],
         )
+
+        if self.is_initialised():
+            is_latest(self, raise_on_difference=True)
+        else:
+            self.init()
 
     def is_initialised(self, *, check_views: bool = True, check_indices: bool = True) -> bool:
         tables: set[str] = {n.lower() for [n] in self.execute("select type, name from sqlite_master group by type")}
