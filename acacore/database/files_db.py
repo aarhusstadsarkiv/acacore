@@ -202,7 +202,7 @@ class FileDB(FileDBBase):
             ],
         )
 
-        if self.is_initialised():
+        if self.is_initialised(check_views=False, check_indices=False):
             if check_version:
                 from acacore.database.update import is_latest
 
