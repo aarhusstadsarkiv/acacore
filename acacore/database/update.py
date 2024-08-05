@@ -68,7 +68,7 @@ def is_latest(db: FileDB, *, raise_on_difference: bool = False) -> bool:
 
     if current_version > latest_version:
         raise DatabaseError(f"Database version is greater than latest version: {current_version} > {latest_version}")
-    elif current_version < latest_version and raise_on_difference:
+    if current_version < latest_version and raise_on_difference:
         raise DatabaseError(f"Database version is lower than latest version: {current_version} < {latest_version}")
 
     return current_version == latest_version
