@@ -258,6 +258,12 @@ class FileDB(FileDBBase):
         self.metadata.update(self.metadata.model())
         self.commit()
 
+    def upgrade(self):
+        """Upgrade the database to the latest version."""
+        from acacore.database.upgrade import upgrade
+
+        upgrade(self)
+
     def is_empty(self) -> bool:
         return not self.files.select(limit=1).fetchone()
 
