@@ -172,7 +172,7 @@ def test_database_keys_tables(database_path: Path):
     assert isinstance(metadata, db.metadata.model)
     assert metadata.version == __version__
 
-    metadata.version = __version__ + "-test"
+    metadata.version = __version__ + "-1"
     db.metadata.update(metadata)
     db.commit()
 
