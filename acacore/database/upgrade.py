@@ -8,7 +8,7 @@ from acacore.__version__ import __version__
 from .files_db import FileDB
 
 __all__ = [
-    "update",
+    "upgrade",
     "is_latest",
 ]
 
@@ -20,31 +20,31 @@ def get_db_version(db: FileDB) -> Version:
 def set_db_version(db: FileDB, version: Version) -> Version:
     metadata = db.metadata.select()
     metadata.version = str(version)
-    db.metadata.update(metadata)
+    db.metadata.upgrade(metadata)
     db.commit()
     return version
 
 
-def get_update_function(current_version: Version, latest_version: Version) -> Callable[[FileDB], Version]:
+def get_upgrade_function(current_version: Version, latest_version: Version) -> Callable[[FileDB], Version]:
     if current_version < Version("2.0.0"):
-        return update_1to2
+        return upgrade_1to2
     elif current_version < latest_version:
-        return update_last
+        return upgrade_last
     else:
         return lambda _: latest_version
 
 
 # noinspection SqlResolve
-def update_1to2(db: FileDB) -> Version:
+def upgrade_1to2(db: FileDB) -> Version:
     db.execute("alter table Files add column lock boolean default false")
     db.execute("update Files set lock = false where lock is null")
     db.execute("update Files set action = 'template' where action = 'replace'")
     for file in db.files.select():
-        db.files.update(file)
+        db.files.upgrade(file)
     return set_db_version(db, Version("2.0.0"))
 
 
-def update_last(db: FileDB) -> Version:
+def upgrade_last(db: FileDB) -> Version:
     db.init()
     return set_db_version(db, Version(__version__))
 
@@ -74,9 +74,9 @@ def is_latest(db: FileDB, *, raise_on_difference: bool = False) -> bool:
     return current_version == latest_version
 
 
-def update(db: FileDB):
+def upgrade(db: FileDB):
     """
-    Update a database to the latest version of acacore.
+    Upgrade a database to the latest version of acacore.
 
     :param db: A ``FileDB`` object representing the database.
     """
@@ -90,5 +90,5 @@ def update(db: FileDB):
     latest_version: Version = Version(__version__)
 
     while current_version < latest_version:
-        update_function = get_update_function(current_version, latest_version)
+        update_function = get_upgrade_function(current_version, latest_version)
         current_version = update_function(db)
