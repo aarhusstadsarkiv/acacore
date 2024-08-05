@@ -3,6 +3,7 @@
 from typing import get_args as get_type_args
 from typing import Literal
 
+from pydantic import AliasChoices
 from pydantic import BaseModel
 from pydantic import Field
 
@@ -184,7 +185,7 @@ class ActionData(NoDefaultsModel):
     convert: list[ConvertAction] | None = None
     extract: ExtractAction | None = None
     # "replace" alias for template to support older versions of fileformats
-    template: TemplateAction | None = Field(None, alias="replace")
+    template: TemplateAction | None = Field(None, validation_alias=AliasChoices("template", "replace"))
     manual: ManualAction | None = None
     rename: RenameAction | None = None
     ignore: IgnoreAction | None = None
