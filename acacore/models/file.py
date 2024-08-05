@@ -92,7 +92,7 @@ class File(BaseModel):
     root: Path | None = DBField(None, ignore=True)
 
     # noinspection PyNestedDecorators
-    @field_validator("action_data")
+    @field_validator("action_data", mode="before")
     @classmethod
     def _validate_action_data(cls, v: None | dict) -> dict:
         return {} if v is None else v
