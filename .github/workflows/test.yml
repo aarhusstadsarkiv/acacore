@@ -4,12 +4,26 @@ on:
   push
 
 env:
-  PYTHON_VERSION: 3.9.18
-  POETRY_VERSION: 1.6.1
+  PYTHON_VERSION: 3.11.5
+  POETRY_VERSION: 1.8.2
 
 jobs:
   linting:
-    uses: aarhusstadsarkiv/acautils/.github/workflows/linting_ruff-mypy.yml@main
+    name: Check Linting & Types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - uses: abatilo/actions-poetry@v2
+        with:
+          poetry-version: ${{ env.POETRY_VERSION }}
+      - run: poetry install
+      - name: ruff check
+        run: poetry run ruff check acacore
+      - name: ruff format
+        run: poetry run ruff format --check acacore
 
   version:
     name: Test Version

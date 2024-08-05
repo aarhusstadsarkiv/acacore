@@ -1,22 +1,22 @@
 [tool.poetry]
 name = "acacore"
-version = "1.2.0"
+version = "2.0.0"
 description = ""
 authors = ["Matteo Campinoti <matteo.campinoti94@gmail.com>"]
 license = "GPL-3.0"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.9"
-pydantic = "^2.7.2"
+python = "^3.11"
+pydantic = "^2.8.2"
 pyyaml = "^6.0.1"
-pillow = "^10.3.0"
 click = "^8.1.7"
+imagesize = "^1.4.1"
+packaging = "^24.1"
 
 
 [tool.poetry.group.dev.dependencies]
-ruff = "^0.0.286"
-black = "^23.7.0"
+ruff = "^0.4.10"
 pytest = "^7.4.3"
 coverage = "^7.3.2"
 
@@ -24,12 +24,13 @@ coverage = "^7.3.2"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-
-[tool.black]
-line-length = 120
-
 [tool.ruff]
 line-length = 120
+
+[tool.ruff.format]
+line-ending = "lf"
+
+[tool.ruff.lint]
 select = [
     "C",
     "E",
@@ -47,7 +48,7 @@ select = [
     "BLE",
     # "FBT", Will asks us to remove boolean flags
     "A",
-    "COM",
+    # "COM",
     "C4",
     "DTZ",
     "T10",
@@ -91,6 +92,8 @@ ignore = [
     "D212",    # multi-line docstring summary should start at the first line,
     "D213",    # multi-line docstring summary should start at the second line,
     "D300",    # use triple docstring
+    "D401",    # first line of docstring should be in imperative mood
+    "DTZ005",  # datetime.datetime.now() called without a tz argument
     "E712",    # comparison to True/False, we ignore because we use sqlalchemy
     "FBT001",  # boolean arguement in function definition
     "N802",    # name of function should be lower case
@@ -117,14 +120,14 @@ exclude = [
     "__init__.py"
 ]
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 combine-as-imports = false
 force-single-line = true
 order-by-type = false
 
-[tool.ruff.pydocstyle]
-convention = "google"
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
 ignore-decorators = ["pytest.fixture"]
 
-[tool.ruff.pycodestyle]
-max-doc-length = 300 # We dont care about length of docstrings
+[tool.ruff.lint.pycodestyle]
+max-doc-length = 300

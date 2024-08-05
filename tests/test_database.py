@@ -1,4 +1,6 @@
 from pathlib import Path
+from shutil import copy2
+from sqlite3 import DatabaseError
 from sqlite3 import IntegrityError
 from sqlite3 import OperationalError
 from uuid import uuid4
@@ -17,14 +19,28 @@ from acacore.database.files_db import ActionCount
 from acacore.database.files_db import ChecksumCount
 from acacore.database.files_db import HistoryEntryPath
 from acacore.database.files_db import SignatureCount
+from acacore.database.upgrade import upgrade
 from acacore.models.file import File
 from acacore.models.history import HistoryEntry
 from acacore.models.reference_files import Action
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def database_path(temp_folder: Path) -> Path:
-    return temp_folder / "files.db"
+    path: Path = temp_folder / "files.db"
+    path.unlink(missing_ok=True)
+    with FileDB(path) as db:
+        db.init()
+    return path
+
+
+@pytest.fixture(scope="session")
+def test_databases(test_folder: Path, temp_folder: Path) -> list[Path]:
+    files: list[Path] = [f for f in test_folder.iterdir() if f.is_file() and f.suffix == ".db"]
+    files_copy: list[Path] = [temp_folder / f"test database {f.name}" for f in files]
+    for src, dst in zip(files, files_copy):
+        copy2(src, dst)
+    return files_copy
 
 
 @pytest.fixture(scope="session")
@@ -161,7 +177,7 @@ def test_database_keys_tables(database_path: Path):
     assert isinstance(metadata, db.metadata.model)
     assert metadata.version == __version__
 
-    metadata.version = __version__ + "-test"
+    metadata.version = __version__ + "-1"
     db.metadata.update(metadata)
     db.commit()
 
@@ -244,3 +260,13 @@ def test_history(database_path: Path):
     history2 = db.history.select(where="TIME = ?", parameters=[history.time.isoformat()]).fetchone()
 
     assert history == history2
+
+
+def test_database_upgrade(test_databases: list[Path]):
+    for database_path in test_databases:
+        with pytest.raises(DatabaseError):
+            FileDB(database_path)
+
+        with FileDB(database_path, check_version=False) as database:
+            upgrade(database)
+            assert database.metadata.select().version == __version__

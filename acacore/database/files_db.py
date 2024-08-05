@@ -2,44 +2,39 @@ from datetime import datetime
 from os import PathLike
 from pathlib import Path
 from sqlite3 import Connection
-from typing import Optional
 from typing import Type
-from typing import Union
 from uuid import UUID
 
-from acacore.models.base import ACABase
+from pydantic import BaseModel
+
 from acacore.models.file import File
 from acacore.models.history import HistoryEntry
 from acacore.models.metadata import Metadata
 from acacore.models.reference_files import TActionType
 from acacore.utils.functions import or_none
 
-from . import model_to_columns
 from .base import Column
 from .base import FileDBBase
 from .base import SelectColumn
+from .column import model_to_columns
 
 
 class HistoryEntryPath(HistoryEntry):
-    relative_path: Optional[Path] = None
+    relative_path: Path | None = None
 
 
-class SignatureCount(ACABase):
-    """Signature count datamodel."""
-
-    puid: Optional[str]
-    signature: Optional[str]
-    count: Optional[int]
+class SignatureCount(BaseModel):
+    puid: str | None
+    signature: str | None
+    count: int | None
 
 
-class ChecksumCount(ACABase):
-    """Signature count datamodel."""
-
+class ChecksumCount(BaseModel):
     checksum: str
     count: int
 
 
-class ActionCount(ACABase):
+class ActionCount(BaseModel):
     action: TActionType
     count: int
 
@@ -47,34 +42,36 @@ class ActionCount(ACABase):
 class FileDB(FileDBBase):
     def __init__(
         self,
-        database: Union[str, bytes, PathLike[str], PathLike[bytes]],
+        database: str | bytes | PathLike[str] | PathLike[bytes],
         *,
         timeout: float = 5.0,
         detect_types: int = 0,
-        isolation_level: Optional[str] = "DEFERRED",
+        isolation_level: str | None = "DEFERRED",
         check_same_thread: bool = True,
-        factory: Optional[Type[Connection]] = Connection,
+        factory: Type[Connection] | None = Connection,
         cached_statements: int = 100,
         uri: bool = False,
+        check_version: bool = True,
     ) -> None:
         """
         A class that handles the SQLite database used by AArhus City Archives to process data archives.
 
-        Args:
-            database: The path or URI to the database.
-            timeout: How many seconds the connection should wait before raising an OperationalError
-                when a table is locked.
-            detect_types: Control whether and how data types not natively supported by SQLite are looked up to be
-                converted to Python types.
-            isolation_level: The isolation_level of the connection, controlling whether
-                and how transactions are implicitly opened.
-            check_same_thread: If True (default), ProgrammingError will be raised if the database connection
-                is used by a thread other than the one that created it.
-            factory: A custom subclass of Connection to create the connection with,
-                if not the default Connection class.
-            cached_statements: The number of statements that sqlite3 should internally cache for this connection,
-                to avoid parsing overhead.
-            uri: If set to True, database is interpreted as a URI with a file path and an optional query string.
+        :param database: The path or URI to the database.
+        :param timeout: How many seconds the connection should wait before raising an OperationalError when a table
+            is locked, defaults to 5.0.
+        :param detect_types: Control whether and how data types not natively supported by SQLite are looked up to be
+            converted to Python types, defaults to 0.
+        :param isolation_level: The isolation_level of the connection, controlling whether and how transactions are
+            implicitly opened, defaults to "DEFERRED".
+        :param check_same_thread: If True (default), ProgrammingError will be raised if the database connection is
+            used by a thread other than the one that created it, defaults to True.
+        :param factory: A custom subclass of Connection to create the connection with, if not the default Connection
+            class, defaults to Connection.
+        :param cached_statements: The number of statements that sqlite3 should internally cache for this connection,
+            to avoid parsing overhead, defaults to 100.
+        :param uri: If set to True, database is interpreted as a URI with a file path and an optional query string,
+            defaults to False.
+        :param check_version: If set to True, check the database version and ensure it is the latest.
         """
         super().__init__(
             database,
@@ -99,7 +96,7 @@ class FileDB(FileDBBase):
                 SelectColumn("F.relative_path", str, "relative_path"),
                 *model_to_columns(HistoryEntry),
             ],
-            joins=[f"left join {self.files.name} F on {self.files.name}.UUID = F.uuid"],
+            joins=[f"left join {self.files.name} F on F.UUID = {self.history.name}.uuid"],
         )
         self.identification_warnings = self.create_view(
             "_IdentificationWarnings",
@@ -205,8 +202,59 @@ class FileDB(FileDBBase):
             ],
         )
 
+        if self.is_initialised(check_views=False, check_indices=False):
+            if check_version:
+                from acacore.database.upgrade import is_latest
+
+                is_latest(self, raise_on_difference=True)
+        else:
+            self.init()
+
+    def is_initialised(self, *, check_views: bool = True, check_indices: bool = True) -> bool:
+        """
+        Check if the database is initialised.
+
+        :param check_views: Whether to check if all views are present. Defaults to ``True``.
+        :param check_indices: Whether to check if all indices are present. Defaults to ``True``.
+        :return: ``True`` if the database is initialised, ``False`` otherwise.
+        """
+        tables: set[str] = {t.lower() for [t] in self.execute("select name from sqlite_master where type = 'table'")}
+        if not {self.files.name.lower(), self.history.name.lower(), self.metadata.name.lower()}.issubset(set(tables)):
+            return False
+
+        if check_views:
+            views: set[str] = {n.lower() for [n] in self.execute("select name from sqlite_master where type = 'view'")}
+            expected_views: set[str] = {
+                self.history_paths.name.lower(),
+                self.identification_warnings.name.lower(),
+                self.checksum_count.name.lower(),
+                self.signature_count.name.lower(),
+                self.actions_count.name.lower(),
+            }
+            if not expected_views.issubset(views):
+                return False
+
+        if check_indices:
+            indices: set[str] = {
+                n.lower() for [n] in self.execute("select name from sqlite_master where type = 'index'")
+            }
+            expected_indices: set[str] = {
+                i.name.lower()
+                for i in [
+                    *self.history_paths.indices,
+                    *self.identification_warnings.indices,
+                    *self.checksum_count.indices,
+                    *self.signature_count.indices,
+                    *self.actions_count.indices,
+                ]
+            }
+            if not expected_indices.issubset(indices):
+                return False
+
+        return True
+
     def init(self):
-        """Create the default tables and views."""
+        """Initialize the database with all the necessary tables and views."""
         self.files.create(True)
         self.history.create(True)
         self.metadata.create(True)
@@ -218,24 +266,41 @@ class FileDB(FileDBBase):
         self.metadata.update(self.metadata.model())
         self.commit()
 
+    def upgrade(self):
+        """Upgrade the database to the latest version."""
+        from acacore.database.upgrade import upgrade
+
+        upgrade(self)
+
     def is_empty(self) -> bool:
+        """Check if the database contains any files."""
         return not self.files.select(limit=1).fetchone()
 
     def add_history(
         self,
-        uuid: Optional[UUID],
+        uuid: UUID | None,
         operation: str,
-        data: Optional[Union[dict, list, str, int, float, bool, datetime]],
-        reason: Optional[str] = None,
+        data: dict | list | str | int | float | bool | datetime | None,
+        reason: str | None = None,
         *,
-        time: Optional[datetime] = None,
+        time: datetime | None = None,
     ) -> HistoryEntry:
+        """
+        Add a history entry to the database.
+
+        :param uuid: The UUID of the file the event refers to, if any.
+        :param operation: The operation that was performed.
+        :param data: The data attached to the event.
+        :param reason: The reason for the event.
+        :param time: The time of the event, defaults to current time.
+        :return: The ``HistoryEntry`` object representing the event.
+        """
         entry = self.history.model(
             uuid=uuid,
             operation=operation,
             data=data,
             reason=reason,
-            time=time or datetime.now(),  # noqa: DTZ005
+            time=time or datetime.now(),
         )
         self.history.insert(entry)
         return entry
