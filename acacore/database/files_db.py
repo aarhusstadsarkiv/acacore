@@ -211,6 +211,13 @@ class FileDB(FileDBBase):
             self.init()
 
     def is_initialised(self, *, check_views: bool = True, check_indices: bool = True) -> bool:
+        """
+        Check if the database is initialised.
+
+        :param check_views: Whether to check if all views are present. Defaults to ``True``.
+        :param check_indices: Whether to check if all indices are present. Defaults to ``True``.
+        :return: ``True`` if the database is initialised, ``False`` otherwise.
+        """
         tables: set[str] = {t.lower() for [t] in self.execute("select name from sqlite_master where type = 'table'")}
         if not {self.files.name.lower(), self.history.name.lower(), self.metadata.name.lower()}.issubset(set(tables)):
             return False
@@ -247,6 +254,7 @@ class FileDB(FileDBBase):
         return True
 
     def init(self):
+        """Initialize the database with all the necessary tables and views."""
         self.files.create(True)
         self.history.create(True)
         self.metadata.create(True)
@@ -265,6 +273,7 @@ class FileDB(FileDBBase):
         upgrade(self)
 
     def is_empty(self) -> bool:
+        """Check if the database contains any files."""
         return not self.files.select(limit=1).fetchone()
 
     def add_history(
@@ -276,6 +285,16 @@ class FileDB(FileDBBase):
         *,
         time: datetime | None = None,
     ) -> HistoryEntry:
+        """
+        Add a history entry to the database.
+
+        :param uuid: The UUID of the file the event refers to, if any.
+        :param operation: The operation that was performed.
+        :param data: The data attached to the event.
+        :param reason: The reason for the event.
+        :param time: The time of the event, defaults to current time.
+        :return: The ``HistoryEntry`` object representing the event.
+        """
         entry = self.history.model(
             uuid=uuid,
             operation=operation,
