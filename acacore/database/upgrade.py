@@ -40,6 +40,7 @@ def upgrade_1to2(db: FileDB) -> Version:
         db.execute("alter table Files add column lock boolean default false")
     db.execute("update Files set lock = false where lock is null")
     db.execute("update Files set action = 'template' where action = 'replace'")
+    db.execute("update Files set action_data = '{}' where action_data is null")
     for file in db.files.select():
         db.files.update(file)
     return set_db_version(db, Version("2.0.0"))
