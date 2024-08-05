@@ -20,7 +20,7 @@ def get_db_version(db: FileDB) -> Version:
 def set_db_version(db: FileDB, version: Version) -> Version:
     metadata = db.metadata.select()
     metadata.version = str(version)
-    db.metadata.upgrade(metadata)
+    db.metadata.update(metadata)
     db.commit()
     return version
 
@@ -40,7 +40,7 @@ def upgrade_1to2(db: FileDB) -> Version:
     db.execute("update Files set lock = false where lock is null")
     db.execute("update Files set action = 'template' where action = 'replace'")
     for file in db.files.select():
-        db.files.upgrade(file)
+        db.files.update(file)
     return set_db_version(db, Version("2.0.0"))
 
 
