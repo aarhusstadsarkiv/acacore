@@ -211,7 +211,7 @@ class FileDB(FileDBBase):
             self.init()
 
     def is_initialised(self, *, check_views: bool = True, check_indices: bool = True) -> bool:
-        tables: set[str] = {n.lower() for [n] in self.execute("select type, name from sqlite_master group by type")}
+        tables: set[str] = {t.lower() for [t] in self.execute("select name from sqlite_master where type = 'table'")}
         if not {self.files.name.lower(), self.history.name.lower(), self.metadata.name.lower()}.issubset(set(tables)):
             return False
 
