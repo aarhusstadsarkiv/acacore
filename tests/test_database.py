@@ -1,4 +1,5 @@
 from pathlib import Path
+from sqlite3 import DatabaseError
 from sqlite3 import IntegrityError
 from sqlite3 import OperationalError
 from uuid import uuid4
@@ -17,6 +18,7 @@ from acacore.database.files_db import ActionCount
 from acacore.database.files_db import ChecksumCount
 from acacore.database.files_db import HistoryEntryPath
 from acacore.database.files_db import SignatureCount
+from acacore.database.update import update as database_update
 from acacore.models.file import File
 from acacore.models.history import HistoryEntry
 from acacore.models.reference_files import Action
@@ -25,6 +27,11 @@ from acacore.models.reference_files import Action
 @pytest.fixture(scope="session")
 def database_path(temp_folder: Path) -> Path:
     return temp_folder / "files.db"
+
+
+@pytest.fixture(scope="session")
+def test_databases(test_folder: Path) -> list[Path]:
+    return [f for f in test_folder.iterdir() if f.is_file() and f.suffix == ".db"]
 
 
 @pytest.fixture(scope="session")
@@ -244,3 +251,13 @@ def test_history(database_path: Path):
     history2 = db.history.select(where="TIME = ?", parameters=[history.time.isoformat()]).fetchone()
 
     assert history == history2
+
+
+def test_database_update(test_databases: list[Path]):
+    for database_path in test_databases:
+        with pytest.raises(DatabaseError):
+            FileDB(database_path)
+
+        with FileDB(database_path, check_version=False) as database:
+            database_update(database)
+            assert database.metadata.select().version == __version__
