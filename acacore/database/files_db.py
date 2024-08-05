@@ -17,7 +17,6 @@ from .base import Column
 from .base import FileDBBase
 from .base import SelectColumn
 from .column import model_to_columns
-from .update import is_latest
 
 
 class HistoryEntryPath(HistoryEntry):
@@ -205,6 +204,8 @@ class FileDB(FileDBBase):
 
         if self.is_initialised():
             if check_version:
+                from acacore.database.update import is_latest
+
                 is_latest(self, raise_on_difference=True)
         else:
             self.init()
