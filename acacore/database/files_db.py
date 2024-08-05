@@ -52,6 +52,7 @@ class FileDB(FileDBBase):
         factory: Type[Connection] | None = Connection,
         cached_statements: int = 100,
         uri: bool = False,
+        check_version: bool = True,
     ) -> None:
         """
         A class that handles the SQLite database used by AArhus City Archives to process data archives.
@@ -71,6 +72,7 @@ class FileDB(FileDBBase):
             to avoid parsing overhead, defaults to 100.
         :param uri: If set to True, database is interpreted as a URI with a file path and an optional query string,
             defaults to False.
+        :param check_version: If set to True, check the database version and ensure it is the latest.
         """
         super().__init__(
             database,
@@ -201,7 +203,7 @@ class FileDB(FileDBBase):
             ],
         )
 
-        if self.is_initialised():
+        if self.is_initialised() and check_version:
             is_latest(self, raise_on_difference=True)
         else:
             self.init()
