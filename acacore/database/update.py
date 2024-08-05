@@ -49,13 +49,15 @@ def update_last(db: FileDB) -> Version:
     return set_db_version(db, Version(__version__))
 
 
-def is_latest(db: FileDB) -> bool:
+def is_latest(db: FileDB, *, raise_on_difference: bool = False) -> bool:
     """
     Check if a database is using the latest version of acacore.
 
     :param db: A ``FileDB`` object representing the database.
+    :param raise_on_difference: Set to ``True`` to raise a ``DatabaseError`` exception when the database version is
+        lower than the module's
     :raises DatabaseError: If the database is not initialised, or if it is using a newer version that the
-        acacore library.
+        acacore library, or ``raise_on_difference`` is set to ``True`` and the database is not up-to-date.
     :return: True if the database is using the latest version, False otherwise.
     """
     if not db.is_initialised(check_views=False, check_indices=False):
@@ -66,6 +68,8 @@ def is_latest(db: FileDB) -> bool:
 
     if current_version > latest_version:
         raise DatabaseError(f"Database version is greater than latest version: {current_version} > {latest_version}")
+    elif current_version < latest_version and raise_on_difference:
+        raise DatabaseError(f"Database version is lower than latest version: {current_version} < {latest_version}")
 
     return current_version == latest_version
 
