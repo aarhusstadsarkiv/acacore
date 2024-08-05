@@ -24,9 +24,13 @@ from acacore.models.history import HistoryEntry
 from acacore.models.reference_files import Action
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def database_path(temp_folder: Path) -> Path:
-    return temp_folder / "files.db"
+    path: Path = temp_folder / "files.db"
+    path.unlink(missing_ok=True)
+    with FileDB(path) as db:
+        db.init()
+    return path
 
 
 @pytest.fixture(scope="session")
