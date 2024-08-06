@@ -1,6 +1,5 @@
 """Data models for the data on saved to different .json files on the `reference_files` repo."""
 
-from re import match
 from typing import get_args as get_type_args
 from typing import Literal
 
@@ -223,10 +222,6 @@ class Action(ActionData):
     def _validate_alternatives(cls, value: dict[str, str]) -> dict[str, str]:
         if not isinstance(value, dict):
             raise ValueError("Is not a dictionary.")
-        if not all(isinstance(k, str) and match(r"^(\.[a-z0-9]+)+$", k) for k in value.keys()):
-            raise ValueError("Keys are not valid extensions '(\\.[a-z0-9]+)+'.")
-        if not all(isinstance(v, str) and match(r"^[a-zA-Z0-9_/-]+$", v) for v in value.values()):
-            raise ValueError("Keys are not valid PUIDs '(\\.[a-z0-9]+)+'.")
         return {k.lower(): v for k, v in value.items()}
 
     @property
