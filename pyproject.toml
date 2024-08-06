@@ -101,6 +101,7 @@ ignore = [
     "PT012",   # ptest.raises should contain a simple statement
     "RET505",  # unnecessary {branch} after return statement
     "S101",    # use of assert,
+    "SIM118",  # Use `key in dict` instead of `key in dict.keys()`
     "TRY003",  # avoid using long messages outside exception class
     "UP007",   # not using | in type anotations
     "INP001",  # implicit namespace without __init__ (throws errors in tests)
