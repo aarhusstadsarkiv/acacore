@@ -6,6 +6,7 @@ from typing import Literal
 from pydantic import AliasChoices
 from pydantic import BaseModel
 from pydantic import Field
+from pydantic import field_validator
 
 from .base import NoDefaultsModel
 
@@ -208,8 +209,20 @@ class Action(ActionData):
 
     name: str
     description: str | None = None
+    alternatives: dict[str, str] = Field(default_factory=dict)
     action: TActionType
-    ignore_warnings: list[str] = Field(default_factory=list, alias="ignore-warnings")
+    ignore_warnings: list[str] = Field(
+        default_factory=list,
+        validation_alias=AliasChoices("ignore_warnings", "ignore-warnings"),
+    )
+
+    # noinspection PyNestedDecorators
+    @field_validator("alternatives", mode="before")
+    @classmethod
+    def _validate_alternatives(cls, value: dict[str, str]) -> dict[str, str]:
+        if not isinstance(value, dict):
+            raise ValueError("Is not a dictionary.")
+        return {k.lower(): v for k, v in value.items()}
 
     @property
     def action_data(self) -> ActionData:

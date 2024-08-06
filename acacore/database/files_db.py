@@ -102,7 +102,8 @@ class FileDB(FileDBBase):
             "_IdentificationWarnings",
             self.files,
             self.files.model,
-            f'"{self.files.name}".warning is not null or "{self.files.name}".puid is NULL',
+            f'("{self.files.name}".warning is not null or "{self.files.name}".puid is null)'
+            f' and "{self.files.name}".size != 0',
         )
         self.checksum_count = self.create_view(
             "_ChecksumCount",
