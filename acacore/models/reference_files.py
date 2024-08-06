@@ -212,7 +212,10 @@ class Action(ActionData):
     description: str | None = None
     alternatives: dict[str, str] = Field(default_factory=dict)
     action: TActionType
-    ignore_warnings: list[str] = Field(default_factory=list, alias="ignore-warnings")
+    ignore_warnings: list[str] = Field(
+        default_factory=list,
+        validation_alias=AliasChoices("ignore_warnings", "ignore-warnings"),
+    )
 
     # noinspection PyNestedDecorators
     @field_validator("alternatives", mode="before")
