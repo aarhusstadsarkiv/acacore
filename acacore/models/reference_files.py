@@ -1,11 +1,13 @@
 """Data models for the data on saved to different .json files on the `reference_files` repo."""
 
+from re import match
 from typing import get_args as get_type_args
 from typing import Literal
 
 from pydantic import AliasChoices
 from pydantic import BaseModel
 from pydantic import Field
+from pydantic import field_validator
 
 from .base import NoDefaultsModel
 
@@ -208,8 +210,21 @@ class Action(ActionData):
 
     name: str
     description: str | None = None
+    alternatives: dict[str, str] = Field(default_factory=dict)
     action: TActionType
     ignore_warnings: list[str] = Field(default_factory=list, alias="ignore-warnings")
+
+    # noinspection PyNestedDecorators
+    @field_validator("alternatives", mode="before")
+    @classmethod
+    def _validate_alternatives(cls, value: dict[str, str]) -> dict[str, str]:
+        if not value:
+            return value
+        elif not all(isinstance(k, str) and match(r"^(\.[a-z0-9]+)+$", k) for k in value.keys()):
+            raise ValueError("Keys are not valid extensions '(\\.[a-z0-9]+)+'.")
+        elif not all(isinstance(v, str) and match(r"^[a-zA-Z0-9_/-]+$", v) for v in value.values()):
+            raise ValueError("Keys are not valid PUIDs '(\\.[a-z0-9]+)+'.")
+        return value
 
     @property
     def action_data(self) -> ActionData:
