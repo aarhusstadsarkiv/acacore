@@ -28,6 +28,8 @@ def set_db_version(db: FileDB, version: Version) -> Version:
 def get_upgrade_function(current_version: Version, latest_version: Version) -> Callable[[FileDB], Version]:
     if current_version < Version("2.0.0"):
         return upgrade_1to2
+    elif current_version < Version("2.0.2"):
+        return upgrade_2to2_0_2
     elif current_version < latest_version:
         return upgrade_last
     else:
@@ -49,6 +51,12 @@ def upgrade_1to2(db: FileDB) -> Version:
         db.files.update(file)
 
     return set_db_version(db, Version("2.0.0"))
+
+
+def upgrade_2to2_0_2(db: FileDB) -> Version:
+    db.execute("drop view if exists _IdentificationWarnings")
+    db.identification_warnings.create()
+    return set_db_version(db, Version("2.0.2"))
 
 
 def upgrade_last(db: FileDB) -> Version:
