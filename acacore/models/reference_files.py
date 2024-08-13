@@ -188,7 +188,7 @@ class ActionData(NoDefaultsModel):
 
     rename: RenameAction | None = None
     reidentify: ReIdentifyAction | None = None
-    convert: list[ConvertAction] | None = None
+    convert: ConvertAction | None = None
     extract: ExtractAction | None = None
     manual: ManualAction | None = None
     ignore: IgnoreAction | None = None
