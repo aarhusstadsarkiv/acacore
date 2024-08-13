@@ -1,5 +1,6 @@
 from hashlib import sha256
 from pathlib import Path
+from re import match
 from typing import Callable
 from typing import Generator
 from typing import TypeVar
@@ -75,6 +76,16 @@ def file_checksum(path: Path) -> str:
             file_hash.update(chunk)
             chunk = f.read(2**20)
     return file_hash.hexdigest()
+
+
+def is_valid_suffix(suffix: str) -> bool:
+    r"""
+    Check if a file suffix is valid (matches \.[a-zA-Z0-9]+).
+
+    :param suffix: The suffix to be checked.
+    :return: True if the suffix is valid, False otherwise.
+    """
+    return match(r"^\.[a-zA-Z0-9]+$", suffix) is not None
 
 
 def is_binary(path: Path, chunk_size: int = 1024):
