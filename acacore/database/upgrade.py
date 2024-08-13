@@ -50,12 +50,15 @@ def upgrade_1to2(db: FileDB) -> Version:
     for file in db.files.select():
         db.files.update(file)
 
+    db.commit()
+
     return set_db_version(db, Version("2.0.0"))
 
 
 def upgrade_2to2_0_2(db: FileDB) -> Version:
     db.execute("drop view if exists _IdentificationWarnings")
     db.identification_warnings.create()
+    db.commit()
     return set_db_version(db, Version("2.0.2"))
 
 
@@ -97,6 +100,8 @@ def upgrade(db: FileDB):
     """
     if not db.is_initialised(check_views=False, check_indices=False):
         raise DatabaseError("Database is not initialised")
+    if db.committed_changes != db.total_changes:
+        raise DatabaseError("Database has uncommited transactions")
 
     if is_latest(db):
         return
