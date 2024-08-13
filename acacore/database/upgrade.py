@@ -1,4 +1,8 @@
+from json import dumps
+from json import loads
 from sqlite3 import DatabaseError
+from sqlite3 import Row
+from typing import Any
 from typing import Callable
 
 from packaging.version import Version
@@ -41,14 +45,25 @@ def upgrade_1to2(db: FileDB) -> Version:
     if not db.execute("select 1 from pragma_table_info('Files') where name = 'lock'").fetchone():
         db.execute("alter table Files add column lock boolean")
         db.execute("update Files set lock = false")
+    # Rename "replace" action to "template"
     db.execute("update Files set action = 'template' where action = 'replace'")
-    db.execute("update Files set action_data = '{}' where action_data is null")
+    # Ensure action_data is always a readable JSON
+    db.execute("update Files set action_data = '{}' where action_data is null or action_data = ''")
 
+    # Reset _IdentificationWarnings view
     db.execute("drop view if exists _IdentificationWarnings")
     db.identification_warnings.create()
 
-    for file in db.files.select():
-        db.files.update(file)
+    cursor = db.execute("select * from files where action_data != '{}'")
+    cursor.rowfactory = Row
+
+    for file in cursor:
+        action_data: dict[str, Any] = loads(file["action_data"])
+        # Rename "replace" action to "template"
+        action_data["template"] = action_data.get("replace")
+        # Remove None and empty lists (default values)
+        action_data = {k: v for k, v in action_data.items() if v}
+        db.execute("update Files set action_data = ? where uuid = ?", [dumps(action_data), file["uuid"]])
 
     db.commit()
 
