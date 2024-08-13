@@ -50,10 +50,7 @@ def test_file(test_files: Path, test_files_data: dict[str, dict]) -> File:
     action: Action = Action(
         name=filedata["matches"]["format"],
         action="convert",
-        convert=[
-            {"converter": "convertool", "converter_type": "master", "outputs": ["odt", "pdf"]},
-            {"converter": "convertool", "converter_type": "statutory", "outputs": ["tiff"]},
-        ],
+        convert={"tool": "convertool", "outputs": ["odt", "pdf"]},
     )
     file: File = File.from_file(file_path)
 
