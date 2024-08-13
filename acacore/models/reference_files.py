@@ -220,8 +220,10 @@ class Action(ActionData):
     @field_validator("alternatives", mode="before")
     @classmethod
     def _validate_alternatives(cls, value: dict[str, str]) -> dict[str, str]:
-        if not isinstance(value, dict):
-            raise ValueError("Is not a dictionary.")
+        if not value:
+            return {}
+        elif not isinstance(value, dict):
+            return value
         return {k.lower(): v for k, v in value.items()}
 
     @property
