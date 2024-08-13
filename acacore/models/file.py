@@ -17,6 +17,7 @@ from acacore.utils.functions import get_bof
 from acacore.utils.functions import get_eof
 from acacore.utils.functions import image_size
 from acacore.utils.functions import is_binary
+from acacore.utils.functions import is_valid_suffix
 
 from .reference_files import Action
 from .reference_files import ActionData
@@ -359,3 +360,22 @@ class File(BaseModel):
     @suffix.setter
     def suffix(self, new_suffix: str):
         self.relative_path = self.relative_path.with_suffix(new_suffix)
+
+    @property
+    def suffixes(self) -> str:
+        """
+        Get file suffixes. Excludes invalid ones.
+
+        :return: All the file extensions as a string.
+        """
+        suffixes: str = ""
+        for suffix in self.relative_path.suffixes[::-1]:
+            if is_valid_suffix(suffix):
+                suffixes += suffix
+            else:
+                break
+        return suffixes
+
+    @suffixes.setter
+    def suffixes(self, new_suffixes: str):
+        self.relative_path = self.relative_path.with_name(self.name.removesuffix(self.suffixes) + new_suffixes)
