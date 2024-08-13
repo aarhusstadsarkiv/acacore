@@ -153,7 +153,7 @@ class File(BaseModel):
         if actions:
             action = file.get_action(actions, file_classes)
 
-        if action.reidentify and custom_signatures:
+        if action and action.reidentify and custom_signatures:
             custom_match = file.identify_custom(custom_signatures)
             if custom_match:
                 file.puid = custom_match.puid
@@ -170,10 +170,10 @@ class File(BaseModel):
                 file.action = "manual"
                 file.action_data = ActionData(manual=ManualAction(reason="Re-identify failure", process=""))
                 file.puid = file.signature = file.warning = None
-        elif action.reidentify:
+        elif action and action.reidentify:
             raise ValueError(f"Cannot run re-identify for PUID {file.puid} without custom signatures")
 
-        if action.ignore_if:
+        if action and action.ignore_if:
             file = ignore_if(file, action.ignore_if)
 
         if file.action != "ignore" and actions and "*" in actions and actions["*"].ignore_if:
