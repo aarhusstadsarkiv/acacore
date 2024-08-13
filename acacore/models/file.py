@@ -27,33 +27,31 @@ from .reference_files import ManualAction
 from .reference_files import TActionType
 
 
-def _ignore_if(file: "File", ignore_ifs: list[IgnoreIfAction]) -> "File":
+def ignore_if(file: "File", ignore_rules: IgnoreIfAction) -> "File":
     action: TActionType | None = None
-    action_data: ActionData | None = None
+    ignore_action: IgnoreAction = IgnoreAction(template="not-preservable")
 
-    for ignore_if in ignore_ifs:
-        if ignore_if.pixel_total or ignore_if.pixel_width or ignore_if.pixel_height:
-            width, height = image_size(file.get_absolute_path())
-            if (
-                width * height < (ignore_if.pixel_total or 0)
-                or width < (ignore_if.pixel_width or 0)
-                or height < (ignore_if.pixel_height or 0)
-            ):
-                action = "ignore"
-        elif ignore_if.binary_size and file.is_binary and file.size < ignore_if.binary_size:  # noqa: SIM114
+    if ignore_rules.image_pixels_min or ignore_rules.image_width_min or ignore_rules.image_height_min:
+        width, height = image_size(file.get_absolute_path())
+        if ignore_rules.image_width_min and width < ignore_rules.image_width_min:
             action = "ignore"
-        elif ignore_if.size and file.size < ignore_if.size:
+            ignore_action.reason = f"Image width is too small ({width}px < {ignore_rules.image_width_min})"
+        elif ignore_rules.image_height_min and height < ignore_rules.image_height_min:
             action = "ignore"
+            ignore_action.reason = f"Image height is too small  ({height}px < {ignore_rules.image_height_min})"
+        elif ignore_rules.image_pixels_min and (width * height) < ignore_rules.image_pixels_min:
+            action = "ignore"
+            ignore_action.reason = (
+                f"Image resolution is too small  ({width * height}px < {ignore_rules.image_pixels_min})"
+            )
+    elif ignore_rules.size and file.size < ignore_rules.size:
+        action = "ignore"
+        ignore_action.reason = "File size is too small"
 
-        if action:
-            action_data = file.action_data or ActionData()
-            action_data.ignore = action_data.ignore or IgnoreAction()
-            action_data.ignore.reason = ignore_if.reason or action_data.ignore.reason
-            break
-
-    if action and action_data:
+    if action:
         file.action = action
-        file.action_data = action_data
+        file.action_data = file.action_data or ActionData()
+        file.action_data.ignore = ignore_action
 
     return file
 
@@ -153,7 +151,7 @@ class File(BaseModel):
         if actions:
             action = file.get_action(actions, file_classes)
 
-        if custom_signatures and file.action == "reidentify":
+        if action.reidentify and custom_signatures:
             custom_match = file.identify_custom(custom_signatures)
             if custom_match:
                 file.puid = custom_match.puid
@@ -170,12 +168,14 @@ class File(BaseModel):
                 file.action = "manual"
                 file.action_data = ActionData(manual=ManualAction(reason="Re-identify failure", process=""))
                 file.puid = file.signature = file.warning = None
+        elif action.reidentify:
+            raise ValueError(f"Cannot run re-identify for PUID {file.puid} without custom signatures")
 
-        if file.action_data and file.action_data.ignore:
-            file = _ignore_if(file, file.action_data.ignore.ignore_if)
+        if action.ignore_if:
+            file = ignore_if(file, action.ignore_if)
 
-        if file.action != "ignore" and actions and "*" in actions:
-            file = _ignore_if(file, actions["*"].ignore.ignore_if if actions["*"].ignore else [])
+        if file.action != "ignore" and actions and "*" in actions and actions["*"].ignore_if:
+            file = ignore_if(file, actions["*"].ignore_if)
 
         if action and file.warning:
             file.warning = [w for w in file.warning if w.lower() not in [aw.lower() for aw in action.ignore_warnings]]
