@@ -1,12 +1,13 @@
-"""Data models for the data on saved to different .json files on the `reference_files` repo."""
-
+from typing import Any
 from typing import get_args as get_type_args
 from typing import Literal
+from typing import Self
 
 from pydantic import AliasChoices
 from pydantic import BaseModel
 from pydantic import Field
 from pydantic import field_validator
+from pydantic import model_validator
 
 from .base import NoDefaultsModel
 
@@ -53,100 +54,22 @@ class CustomSignature(BaseModel):
     extension: str | None = None
 
 
-class ConvertAction(NoDefaultsModel):
-    """
-    Class representing an action to convert a file to a different format.
-
-    :ivar converter: The converter to use for the conversion.
-    :ivar outputs: The list of file types to convert to.
-    """
-
-    converter: str
-    converter_type: Literal["master", "statutory", "access"]
-    outputs: list[str] = Field(min_length=1)
-
-
-class ExtractAction(NoDefaultsModel):
-    """
-    Class representing an action to extract data from a file.
-
-    :ivar tool: The name of the tool used for extraction.
-    :ivar extension: The suffix that the file should have. Defaults to None.
-    :ivar dir_suffix: The output directory where the extracted data will be saved.
-    """
-
-    tool: str
-    extension: str | None = None
-    dir_suffix: str
-
-
-class TemplateAction(NoDefaultsModel):
-    """
-    Class representing a template replacement action.
-
-    :ivar template: The replacement template.
-    :ivar template_text: Optional. Text to use instead of the default template, if template is set to "text".
-    """
-
-    template: TTemplateType
-    template_text: str | None = None
-
-
-class ManualAction(NoDefaultsModel):
-    """
-    Class representing a manual action in a workflow.
-
-    :ivar reason: The reason behind the manual action.
-    :ivar process: The process for performing the manual action.
-    """
-
-    reason: str
-    process: str
-
-
 class IgnoreIfAction(NoDefaultsModel):
     """
     Class representing conditions to ignore a file.
 
     The pixel counts and sizes are considered as the minimum allowed value.
 
-    :ivar pixel_total: Total amount of pixels (width times height) for images.
-    :ivar pixel_width: Width for images.
-    :ivar pixel_height: Height for images.
-    :ivar size: Size for all files.
-    :ivar binary_size: Size for binary files.
-    :ivar reason: A reason for the specific condition.
+    :ivar image_pixels_min: Minimum amount of pixels (width times height) for images.
+    :ivar image_width_min: Minimum width (in pixels) for images.
+    :ivar image_height_min: Minimum height (in pixels) for images.
+    :ivar size: Minimum file size.
     """
 
-    pixel_total: int | None = Field(None, gt=0)
-    pixel_width: int | None = Field(None, gt=0)
-    pixel_height: int | None = Field(None, gt=0)
+    image_pixels_min: int | None = Field(None, gt=0)
+    image_width_min: int | None = Field(None, gt=0)
+    image_height_min: int | None = Field(None, gt=0)
     size: int | None = Field(None, gt=0)
-    binary_size: int | None = Field(None, gt=0)
-    reason: str | None = None
-
-
-class IgnoreAction(NoDefaultsModel):
-    """
-    Class representing an action to ignore a specific file based on the given reason.
-
-    :ivar reason: The reason for ignoring the file.
-    :ivar ignore_if: An optional list of ignore conditions.
-    """
-
-    reason: str | None = None
-    ignore_if: list[IgnoreIfAction] = Field(default_factory=list)
-
-
-class ReIdentifyAction(NoDefaultsModel):
-    """
-    Class representing an action to ignore a specific file based on the given reason.
-
-    :ivar reason: The reason for ignoring the file.
-    """
-
-    reason: str
-    onfail: TActionType | None = None
 
 
 class RenameAction(NoDefaultsModel):
@@ -161,6 +84,88 @@ class RenameAction(NoDefaultsModel):
     on_extension_mismatch: bool = False
 
 
+class ReIdentifyAction(NoDefaultsModel):
+    """
+    Class representing an action to ignore a specific file based on the given reason.
+
+    :ivar reason: The reason for ignoring the file.
+    :ivar on_fail: The action to take if the re-identification fails. Defaults to "null".
+    """
+
+    reason: str
+    on_fail: Literal["action", "null"] = "null"
+
+
+class ConvertAction(NoDefaultsModel):
+    """
+    Class representing an action to convert a file to a different format.
+
+    :ivar tool: The converter to use for the conversion.
+    :ivar outputs: The list of file types to convert to.
+    """
+
+    tool: str
+    outputs: list[str] = Field(default_factory=list)
+
+    # noinspection PyNestedDecorators
+    @field_validator("outputs", mode="before")
+    @classmethod
+    def _validate_outputs(cls, value: Any) -> list[str]:  # noqa: ANN401
+        """Allow a single string to be used as value."""
+        return [value] if isinstance(value, str) else value
+
+    @model_validator(mode="after")
+    def _validate_model(self) -> Self:
+        if not self.tool == "copy" and not self.outputs:
+            raise ValueError("Missing outputs.")
+        return self
+
+
+class ExtractAction(NoDefaultsModel):
+    """
+    Class representing an action to extract data from a file.
+
+    :ivar tool: The name of the tool used for extraction.
+    :ivar extension: The suffix that the file should have. Defaults to None.
+    """
+
+    tool: str
+    extension: str | None = None
+
+
+class ManualAction(NoDefaultsModel):
+    """
+    Class representing a manual action in a workflow.
+
+    :ivar reason: The reason behind the manual action.
+    :ivar process: The process for performing the manual action.
+    """
+
+    reason: str
+    process: str
+
+
+class IgnoreAction(NoDefaultsModel):
+    """
+    Class representing an action to ignore a specific file based on the given reason.
+
+    If the template is set to ``text``, reason must be set to a non-empty string.
+
+    :ivar template: The template type.
+    :ivar reason: The reason for ignoring the file.
+    """
+
+    template: TTemplateType
+    reason: str | None = None
+
+    # noinspection PyNestedDecorators
+    @model_validator(mode="after")
+    def _validate_model(self) -> Self:
+        if self.template == "text" and not self.reason:
+            raise ValueError("Reason cannot be empty when template is set to text.")
+        return self
+
+
 class ActionData(NoDefaultsModel):
     """
     A class representing the data for a specific action.
@@ -170,8 +175,6 @@ class ActionData(NoDefaultsModel):
     :ivar convert: A list of ConvertAction objects representing the conversion actions to be performed.
         Defaults to None.
     :ivar extract: An ExtractAction object representing the extraction action to be performed.
-        Defaults to None.
-    :ivar template: A TemplateAction object representing the template replacement action to be performed.
         Defaults to None.
     :ivar manual: A ManualAction object representing the manual action to be performed.
         Defaults to None.
@@ -183,14 +186,12 @@ class ActionData(NoDefaultsModel):
         Defaults to None.
     """
 
-    convert: list[ConvertAction] | None = None
-    extract: ExtractAction | None = None
-    # "replace" alias for template to support older versions of fileformats
-    template: TemplateAction | None = Field(None, validation_alias=AliasChoices("template", "replace"))
-    manual: ManualAction | None = None
     rename: RenameAction | None = None
-    ignore: IgnoreAction | None = None
     reidentify: ReIdentifyAction | None = None
+    convert: ConvertAction | None = None
+    extract: ExtractAction | None = None
+    manual: ManualAction | None = None
+    ignore: IgnoreAction | None = None
 
 
 class Action(ActionData):
@@ -210,18 +211,21 @@ class Action(ActionData):
     name: str
     description: str | None = None
     alternatives: dict[str, str] = Field(default_factory=dict)
-    action: TActionType
+    action: TActionType | None
     ignore_warnings: list[str] = Field(
         default_factory=list,
         validation_alias=AliasChoices("ignore_warnings", "ignore-warnings"),
     )
+    ignore_if: IgnoreIfAction | None = None
 
     # noinspection PyNestedDecorators
     @field_validator("alternatives", mode="before")
     @classmethod
     def _validate_alternatives(cls, value: dict[str, str]) -> dict[str, str]:
-        if not isinstance(value, dict):
-            raise ValueError("Is not a dictionary.")
+        if not value:
+            return {}
+        elif not isinstance(value, dict):
+            return value
         return {k.lower(): v for k, v in value.items()}
 
     @property
@@ -231,4 +235,10 @@ class Action(ActionData):
 
         :return: The action data.
         """
-        return ActionData.model_validate(super().model_dump())
+        return ActionData.model_validate(self.model_dump())
+
+    @model_validator(mode="after")
+    def _validate_model(self) -> Self:
+        if self.action is not None and getattr(self, self.action, None) is None:
+            raise ValueError(f"missing {self.action!r}. If action is set, the action field must be set as well. ")
+        return self

@@ -36,7 +36,7 @@ def database_path(temp_folder: Path) -> Path:
 
 @pytest.fixture(scope="session")
 def test_databases(test_folder: Path, temp_folder: Path) -> list[Path]:
-    files: list[Path] = [f for f in test_folder.iterdir() if f.is_file() and f.suffix == ".db"]
+    files: list[Path] = [f for f in test_folder.joinpath("databases").iterdir() if f.is_file() and f.suffix == ".db"]
     files_copy: list[Path] = [temp_folder / f"test database {f.name}" for f in files]
     for src, dst in zip(files, files_copy):
         copy2(src, dst)
@@ -50,10 +50,7 @@ def test_file(test_files: Path, test_files_data: dict[str, dict]) -> File:
     action: Action = Action(
         name=filedata["matches"]["format"],
         action="convert",
-        convert=[
-            {"converter": "convertool", "converter_type": "master", "outputs": ["odt", "pdf"]},
-            {"converter": "convertool", "converter_type": "statutory", "outputs": ["tiff"]},
-        ],
+        convert={"tool": "convertool", "outputs": ["odt", "pdf"]},
     )
     file: File = File.from_file(file_path)
 

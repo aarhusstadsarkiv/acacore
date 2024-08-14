@@ -843,6 +843,7 @@ class FileDBBase(Connection):
         :param uri: If set to True, database is interpreted as a URI with a file path and an optional query string,
             defaults to False.
         """
+        self.committed_changes: int = 0
         super().__init__(
             database,
             timeout,
@@ -878,6 +879,11 @@ class FileDBBase(Connection):
             return True
         except DatabaseError:
             return False
+
+    def commit(self):
+        """Commit any pending transaction to the database."""
+        super().commit()
+        self.committed_changes = self.total_changes
 
     @overload
     def create_table(self, name: str, columns: Type[M], indices: list[Index] | None = None) -> ModelTable[M]: ...
