@@ -36,7 +36,7 @@ def database_path(temp_folder: Path) -> Path:
 
 @pytest.fixture(scope="session")
 def test_databases(test_folder: Path, temp_folder: Path) -> list[Path]:
-    files: list[Path] = [f for f in test_folder.iterdir() if f.is_file() and f.suffix == ".db"]
+    files: list[Path] = [f for f in test_folder.joinpath("databases").iterdir() if f.is_file() and f.suffix == ".db"]
     files_copy: list[Path] = [temp_folder / f"test database {f.name}" for f in files]
     for src, dst in zip(files, files_copy):
         copy2(src, dst)
