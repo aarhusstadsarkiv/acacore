@@ -163,8 +163,8 @@ class File(BaseModel):
                     file.warning.append("extension mismatch")
                 file.warning = file.warning or None
                 action = file.get_action(actions, file_classes)
-            elif file.action_data.reidentify and file.action_data.reidentify.onfail:
-                file.action = file.action_data.reidentify.onfail
+            elif file.action_data.reidentify and (on_fail := file.action_data.reidentify.on_fail):
+                file.action = None if on_fail == "null" else file.action
             else:
                 action = None
                 file.action = "manual"
