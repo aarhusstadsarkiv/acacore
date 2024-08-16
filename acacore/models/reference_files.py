@@ -14,7 +14,6 @@ from .base import NoDefaultsModel
 TActionType = Literal[
     "convert",
     "extract",
-    "template",
     "manual",
     "rename",
     "ignore",
