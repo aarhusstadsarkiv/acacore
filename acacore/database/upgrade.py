@@ -181,6 +181,4 @@ def upgrade(db: FileDB):
 
     while current_version < latest_version:
         update_function = get_upgrade_function(current_version, latest_version)
-        print(current_version, end=" ")
         current_version = update_function(db)
-        print(current_version)
