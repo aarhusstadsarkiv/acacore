@@ -26,7 +26,7 @@ def get_db_version(conn: Connection) -> Version | None:
 
 
 def set_db_version(conn: Connection, version: Version) -> Version:
-    conn.execute("insert or replace into Metadata (KEY, VALUE) values (?, ?)", ("version", version))
+    conn.execute("insert or replace into Metadata (KEY, VALUE) values (?, ?)", ("version", str(version)))
     conn.commit()
     return version
 
