@@ -131,6 +131,13 @@ def upgrade_2_0_2to3(conn: Connection) -> Version:
         # noinspection SqlWithoutWhere
         conn.execute("update Files set parent = null")
 
+    # Reset _IdentificationWarnings view
+    conn.execute("drop view if exists _IdentificationWarnings")
+    conn.execute(
+        "CREATE VIEW _IdentificationWarnings AS"
+        ' SELECT * FROM Files WHERE "Files".warning is not null or "Files".puid is NULL;'
+    )
+
     cursor = conn.execute("select * from Files where action_data != '{}'")
     cursor.row_factory = Row
 
