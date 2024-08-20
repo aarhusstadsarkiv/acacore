@@ -654,10 +654,15 @@ class View(Table):
 
         elements.append("AS")
 
-        select_names = [
-            f"{c.name} as {c.alias}" if c.alias else f"{on_table}.{c.name}"
-            for c in [SelectColumn.from_column(c) for c in self.columns]
-        ]
+        if not any(isinstance(c, SelectColumn) for c in self.columns) and [c.name for c in self.columns] == [
+            c.name for c in self.on.columns
+        ]:
+            select_names = ["*"]
+        else:
+            select_names = [
+                f"{c.name} as {c.alias}" if c.alias else f"{on_table}.{c.name}"
+                for c in [SelectColumn.from_column(c) for c in self.columns]
+            ]
 
         elements.append(
             f"SELECT {','.join(select_names)} " f"FROM {on_table}",
