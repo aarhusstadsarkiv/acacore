@@ -165,7 +165,7 @@ def is_latest(db: FileDB, *, raise_on_difference: bool = False) -> bool:
     latest_version: Version = Version(__version__)
 
     if not current_version:
-        raise DatabaseError(f"Database does not contain version information")
+        raise DatabaseError("Database does not contain version information")
     if current_version > latest_version:
         raise DatabaseError(f"Database version is greater than latest version: {current_version} > {latest_version}")
     if current_version < latest_version and raise_on_difference:
