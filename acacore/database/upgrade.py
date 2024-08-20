@@ -31,21 +31,6 @@ def set_db_version(conn: Connection, version: Version) -> Version:
     return version
 
 
-def get_upgrade_function(current_version: Version, latest_version: Version) -> Callable[[Connection], Version]:
-    if current_version < Version("2.0.0"):
-        return upgrade_1to2
-    elif current_version < Version("2.0.2"):
-        return upgrade_2to2_0_2
-    elif current_version < Version("3.0.0"):
-        return upgrade_2_0_2to3
-    elif current_version < Version("3.0.2"):
-        return upgrade_3to3_0_2
-    elif current_version < latest_version:
-        return upgrade_last
-    else:
-        return lambda _: latest_version
-
-
 # noinspection SqlResolve
 def upgrade_1to2(conn: Connection) -> Version:
     # Add "lock" column if not already present
@@ -165,6 +150,21 @@ def upgrade_3to3_0_2(conn: Connection) -> Version:
 
 def upgrade_last(conn: Connection) -> Version:
     return set_db_version(conn, Version(__version__))
+
+
+def get_upgrade_function(current_version: Version, latest_version: Version) -> Callable[[Connection], Version]:
+    if current_version < Version("2.0.0"):
+        return upgrade_1to2
+    elif current_version < Version("2.0.2"):
+        return upgrade_2to2_0_2
+    elif current_version < Version("3.0.0"):
+        return upgrade_2_0_2to3
+    elif current_version < Version("3.0.2"):
+        return upgrade_3to3_0_2
+    elif current_version < latest_version:
+        return upgrade_last
+    else:
+        return lambda _: latest_version
 
 
 def is_latest(db: FileDB, *, raise_on_difference: bool = False) -> bool:
