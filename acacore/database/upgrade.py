@@ -49,6 +49,7 @@ def upgrade_1to2(conn: Connection) -> Version:
     # Add "lock" column if not already present
     if not conn.execute("select 1 from pragma_table_info('Files') where name = 'lock'").fetchone():
         conn.execute("alter table Files add column lock boolean")
+        # noinspection SqlWithoutWhere
         conn.execute("update Files set lock = false")
     # Rename "replace" action to "template"
     conn.execute("update Files set action = 'template' where action = 'replace'")
@@ -127,6 +128,7 @@ def upgrade_2_0_2to3(conn: Connection) -> Version:
     # Add "parent" column if not already present
     if not conn.execute("select 1 from pragma_table_info('Files') where name = 'parent'").fetchone():
         conn.execute("alter table Files add column parent text")
+        # noinspection SqlWithoutWhere
         conn.execute("update Files set parent = null")
 
     cursor = conn.execute("select * from Files where action_data != '{}'")
