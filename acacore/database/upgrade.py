@@ -1,5 +1,6 @@
 from json import dumps
 from json import loads
+from sqlite3 import Connection
 from sqlite3 import DatabaseError
 from sqlite3 import Row
 from typing import Any
@@ -9,55 +10,47 @@ from packaging.version import Version
 
 from acacore.__version__ import __version__
 
-from .files_db import FileDB
-
 __all__ = [
     "upgrade",
     "is_latest",
 ]
 
 
-def get_db_version(db: FileDB) -> Version:
-    return Version(db.metadata.select().version)
+from .files_db import FileDB
 
 
-def set_db_version(db: FileDB, version: Version) -> Version:
-    metadata = db.metadata.select()
-    metadata.version = str(version)
-    db.metadata.update(metadata)
-    db.commit()
+def get_db_version(conn: Connection) -> Version | None:
+    if res := conn.execute("select VALUE from Metadata where KEY like 'version'").fetchone():
+        return Version(res[0])
+    return None
+
+
+def set_db_version(conn: Connection, version: Version) -> Version:
+    conn.execute("insert or replace into Metadata (KEY, VALUE) values (?, ?)", ("version", str(version)))
+    conn.commit()
     return version
 
 
-def get_upgrade_function(current_version: Version, latest_version: Version) -> Callable[[FileDB], Version]:
-    if current_version < Version("2.0.0"):
-        return upgrade_1to2
-    elif current_version < Version("2.0.2"):
-        return upgrade_2to2_0_2
-    elif current_version < Version("3.0.0"):
-        return upgrade_2_0_2to3
-    elif current_version < latest_version:
-        return upgrade_last
-    else:
-        return lambda _: latest_version
-
-
 # noinspection SqlResolve
-def upgrade_1to2(db: FileDB) -> Version:
+def upgrade_1to2(conn: Connection) -> Version:
     # Add "lock" column if not already present
-    if not db.execute("select 1 from pragma_table_info('Files') where name = 'lock'").fetchone():
-        db.execute("alter table Files add column lock boolean")
-        db.execute("update Files set lock = false")
+    if not conn.execute("select 1 from pragma_table_info('Files') where name = 'lock'").fetchone():
+        conn.execute("alter table Files add column lock boolean")
+        # noinspection SqlWithoutWhere
+        conn.execute("update Files set lock = false")
     # Rename "replace" action to "template"
-    db.execute("update Files set action = 'template' where action = 'replace'")
+    conn.execute("update Files set action = 'template' where action = 'replace'")
     # Ensure action_data is always a readable JSON
-    db.execute("update Files set action_data = '{}' where action_data is null or action_data = ''")
+    conn.execute("update Files set action_data = '{}' where action_data is null or action_data = ''")
 
     # Reset _IdentificationWarnings view
-    db.execute("drop view if exists _IdentificationWarnings")
-    db.identification_warnings.create()
+    conn.execute("drop view if exists _IdentificationWarnings")
+    conn.execute(
+        "CREATE VIEW _IdentificationWarnings AS"
+        ' SELECT * FROM Files WHERE "Files".warning is not null or "Files".puid is NULL;'
+    )
 
-    cursor = db.execute("select * from files where action_data != '{}'")
+    cursor = conn.execute("select * from files where action_data != '{}'")
     cursor.row_factory = Row
 
     for file in cursor:
@@ -66,22 +59,26 @@ def upgrade_1to2(db: FileDB) -> Version:
         action_data["template"] = action_data.get("replace")
         # Remove None and empty lists (default values)
         action_data = {k: v for k, v in action_data.items() if v}
-        db.execute("update Files set action_data = ? where uuid = ?", [dumps(action_data), file["uuid"]])
+        conn.execute("update Files set action_data = ? where uuid = ?", [dumps(action_data), file["uuid"]])
 
-    db.commit()
+    conn.commit()
 
-    return set_db_version(db, Version("2.0.0"))
-
-
-def upgrade_2to2_0_2(db: FileDB) -> Version:
-    db.execute("drop view if exists _IdentificationWarnings")
-    db.identification_warnings.create()
-    db.commit()
-    return set_db_version(db, Version("2.0.2"))
+    return set_db_version(conn, Version("2.0.0"))
 
 
 # noinspection SqlResolve
-def upgrade_2_0_2to3(db: FileDB) -> Version:
+def upgrade_2to2_0_2(conn: Connection) -> Version:
+    conn.execute("drop view if exists _IdentificationWarnings")
+    conn.execute(
+        "CREATE VIEW _IdentificationWarnings AS"
+        ' SELECT * FROM Files WHERE "Files".warning is not null or "Files".puid is NULL;'
+    )
+    conn.commit()
+    return set_db_version(conn, Version("2.0.2"))
+
+
+# noinspection SqlResolve
+def upgrade_2_0_2to3(conn: Connection) -> Version:
     def convert_action_data(data: dict):
         new_data: dict[str, Any] = {}
 
@@ -114,27 +111,56 @@ def upgrade_2_0_2to3(db: FileDB) -> Version:
         return new_data
 
     # Add "parent" column if not already present
-    if not db.execute("select 1 from pragma_table_info('Files') where name = 'parent'").fetchone():
-        db.execute("alter table Files add column parent text")
-        db.execute("update Files set parent = null")
+    if not conn.execute("select 1 from pragma_table_info('Files') where name = 'parent'").fetchone():
+        conn.execute("alter table Files add column parent text")
+        # noinspection SqlWithoutWhere
+        conn.execute("update Files set parent = null")
 
-    cursor = db.execute("select * from Files where action_data != '{}'")
+    # Reset _IdentificationWarnings view
+    conn.execute("drop view if exists _IdentificationWarnings")
+    conn.execute(
+        "CREATE VIEW _IdentificationWarnings AS"
+        ' SELECT * FROM Files WHERE "Files".warning is not null or "Files".puid is NULL;'
+    )
+
+    cursor = conn.execute("select * from Files where action_data != '{}'")
     cursor.row_factory = Row
 
     for file in cursor:
-        db.execute(
+        conn.execute(
             "update Files set action_data = ? where uuid is ?",
             [dumps(convert_action_data(loads(file["action_data"]))), file["uuid"]],
         )
 
-    db.commit()
+    conn.commit()
 
-    return set_db_version(db, Version("3.0.0"))
+    return set_db_version(conn, Version("3.0.0"))
 
 
-def upgrade_last(db: FileDB) -> Version:
-    db.init()
-    return set_db_version(db, Version(__version__))
+# noinspection SqlResolve
+def upgrade_3to3_0_2(conn: Connection) -> Version:
+    conn.execute("drop view if exists _IdentificationWarnings")
+    conn.execute(
+        "CREATE VIEW _IdentificationWarnings AS"
+        ' SELECT * FROM Files WHERE ("Files".warning is not null or "Files".puid is null) and "Files".size != 0'
+    )
+    conn.commit()
+    return set_db_version(conn, Version("3.0.2"))
+
+
+def get_upgrade_function(current_version: Version, latest_version: Version) -> Callable[[Connection], Version]:
+    if current_version < Version("2.0.0"):
+        return upgrade_1to2
+    elif current_version < Version("2.0.2"):
+        return upgrade_2to2_0_2
+    elif current_version < Version("3.0.0"):
+        return upgrade_2_0_2to3
+    elif current_version < Version("3.0.2"):
+        return upgrade_3to3_0_2
+    elif current_version < latest_version:
+        return lambda c: set_db_version(c, Version(__version__))
+    else:
+        return lambda _: latest_version
 
 
 def is_latest(db: FileDB, *, raise_on_difference: bool = False) -> bool:
@@ -151,9 +177,11 @@ def is_latest(db: FileDB, *, raise_on_difference: bool = False) -> bool:
     if not db.is_initialised(check_views=False, check_indices=False):
         raise DatabaseError("Database is not initialised")
 
-    current_version: Version = get_db_version(db)
+    current_version: Version | None = get_db_version(db)
     latest_version: Version = Version(__version__)
 
+    if not current_version:
+        raise DatabaseError("Database does not contain version information")
     if current_version > latest_version:
         raise DatabaseError(f"Database version is greater than latest version: {current_version} > {latest_version}")
     if current_version < latest_version and raise_on_difference:
@@ -181,6 +209,4 @@ def upgrade(db: FileDB):
 
     while current_version < latest_version:
         update_function = get_upgrade_function(current_version, latest_version)
-        print(current_version, end=" ")
         current_version = update_function(db)
-        print(current_version)

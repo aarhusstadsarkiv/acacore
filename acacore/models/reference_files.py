@@ -14,7 +14,6 @@ from .base import NoDefaultsModel
 TActionType = Literal[
     "convert",
     "extract",
-    "template",
     "manual",
     "rename",
     "ignore",
@@ -28,6 +27,7 @@ TTemplateType = Literal[
     "duplicate",
     "not-preservable",
     "not-convertable",
+    "extracted-archive",
 ]
 
 ActionTypeEnum: tuple[TActionType, ...] = get_type_args(TActionType)

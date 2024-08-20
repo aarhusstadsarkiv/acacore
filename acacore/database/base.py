@@ -283,6 +283,7 @@ class Table:
         columns: list[Column | SelectColumn] | None = None,
         where: str | None = None,
         order_by: list[tuple[str | Column, str]] | None = None,
+        offset: int | None = None,
         limit: int | None = None,
         parameters: list[Any | None] | None = None,
     ) -> Cursor:
@@ -293,6 +294,7 @@ class Table:
         :param where: A WHERE expression, defaults to None.
         :param order_by: A list tuples containing one column (either as Column or string) and a sorting direction
             ("ASC", or "DESC"), defaults to None.
+        :param offset: The number of rows skip, defaults to None.
         :param limit: The number of rows to limit the results to, defaults to None.
         :param parameters: Values to substitute in the SELECT expression, both in the `where` and SelectColumn
             statements, defaults to None.
@@ -315,6 +317,9 @@ class Table:
         if order_by:
             order_statements = [f"{c.name if isinstance(c, Column) else c} {s}" for c, s in order_by]
             statement += f" ORDER BY {','.join(order_statements)}"
+
+        if offset is not None:
+            statement += f" OFFSET {offset}"
 
         if limit is not None:
             statement += f" LIMIT {limit}"
@@ -432,6 +437,7 @@ class ModelTable(Table, Generic[M]):
         model: Type[M] | None = None,
         where: str | None = None,
         order_by: list[tuple[str | Column, str]] | None = None,
+        offset: int | None = None,
         limit: int | None = None,
         parameters: list[Any] | None = None,
     ) -> ModelCursor[M]:
@@ -442,21 +448,14 @@ class ModelTable(Table, Generic[M]):
         :param where: A WHERE expression, defaults to None.
         :param order_by: A list tuples containing one column (either as Column or string) and a sorting direction
             ("ASC", or "DESC"), defaults to None.
+        :param offset: The number of rows skip, defaults to None.
         :param limit: The number of rows to limit the results to, defaults to None.
         :param parameters: Values to substitute in the SELECT expression, both in the `where` and SelectColumn
             statements, defaults to None.
         :return: A Cursor object wrapping the SQLite cursor returned by the SELECT transaction.
         """
         return ModelCursor[M](
-            super()
-            .select(
-                model_to_columns(model or self.model),
-                where,
-                order_by,
-                limit,
-                parameters,
-            )
-            .cursor,
+            super().select(model_to_columns(model or self.model), where, order_by, offset, limit, parameters).cursor,
             model or self.model,
             self,
         )
@@ -655,10 +654,15 @@ class View(Table):
 
         elements.append("AS")
 
-        select_names = [
-            f"{c.name} as {c.alias}" if c.alias else f"{on_table}.{c.name}"
-            for c in [SelectColumn.from_column(c) for c in self.columns]
-        ]
+        if not any(isinstance(c, SelectColumn) for c in self.columns) and [c.name for c in self.columns] == [
+            c.name for c in self.on.columns
+        ]:
+            select_names = ["*"]
+        else:
+            select_names = [
+                f"{c.name} as {c.alias}" if c.alias else f"{on_table}.{c.name}"
+                for c in [SelectColumn.from_column(c) for c in self.columns]
+            ]
 
         elements.append(
             f"SELECT {','.join(select_names)} " f"FROM {on_table}",
@@ -695,6 +699,7 @@ class View(Table):
         columns: list[Column | SelectColumn] | None = None,
         where: str | None = None,
         order_by: list[tuple[str | Column, str]] | None = None,
+        offset: int | None = None,
         limit: int | None = None,
         parameters: list[Any] | None = None,
     ) -> Cursor:
@@ -705,6 +710,7 @@ class View(Table):
         :param where: A WHERE expression, defaults to None.
         :param order_by: A list tuples containing one column (either as Column or string) and a sorting direction
             ("ASC", or "DESC"), defaults to None.
+        :param offset: The number of rows skip, defaults to None.
         :param limit: The number of rows to limit the results to, defaults to None.
         :param parameters: Values to substitute in the SELECT expression, both in the `where` and SelectColumn
             statements, defaults to None.
@@ -724,7 +730,7 @@ class View(Table):
             )
             for c in map(SelectColumn.from_column, self.columns)
         ]
-        return super().select(columns, where, order_by, limit, parameters)
+        return super().select(columns, where, order_by, offset, limit, parameters)
 
     def insert(self, *_args, **_kwargs):
         """
@@ -793,19 +799,12 @@ class ModelView(View, Generic[M]):
         model: Type[M] | None = None,
         where: str | None = None,
         order_by: list[tuple[str | Column, str]] | None = None,
+        offset: int | None = None,
         limit: int | None = None,
         parameters: list[Any] | None = None,
     ) -> ModelCursor[M]:
         return ModelCursor[M](
-            super()
-            .select(
-                model_to_columns(model or self.model),
-                where,
-                order_by,
-                limit,
-                parameters,
-            )
-            .cursor,
+            super().select(model_to_columns(model or self.model), where, order_by, offset, limit, parameters).cursor,
             model or self.model,
             self,
         )
