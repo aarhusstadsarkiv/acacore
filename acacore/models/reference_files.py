@@ -27,6 +27,7 @@ TTemplateType = Literal[
     "duplicate",
     "not-preservable",
     "not-convertable",
+    "extracted-archive",
 ]
 
 ActionTypeEnum: tuple[TActionType, ...] = get_type_args(TActionType)
