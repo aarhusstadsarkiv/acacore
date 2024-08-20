@@ -272,6 +272,7 @@ class FileDB(FileDBBase):
         from acacore.database.upgrade import upgrade
 
         upgrade(self)
+        self.init()
 
     def is_empty(self) -> bool:
         """Check if the database contains any files."""
