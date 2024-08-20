@@ -321,7 +321,7 @@ class Table:
         if limit is not None:
             statement += f" LIMIT {limit}"
 
-        if offset is not None:
+        if offset is not None and offset > 0:
             statement += f" OFFSET {offset}"
 
         return Cursor(self.connection.execute(statement, parameters), columns, self)
