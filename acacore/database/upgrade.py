@@ -150,7 +150,7 @@ def upgrade_3to3_0_2(conn: Connection) -> Version:
     conn.execute("drop view if exists _IdentificationWarnings")
     conn.execute(
         "CREATE VIEW _IdentificationWarnings AS"
-        ' SELECT * FROM Files WHERE "Files".warning is not null or "Files".puid is NULL;'
+        ' SELECT * FROM Files WHERE ("Files".warning is not null or "Files".puid is null) and "Files".size != 0'
     )
     conn.commit()
     return set_db_version(conn, Version("3.0.2"))
