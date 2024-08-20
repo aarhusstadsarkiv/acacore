@@ -38,6 +38,8 @@ def get_upgrade_function(current_version: Version, latest_version: Version) -> C
         return upgrade_2to2_0_2
     elif current_version < Version("3.0.0"):
         return upgrade_2_0_2to3
+    elif current_version < Version("3.0.2"):
+        return upgrade_3to3_0_2
     elif current_version < latest_version:
         return upgrade_last
     else:
@@ -60,8 +62,7 @@ def upgrade_1to2(conn: Connection) -> Version:
     conn.execute("drop view if exists _IdentificationWarnings")
     conn.execute(
         "CREATE VIEW _IdentificationWarnings AS"
-        " SELECT uuid,checksum,relative_path,is_binary,size,puid,signature,warning,action,action_data,processed,lock"
-        ' FROM Files WHERE "Files".warning is not null or "Files".puid is NULL;'
+        ' SELECT * FROM Files WHERE "Files".warning is not null or "Files".puid is NULL;'
     )
 
     cursor = conn.execute("select * from files where action_data != '{}'")
@@ -85,8 +86,7 @@ def upgrade_2to2_0_2(conn: Connection) -> Version:
     conn.execute("drop view if exists _IdentificationWarnings")
     conn.execute(
         "CREATE VIEW _IdentificationWarnings AS"
-        " SELECT uuid,checksum,relative_path,is_binary,size,puid,signature,warning,action,action_data,processed,lock"
-        ' FROM Files WHERE "Files".warning is not null or "Files".puid is NULL;'
+        ' SELECT * FROM Files WHERE "Files".warning is not null or "Files".puid is NULL;'
     )
     conn.commit()
     return set_db_version(conn, Version("2.0.2"))
@@ -143,6 +143,17 @@ def upgrade_2_0_2to3(conn: Connection) -> Version:
     conn.commit()
 
     return set_db_version(conn, Version("3.0.0"))
+
+
+# noinspection SqlResolve
+def upgrade_3to3_0_2(conn: Connection) -> Version:
+    conn.execute("drop view if exists _IdentificationWarnings")
+    conn.execute(
+        "CREATE VIEW _IdentificationWarnings AS"
+        ' SELECT * FROM Files WHERE "Files".warning is not null or "Files".puid is NULL;'
+    )
+    conn.commit()
+    return set_db_version(conn, Version("3.0.2"))
 
 
 def upgrade_last(conn: Connection) -> Version:
