@@ -318,11 +318,11 @@ class Table:
             order_statements = [f"{c.name if isinstance(c, Column) else c} {s}" for c, s in order_by]
             statement += f" ORDER BY {','.join(order_statements)}"
 
-        if offset is not None:
-            statement += f" OFFSET {offset}"
-
         if limit is not None:
             statement += f" LIMIT {limit}"
+
+        if offset is not None:
+            statement += f" OFFSET {offset}"
 
         return Cursor(self.connection.execute(statement, parameters), columns, self)
 
