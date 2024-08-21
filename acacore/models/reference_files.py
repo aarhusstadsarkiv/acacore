@@ -28,6 +28,7 @@ TTemplateType = Literal[
     "not-preservable",
     "not-convertable",
     "extracted-archive",
+    "temporary-file",
 ]
 
 ActionTypeEnum: tuple[TActionType, ...] = get_type_args(TActionType)
@@ -131,6 +132,7 @@ class ExtractAction(NoDefaultsModel):
 
     tool: str
     extension: str | None = None
+    on_success: Literal["convert", "template", "manual", "ignore"] | None = None
 
 
 class ManualAction(NoDefaultsModel):
