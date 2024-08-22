@@ -2,7 +2,6 @@ from json import dumps
 from json import loads
 from sqlite3 import Connection
 from sqlite3 import DatabaseError
-from sqlite3 import Row
 from typing import Any
 from typing import Callable
 
@@ -33,6 +32,13 @@ def set_db_version(conn: Connection, version: Version) -> Version:
 
 # noinspection SqlResolve
 def upgrade_1to2(conn: Connection) -> Version:
+    def convert_action_data(data: dict[str, Any]) -> dict[str, Any]:
+        # Rename "replace" action to "template"
+        data["template"] = data.get("replace")
+        data["replace"] = None
+        # Remove None and empty elements (default values)
+        return {k: v for k, v in data.items() if v}
+
     # Add "lock" column if not already present
     if not conn.execute("select 1 from pragma_table_info('Files') where name = 'lock'").fetchone():
         conn.execute("alter table Files add column lock boolean")
@@ -50,16 +56,13 @@ def upgrade_1to2(conn: Connection) -> Version:
         ' SELECT * FROM Files WHERE "Files".warning is not null or "Files".puid is NULL;'
     )
 
-    cursor = conn.execute("select * from files where action_data != '{}'")
-    cursor.row_factory = Row
-
-    for file in cursor:
-        action_data: dict[str, Any] = loads(file["action_data"])
-        # Rename "replace" action to "template"
-        action_data["template"] = action_data.get("replace")
-        # Remove None and empty lists (default values)
-        action_data = {k: v for k, v in action_data.items() if v}
-        conn.execute("update Files set action_data = ? where uuid = ?", [dumps(action_data), file["uuid"]])
+    conn.executemany(
+        "update Files set action_data = ? where uuid = ?",
+        (
+            (dumps(convert_action_data(loads(action_data_raw))), uuid)
+            for uuid, action_data_raw in conn.execute("select uuid, action_data from files where action_data != '{}'")
+        ),
+    )
 
     conn.commit()
 
@@ -87,8 +90,8 @@ def upgrade_2_0_2to3(conn: Connection) -> Version:
 
         if reidentify := data.get("reidentify"):
             new_data["reidentify"] = {"reason": reidentify["reason"]}
-            if on_fail := reidentify.get("onfail"):
-                new_data["reidentify"]["on_fail"] = on_fail
+            if reidentify.get("onfail"):
+                new_data["reidentify"]["on_fail"] = "action"
 
         if convert := data.get("convert"):
             new_data["convert"] = {"tool": convert[0]["converter"], "outputs": convert[0]["outputs"]}
@@ -124,14 +127,13 @@ def upgrade_2_0_2to3(conn: Connection) -> Version:
         ' SELECT * FROM Files WHERE "Files".warning is not null or "Files".puid is NULL;'
     )
 
-    cursor = conn.execute("select * from Files where action_data != '{}'")
-    cursor.row_factory = Row
-
-    for file in cursor:
-        conn.execute(
-            "update Files set action_data = ? where uuid is ?",
-            [dumps(convert_action_data(loads(file["action_data"]))), file["uuid"]],
-        )
+    conn.executemany(
+        "update Files set action_data = ? where uuid is ?",
+        (
+            (dumps(convert_action_data(loads(action_data_raw))), uuid)
+            for uuid, action_data_raw in conn.execute("select uuid, action_data from Files where action_data != '{}'")
+        ),
+    )
 
     conn.commit()
 
@@ -156,6 +158,23 @@ def upgrade_3_0_2to3_0_6(conn: Connection) -> Version:
     return set_db_version(conn, Version("3.0.6"))
 
 
+def upgrade_3_0_6to3_0_7(conn: Connection) -> Version:
+    def convert_action_data(data: dict):
+        if (reidentify := data.get("reidentify")) and reidentify.get("onfail"):
+            data["reidentify"]["on_fail"] = "action"
+
+    conn.executemany(
+        "update Files set action_data = ? where uuid is ?",
+        (
+            (dumps(convert_action_data(loads(action_data_raw))), uuid)
+            for uuid, action_data_raw in conn.execute("select uuid, action_data from Files where action_data != '{}'")
+        ),
+    )
+
+    conn.commit()
+    return set_db_version(conn, Version("3.0.7"))
+
+
 def get_upgrade_function(current_version: Version, latest_version: Version) -> Callable[[Connection], Version]:
     if current_version < Version("2.0.0"):
         return upgrade_1to2
@@ -167,6 +186,8 @@ def get_upgrade_function(current_version: Version, latest_version: Version) -> C
         return upgrade_3to3_0_2
     elif current_version < Version("3.0.6"):
         return upgrade_3_0_2to3_0_6
+    elif current_version < Version("3.0.7"):
+        return upgrade_3_0_6to3_0_7
     elif current_version < latest_version:
         return lambda c: set_db_version(c, Version(__version__))
     else:
