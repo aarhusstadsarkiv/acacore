@@ -115,6 +115,7 @@ def upgrade_2_0_2to3(conn: Connection) -> Version:
         conn.execute("alter table Files add column parent text")
         # noinspection SqlWithoutWhere
         conn.execute("update Files set parent = null")
+    conn.execute("update Files set action = 'ignore' where action = 'template'")
 
     # Reset _IdentificationWarnings view
     conn.execute("drop view if exists _IdentificationWarnings")
@@ -139,6 +140,7 @@ def upgrade_2_0_2to3(conn: Connection) -> Version:
 
 # noinspection SqlResolve
 def upgrade_3to3_0_2(conn: Connection) -> Version:
+    conn.execute("update Files set action = 'ignore' where action = 'template'")
     conn.execute("drop view if exists _IdentificationWarnings")
     conn.execute(
         "CREATE VIEW _IdentificationWarnings AS"
@@ -146,6 +148,12 @@ def upgrade_3to3_0_2(conn: Connection) -> Version:
     )
     conn.commit()
     return set_db_version(conn, Version("3.0.2"))
+
+
+def upgrade_3_0_2to3_0_6(conn: Connection) -> Version:
+    conn.execute("update Files set action = 'ignore' where action = 'template'")
+    conn.commit()
+    return set_db_version(conn, Version("3.0.6"))
 
 
 def get_upgrade_function(current_version: Version, latest_version: Version) -> Callable[[Connection], Version]:
@@ -157,6 +165,8 @@ def get_upgrade_function(current_version: Version, latest_version: Version) -> C
         return upgrade_2_0_2to3
     elif current_version < Version("3.0.2"):
         return upgrade_3to3_0_2
+    elif current_version < Version("3.0.6"):
+        return upgrade_3_0_2to3_0_6
     elif current_version < latest_version:
         return lambda c: set_db_version(c, Version(__version__))
     else:
