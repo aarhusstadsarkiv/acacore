@@ -172,8 +172,6 @@ def upgrade_3_0_6to3_0_7(conn: Connection) -> Version:
     )
 
     conn.commit()
-
-    conn.commit()
     return set_db_version(conn, Version("3.0.7"))
 
 
