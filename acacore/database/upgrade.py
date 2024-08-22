@@ -115,6 +115,7 @@ def upgrade_2_0_2to3(conn: Connection) -> Version:
         conn.execute("alter table Files add column parent text")
         # noinspection SqlWithoutWhere
         conn.execute("update Files set parent = null")
+    conn.execute("update Files set action = 'ignore' where action = 'template'")
 
     # Reset _IdentificationWarnings view
     conn.execute("drop view if exists _IdentificationWarnings")
