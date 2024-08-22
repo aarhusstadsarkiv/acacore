@@ -343,11 +343,11 @@ class File(BaseModel):
 
         :return: File stem.
         """
-        return self.relative_path.name
+        return self.relative_path.stem
 
     @stem.setter
     def stem(self, new_stem: str):
-        self.relative_path = self.relative_path.with_name(new_stem)
+        self.relative_path = self.relative_path.with_stem(new_stem)
 
     @property
     def suffix(self) -> str:
