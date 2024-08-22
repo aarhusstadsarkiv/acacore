@@ -140,6 +140,7 @@ def upgrade_2_0_2to3(conn: Connection) -> Version:
 
 # noinspection SqlResolve
 def upgrade_3to3_0_2(conn: Connection) -> Version:
+    conn.execute("update Files set action = 'ignore' where action = 'template'")
     conn.execute("drop view if exists _IdentificationWarnings")
     conn.execute(
         "CREATE VIEW _IdentificationWarnings AS"
