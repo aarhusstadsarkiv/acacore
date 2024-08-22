@@ -149,6 +149,12 @@ def upgrade_3to3_0_2(conn: Connection) -> Version:
     return set_db_version(conn, Version("3.0.2"))
 
 
+def upgrade_3_0_2to3_0_6(conn: Connection) -> Version:
+    conn.execute("update Files set action = 'ignore' where action = 'template'")
+    conn.commit()
+    return set_db_version(conn, Version("3.0.6"))
+
+
 def get_upgrade_function(current_version: Version, latest_version: Version) -> Callable[[Connection], Version]:
     if current_version < Version("2.0.0"):
         return upgrade_1to2
@@ -158,6 +164,8 @@ def get_upgrade_function(current_version: Version, latest_version: Version) -> C
         return upgrade_2_0_2to3
     elif current_version < Version("3.0.2"):
         return upgrade_3to3_0_2
+    elif current_version < Version("3.0.6"):
+        return upgrade_3_0_2to3_0_6
     elif current_version < latest_version:
         return lambda c: set_db_version(c, Version(__version__))
     else:
