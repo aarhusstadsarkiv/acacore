@@ -343,11 +343,11 @@ class File(BaseModel):
 
         :return: File stem.
         """
-        return self.relative_path.name
+        return self.relative_path.stem
 
     @stem.setter
     def stem(self, new_stem: str):
-        self.relative_path = self.relative_path.with_name(new_stem)
+        self.relative_path = self.relative_path.with_stem(new_stem)
 
     @property
     def suffix(self) -> str:
@@ -369,13 +369,13 @@ class File(BaseModel):
 
         :return: All the file extensions as a string.
         """
-        suffixes: str = ""
+        suffixes: list[str] = []
         for suffix in self.relative_path.suffixes[::-1]:
             if is_valid_suffix(suffix):
-                suffixes += suffix
+                suffixes.insert(0, suffix)
             else:
                 break
-        return suffixes
+        return "".join(suffixes)
 
     @suffixes.setter
     def suffixes(self, new_suffixes: str):
