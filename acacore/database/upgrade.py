@@ -160,7 +160,7 @@ def upgrade_3_0_2to3_0_6(conn: Connection) -> Version:
 
 def upgrade_3_0_6to3_0_7(conn: Connection) -> Version:
     def convert_action_data(data: dict) -> dict | None:
-        if (reidentify := data.get("reidentify")) and reidentify.get("onfail"):
+        if (reidentify := data.get("reidentify")) and reidentify.get("on_fail"):
             data["reidentify"]["on_fail"] = "action"
             return data
         else:
