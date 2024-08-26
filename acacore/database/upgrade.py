@@ -128,7 +128,7 @@ def upgrade_2_0_2to3(conn: Connection) -> Version:
     )
 
     conn.executemany(
-        "update Files set action_data = ? where uuid is ?",
+        "update Files set action_data = ? where uuid = ?",
         (
             (dumps(convert_action_data(loads(action_data_raw))), uuid)
             for uuid, action_data_raw in conn.execute("select uuid, action_data from Files where action_data != '{}'")
@@ -164,7 +164,7 @@ def upgrade_3_0_6to3_0_7(conn: Connection) -> Version:
             data["reidentify"]["on_fail"] = "action"
 
     conn.executemany(
-        "update Files set action_data = ? where uuid is ?",
+        "update Files set action_data = ? where uuid = ?",
         (
             (dumps(convert_action_data(loads(action_data_raw))), uuid)
             for uuid, action_data_raw in conn.execute("select uuid, action_data from Files where action_data != '{}'")
