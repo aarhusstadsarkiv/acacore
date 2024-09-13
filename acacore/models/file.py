@@ -269,14 +269,18 @@ class File(BaseModel):
         :param set_match: Set the matched action if True, defaults to False.
         :return: An instance of Action or None if no action is found.
         """
-        identifiers: list[str] = [self.puid or "", *(f"!{c}" for c in file_classes or [])]
+        identifiers: list[str] = [f"!name=({self.relative_path.name})"]
 
-        if self.suffix:
-            identifiers.append(f"!ext={''.join(self.get_absolute_path().suffixes)}")
-        if self.is_binary:
-            identifiers.append("!binary")
         if not self.size:
             identifiers.insert(0, "!empty")
+        if self.puid:
+            identifiers.append(self.puid)
+        if self.suffix:
+            identifiers.append(f"!ext={''.join(self.relative_path.suffixes)}")
+        if file_classes:
+            identifiers.extend(f"!{c}" for c in file_classes)
+        if self.is_binary:
+            identifiers.append("!binary")
 
         action: Action | None = reduce(lambda acc, cur: acc or actions.get(cur), identifiers, None)
 
