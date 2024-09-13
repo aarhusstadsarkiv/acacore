@@ -269,7 +269,10 @@ class File(BaseModel):
         :param set_match: Set the matched action if True, defaults to False.
         :return: An instance of Action or None if no action is found.
         """
-        identifiers: list[str] = [f"!name=({self.relative_path.name})"]
+        identifiers: list[str] = [
+            f"!name={self.relative_path.name}",
+            f"!iname={self.relative_path.name.lower()}",
+        ]
 
         if not self.size:
             identifiers.insert(0, "!empty")
