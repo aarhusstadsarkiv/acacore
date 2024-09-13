@@ -90,10 +90,12 @@ class ReIdentifyAction(NoDefaultsModel):
     Class representing an action to ignore a specific file based on the given reason.
 
     :ivar reason: The reason for ignoring the file.
+    :ivar chunk_size: Specifies how many bytes should be used to search for custom signatures.
     :ivar on_fail: The action to take if the re-identification fails. Defaults to "null".
     """
 
     reason: str
+    chunk_size: int | None = Field(None, ge=1)
     on_fail: Literal["action", "null"] = "null"
 
 

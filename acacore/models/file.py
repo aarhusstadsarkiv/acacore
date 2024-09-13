@@ -154,7 +154,7 @@ class File(BaseModel):
             action = file.get_action(actions, file_classes)
 
         if action and action.reidentify and custom_signatures:
-            custom_match = file.identify_custom(custom_signatures)
+            custom_match = file.identify_custom(custom_signatures, chunk_size=action.reidentify.chunk_size)
             if custom_match:
                 file.puid = custom_match.puid
                 file.signature = custom_match.signature
@@ -208,6 +208,7 @@ class File(BaseModel):
         self,
         custom_signatures: list[CustomSignature],
         *,
+        chunk_size: int | None = 1024,
         set_match: bool = False,
     ) -> CustomSignature | None:
         """
@@ -217,10 +218,11 @@ class File(BaseModel):
         nothing.
 
         :param custom_signatures: A list of the custom_signatures that the file should be checked against.
+        :param chunk_size: Optionally, the chunk size to use to search for custom signatures. Defaults to 1024.
         :param set_match: Set results of match if True, defaults to False.
         """
-        bof = get_bof(self.get_absolute_path(self.root)).hex()
-        eof = get_eof(self.get_absolute_path(self.root)).hex()
+        bof = get_bof(self.get_absolute_path(self.root), chunk_size or 1024).hex()
+        eof = get_eof(self.get_absolute_path(self.root), chunk_size or 1024).hex()
         signature: CustomSignature | None = None
         signature_length: int = 0
 
