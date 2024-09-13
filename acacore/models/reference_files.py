@@ -94,6 +94,7 @@ class ReIdentifyAction(NoDefaultsModel):
     """
 
     reason: str
+    chunk_size: int | None = Field(None, ge=1)
     on_fail: Literal["action", "null"] = "null"
 
 
