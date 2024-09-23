@@ -5,6 +5,10 @@ class IdentificationError(ACAException):
     """Implements an error to raise if identification or related functionality fails."""
 
 
+class ImageIdentificationError(ACAException):
+    """Implements an error to raise if identification or related functionality fails."""
+
+
 class FileCollectionError(ACAException):
     """Implements an error to raise if File discovery/collection or related functionality fails."""
 
