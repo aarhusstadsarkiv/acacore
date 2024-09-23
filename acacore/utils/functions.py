@@ -8,6 +8,8 @@ from typing import TypeVar
 from imagesize import get as get_image_size
 from PIL import Image
 
+from acacore.exceptions.files import ImageIdentificationError
+
 T = TypeVar("T")
 R = TypeVar("R")
 
@@ -136,13 +138,18 @@ def image_size(path: Path) -> tuple[int, int]:
     :param path: The path to the image file.
     :raises FileNotFoundError: If the provided path does not exist.
     :raises IsADirectoryError: If the provided path points to a directory instead of a file.
-    :raises ValueError: If the provided file is not a valid image file.
+    :raises ImageIdentificationError: If an error occurred identifying the image file.
     :return: A tuple representing the width and height of the image.
     """
-    width, height = get_image_size(path)
+    try:
+        width, height = get_image_size(path)
 
-    if width < 0 or height < 0:
-        with Image.open(path) as i:
-            width, height = i.size
+        if width < 0 or height < 0:
+            with Image.open(path) as i:
+                width, height = i.size
+    except (FileNotFoundError, IsADirectoryError):
+        raise
+    except Exception as err:
+        raise ImageIdentificationError(err.args)
 
     return width, height
