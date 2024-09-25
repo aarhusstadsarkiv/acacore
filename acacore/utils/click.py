@@ -73,6 +73,14 @@ def copy_params(command: Command) -> Callable[[Command], Command]:
 
 
 def check_database_version(ctx: Context, param: Parameter, path: Path):
+    """
+    Check if the database at ``path`` is the latest version or not.
+
+    :param ctx: The context of the parameter.
+    :param param: The parameter from which the path value originates.
+    :param path: The path to the database.
+    :raises BadParameter: If the database version is not the latest.
+    """
     if not path.is_file():
         return
 
