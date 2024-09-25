@@ -9,6 +9,7 @@ from sqlite3 import DatabaseError
 from sys import stdout
 from traceback import format_tb
 from typing import Callable
+from typing import overload
 
 from click import BadParameter
 from click import Command
@@ -103,6 +104,24 @@ def start_program(
     log_stdout: bool = True,
     dry_run: bool = False,
 ) -> tuple[Logger | None, Logger | None, HistoryEntry]:
+    """
+    Create loggers and ``HistoryEntry`` for the start of a click program.
+
+    If ``log_file`` is ``False``, the file logger return value is ``None``. If ``log_stdout`` is ``False``, the
+    standard output logger return value is ``None``.
+
+    If ``dry_run`` is ``True``, the start event is not added to the database.
+
+    :param ctx: The context of the command that should be logged.
+    :param database: The database instance.
+    :param version: The version of the command/program.
+    :param time: Optionally, the time to use for the ``HistoryEntry`` event. Defaults to now.
+    :param log_file: Whether a file log should be opened and returned. Defaults to ``False``.
+    :param log_stdout: Whether a standard output log should be opened and returned. Defaults to ``False``.
+    :param dry_run: Whether the command is run in dry-run mode.
+    :return: A tuple containing the file logger (if set with ``log_file`` otherwise ``None``), the standard output
+        logger (if set with ``log_stdout`` otherwise ``None``), and the ``HistoryEntry`` start event.
+    """
     prog: str = ctx.find_root().command.name
     log_file: Logger | None = (
         setup_logger(f"{prog}_file", files=[database.path.parent / f"{prog}.log"]) if log_file else None
