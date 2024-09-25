@@ -17,9 +17,9 @@ pillow = "^10.4.0"
 
 
 [tool.poetry.group.dev.dependencies]
-ruff = "^0.4.10"
-pytest = "^7.4.3"
-coverage = "^7.3.2"
+ruff = "^0.6.7"
+pytest = "^8.3.3"
+coverage = "^7.6.1"
 
 [build-system]
 requires = ["poetry-core"]
