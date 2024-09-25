@@ -21,6 +21,12 @@ from acacore.utils.log import setup_logger
 
 
 def ctx_params(ctx: Context) -> dict[str, Parameter]:
+    """
+    Get parameters from a click context as a dict.
+
+    :param ctx: The ``Context`` object of the command from which to extract parameters.
+    :return: A dict of all the parameters of the context's command.
+    """
     return {p.name: p for p in ctx.command.params}
 
 
