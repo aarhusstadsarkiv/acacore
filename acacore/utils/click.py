@@ -153,6 +153,17 @@ def end_program(
     dry_run: bool = False,
     *loggers: Logger | None,
 ):
+    """
+    Create ``HistoryEntry`` event for the end of a click program.
+
+    If ``dry_run`` is ``True``, the end event is not added to the database, and the database changes are not committed.
+
+    :param ctx: The context of the command that should be logged.
+    :param database: The database instance.
+    :param exception: An ``ExceptionManager`` object that wrapped the command execution.
+    :param dry_run: Whether the command was run in dry-run mode.
+    :param loggers: A list of loggers to which to save the end event.
+    """
     program_end: HistoryEntry = HistoryEntry.command_history(
         ctx,
         "end",
