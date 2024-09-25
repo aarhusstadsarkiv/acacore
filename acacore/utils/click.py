@@ -9,7 +9,6 @@ from sqlite3 import DatabaseError
 from sys import stdout
 from traceback import format_tb
 from typing import Callable
-from typing import overload
 
 from click import BadParameter
 from click import Command
