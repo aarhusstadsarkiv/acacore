@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "acacore"
-version = "3.0.11"
+version = "3.1.0"
 description = ""
 authors = ["Matteo Campinoti <matteo.campinoti94@gmail.com>"]
 license = "GPL-3.0"
@@ -8,7 +8,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-pydantic = "^2.9.1"
+pydantic = "^2.9.2"
 pyyaml = "^6.0.2"
 click = "^8.1.7"
 imagesize = "^1.4.1"
@@ -17,9 +17,9 @@ pillow = "^10.4.0"
 
 
 [tool.poetry.group.dev.dependencies]
-ruff = "^0.4.10"
-pytest = "^7.4.3"
-coverage = "^7.3.2"
+ruff = "^0.6.7"
+pytest = "^8.3.3"
+coverage = "^7.6.1"
 
 [build-system]
 requires = ["poetry-core"]
