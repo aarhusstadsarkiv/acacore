@@ -30,7 +30,20 @@ def ctx_params(ctx: Context) -> dict[str, Parameter]:
     return {p.name: p for p in ctx.command.params}
 
 
-def param_callback_regex(pattern: str, flags: int = 0):
+def param_callback_regex(
+    pattern: str,
+    flags: int = 0,
+) -> Callable[[Context, Parameter, str | tuple[str, ...] | None], str | tuple[str, ...] | None]:
+    """
+    Create a ``click.Parameter`` callback that matches the argument against a given regex pattern.
+
+    If the value is None, the value is returned as is. If the value is a tuple (e.g., of the parameter is variadic),
+    then each item of the tuple is matched. If the value is not None, str, or a tuple, then the value is returned as is.
+
+    :param pattern: The pattern to match against.
+    :param flags: The flags to use for the match.
+    :return: A ``click.Parameter`` callback function with the signature ``(Context, Parameter, T) -> T``.
+    """
     compiled_pattern: Pattern = re_compile(pattern, flags)
 
     def callback(ctx: Context, param: Parameter, value: str | tuple[str, ...] | None) -> str | tuple[str, ...] | None:
