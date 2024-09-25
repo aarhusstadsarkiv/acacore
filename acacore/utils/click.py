@@ -59,6 +59,12 @@ def param_callback_regex(
 
 
 def copy_params(command: Command) -> Callable[[Command], Command]:
+    """
+    Copy parameters from one ``Command`` to another.
+
+    :param command: The command from which to copy the parameters.
+    """
+
     def decorator(command2: Command) -> Command:
         command2.params.extend(command.params.copy())
         return command2
