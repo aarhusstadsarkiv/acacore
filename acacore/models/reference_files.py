@@ -54,6 +54,15 @@ class CustomSignature(BaseModel):
     operator: str | None = None
     extension: str | None = None
 
+    # noinspection PyNestedDecorators
+    @model_validator(mode="after")
+    def _validate_model(self) -> Self:
+        if not self.bof and not self.eof:
+            raise ValueError(f"One of bof or eof must be set.")
+        if self.bof and self.eof and not self.operator:
+            raise ValueError(f"Operator must be set if both bof and eof are set.")
+        return self
+
 
 class IgnoreIfAction(NoDefaultsModel):
     """
