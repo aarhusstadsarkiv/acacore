@@ -47,11 +47,11 @@ class CustomSignature(BaseModel):
     :param extension: The file extension associated with the signature.
     """
 
+    puid: str
+    signature: str
     bof: str | None = None
     eof: str | None = None
     operator: str | None = None
-    puid: str | None = None
-    signature: str | None = None
     extension: str | None = None
 
 
