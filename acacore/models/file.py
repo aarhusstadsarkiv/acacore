@@ -288,11 +288,13 @@ class File(BaseModel):
         action: Action | None = reduce(lambda acc, cur: acc or actions.get(cur), identifiers, None)
 
         if action and action.alternatives and (new_puid := action.alternatives.get(self.suffixes.lower(), None)):
-            puid: str = self.puid
+            puid: str | None = self.puid
             self.puid = new_puid
-            if new_action := self.get_action(actions, file_classes, set_match=set_match):
-                return new_action
-            self.puid = puid
+            if new_action := self.get_action(actions, file_classes):
+                action = new_action
+                self.signature = action.name
+            else:
+                self.puid = puid
 
         if set_match:
             self.action, self.action_data = (

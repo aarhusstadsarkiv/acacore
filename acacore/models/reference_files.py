@@ -47,12 +47,21 @@ class CustomSignature(BaseModel):
     :param extension: The file extension associated with the signature.
     """
 
+    puid: str
+    signature: str
     bof: str | None = None
     eof: str | None = None
     operator: str | None = None
-    puid: str | None = None
-    signature: str | None = None
     extension: str | None = None
+
+    # noinspection PyNestedDecorators
+    @model_validator(mode="after")
+    def _validate_model(self) -> Self:
+        if not self.bof and not self.eof:
+            raise ValueError("One of bof or eof must be set.")
+        if self.bof and self.eof and not self.operator:
+            raise ValueError("Operator must be set if both bof and eof are set.")
+        return self
 
 
 class IgnoreIfAction(NoDefaultsModel):
