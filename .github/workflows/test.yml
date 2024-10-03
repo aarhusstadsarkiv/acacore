@@ -46,6 +46,9 @@ jobs:
   pytest:
     name: pytest
     runs-on: ubuntu-latest
+    needs:
+      - linting
+      - version
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
