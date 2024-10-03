@@ -58,9 +58,9 @@ class CustomSignature(BaseModel):
     @model_validator(mode="after")
     def _validate_model(self) -> Self:
         if not self.bof and not self.eof:
-            raise ValueError(f"One of bof or eof must be set.")
+            raise ValueError("One of bof or eof must be set.")
         if self.bof and self.eof and not self.operator:
-            raise ValueError(f"Operator must be set if both bof and eof are set.")
+            raise ValueError("Operator must be set if both bof and eof are set.")
         return self
 
 
