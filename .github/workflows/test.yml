@@ -51,13 +51,13 @@ jobs:
       - version
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      - uses: abatilo/actions-poetry@v2
+      - uses: abatilo/actions-poetry@v3
         with:
           poetry-version: ${{ env.POETRY_VERSION }}
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
       - run: poetry install
       - run: go install github.com/richardlehane/siegfried/cmd/sf@latest
       - name: Unit test
