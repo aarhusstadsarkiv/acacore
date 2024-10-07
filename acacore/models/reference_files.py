@@ -1,4 +1,3 @@
-from typing import Any
 from typing import get_args as get_type_args
 from typing import Literal
 from typing import Self
@@ -113,23 +112,16 @@ class ConvertAction(NoDefaultsModel):
     Class representing an action to convert a file to a different format.
 
     :ivar tool: The converter to use for the conversion.
-    :ivar outputs: The list of file types to convert to.
+    :ivar output: The output target for the converter.
     """
 
     tool: str
-    outputs: list[str] = Field(default_factory=list)
-
-    # noinspection PyNestedDecorators
-    @field_validator("outputs", mode="before")
-    @classmethod
-    def _validate_outputs(cls, value: Any) -> list[str]:  # noqa: ANN401
-        """Allow a single string to be used as value."""
-        return [value] if isinstance(value, str) else value
+    output: str | None = None
 
     @model_validator(mode="after")
     def _validate_model(self) -> Self:
-        if not self.tool == "copy" and not self.outputs:
-            raise ValueError("Missing outputs.")
+        if not self.tool == "copy" and not self.output:
+            raise ValueError("Missing output.")
         return self
 
 
