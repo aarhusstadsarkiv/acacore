@@ -121,7 +121,7 @@ class ConvertAction(NoDefaultsModel):
     @model_validator(mode="after")
     def _validate_model(self) -> Self:
         if not self.tool == "copy" and not self.output:
-            raise ValueError("Missing outputs.")
+            raise ValueError("Missing output.")
         return self
 
 
