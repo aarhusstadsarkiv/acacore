@@ -23,6 +23,7 @@ from acacore.database.upgrade import upgrade
 from acacore.models.file import File
 from acacore.models.history import HistoryEntry
 from acacore.models.reference_files import Action
+from acacore.models.reference_files import ConvertAction
 
 
 @pytest.fixture()
@@ -50,7 +51,7 @@ def test_file(test_files: Path, test_files_data: dict[str, dict]) -> File:
     action: Action = Action(
         name=filedata["matches"]["format"],
         action="convert",
-        convert={"tool": "convertool", "outputs": ["odt", "pdf"]},
+        convert=ConvertAction(tool="convertool", output="odt"),
     )
     file: File = File.from_file(file_path)
 
