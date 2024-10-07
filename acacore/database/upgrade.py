@@ -1,3 +1,4 @@
+from functools import reduce
 from json import dumps
 from json import loads
 from sqlite3 import Connection
@@ -179,6 +180,40 @@ def upgrade_3_0_6to3_0_7(conn: Connection) -> Version:
     return set_db_version(conn, Version("3.0.7"))
 
 
+def upgrade_3_1to3_2(conn: Connection) -> Version:
+    def convert_action_data(data: dict) -> dict:
+        if not data.get("convert"):
+            pass
+        elif data["convert"]["tool"] == "copy":
+            if data["convert"].get("outputs"):
+                del data["convert"]["outputs"]
+        elif o := reduce(
+            lambda a, c: a or (c if c in data["convert"]["outputs"] else None),
+            ["ods", "odt", "odp", "svg", "html", "xml", "svg", "msg"],
+            None,
+        ):
+            data["convert"]["output"] = o
+            del data["convert"]["outputs"]
+        else:
+            data["convert"]["output"] = data["convert"]["outputs"][0]
+            del data["convert"]["outputs"]
+
+        return data
+
+    conn.executemany(
+        "update Files set action_data = ? where uuid = ?",
+        (
+            (dumps(action_data), uuid)
+            for uuid, action_data_raw in conn.execute("select uuid, action_data from Files where action_data != '{}'")
+            if (action_data := convert_action_data(loads(action_data_raw)))
+        ),
+    )
+
+    conn.commit()
+
+    return set_db_version(conn, Version("3.2.0"))
+
+
 def get_upgrade_function(current_version: Version, latest_version: Version) -> Callable[[Connection], Version]:
     if current_version < Version("2.0.0"):
         return upgrade_1to2
@@ -192,6 +227,8 @@ def get_upgrade_function(current_version: Version, latest_version: Version) -> C
         return upgrade_3_0_2to3_0_6
     elif current_version < Version("3.0.7"):
         return upgrade_3_0_6to3_0_7
+    elif current_version < Version("3.2.0"):
+        return upgrade_3_1to3_2
     elif current_version < latest_version:
         return lambda c: set_db_version(c, Version(__version__))
     else:
