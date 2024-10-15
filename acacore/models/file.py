@@ -1,4 +1,5 @@
 from functools import reduce
+from os import PathLike
 from pathlib import Path
 from re import compile as re_compile
 from uuid import uuid4
@@ -100,7 +101,7 @@ class File(BaseModel):
     @classmethod
     def from_file(
         cls,
-        path: Path,
+        path: str | PathLike[str],
         root: Path | None = None,
         siegfried: Siegfried | SiegfriedFile | None = None,
         actions: dict[str, Action] | None = None,
@@ -127,6 +128,7 @@ class File(BaseModel):
         :param processed: Optionally, the value to be used for the processed property, defaults to False.
         :return: A File object.
         """
+        path = Path(path)
         file = cls(
             uuid=uuid or uuid4(),
             checksum=file_checksum(path),
