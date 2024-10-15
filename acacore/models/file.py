@@ -7,6 +7,7 @@ from uuid import uuid4
 from pydantic import BaseModel
 from pydantic import Field
 from pydantic import field_validator
+from pydantic import model_validator
 from pydantic import UUID4
 
 from acacore.database.column import DBField
@@ -393,3 +394,19 @@ class File(BaseModel):
     @suffixes.setter
     def suffixes(self, new_suffixes: str):
         self.relative_path = self.relative_path.with_name(self.name.removesuffix(self.suffixes) + new_suffixes)
+
+
+class OriginalFile(File):
+    original_name: str
+
+    # noinspection PyNestedDecorators
+    @model_validator(mode="before")
+    @classmethod
+    def _model_validator(cls, data: dict):
+        if isinstance(data, dict):
+            data["original_name"] = data.get("original_name", "").strip() or Path(data["relative_path"]).name
+        return data
+
+
+class ConvertedFile(File):
+    original_uuid: UUID4 | None = None
