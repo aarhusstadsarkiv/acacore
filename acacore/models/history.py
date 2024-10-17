@@ -9,11 +9,10 @@ from pydantic import Field
 from pydantic import UUID4
 
 from acacore.__version__ import __version__
-from acacore.database.column import DBField
 
 
 class HistoryEntry(BaseModel):
-    uuid: UUID4 | None = DBField(default=None, index=["idx_uuid_history"])
+    uuid: UUID4 | None = None
     time: datetime = Field(default_factory=datetime.now)
     operation: str
     data: object | None = None

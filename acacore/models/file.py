@@ -10,7 +10,6 @@ from pydantic import field_validator
 from pydantic import model_validator
 from pydantic import UUID4
 
-from acacore.database.column import DBField
 from acacore.siegfried.siegfried import Siegfried
 from acacore.siegfried.siegfried import SiegfriedFile
 from acacore.siegfried.siegfried import TSiegfriedFileClass
@@ -78,20 +77,20 @@ class File(BaseModel):
     :ivar root: The root directory for the file.
     """
 
-    uuid: UUID4 = DBField(default_factory=uuid4, index=["idx_uuid"])
-    checksum: str = DBField(index=["idx_checksum"])
-    relative_path: Path = DBField(primary_key=True)
+    uuid: UUID4 = Field(default_factory=uuid4)
+    checksum: str
+    relative_path: Path
     is_binary: bool
     size: int
     puid: str | None
     signature: str | None
     warning: list[str] | None = None
-    action: TActionType | None = DBField(index=["idx_action"])
+    action: TActionType | None = None
     action_data: ActionData = Field(default_factory=ActionData)
     parent: UUID4 | None = None
     processed: bool = False
     lock: bool = False
-    root: Path | None = DBField(None, ignore=True)
+    root: Path | None = None
 
     # noinspection PyNestedDecorators
     @field_validator("action_data", mode="before")
