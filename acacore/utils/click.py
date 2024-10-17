@@ -126,7 +126,7 @@ def start_program(
         setup_logger(f"{prog}_file", files=[database.path.parent / f"{prog}.log"]) if log_file else None
     )
     log_stdout: Logger | None = setup_logger(f"{prog}_stdout", streams=[stdout]) if log_stdout else None
-    program_start: Event = Event.command_event(
+    program_start: Event = Event.from_command(
         ctx,
         "start",
         data={"version": version},
@@ -163,7 +163,7 @@ def end_program(
     :param dry_run: Whether the command was run in dry-run mode.
     :param loggers: A list of loggers to which to save the end event.
     """
-    program_end: Event = Event.command_event(
+    program_end: Event = Event.from_command(
         ctx,
         "end",
         data=repr(exception.exception) if exception.exception else None,

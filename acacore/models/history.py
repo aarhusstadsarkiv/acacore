@@ -20,7 +20,7 @@ class Event(BaseModel):
     reason: str | None = None
 
     @classmethod
-    def command_event(
+    def from_command(
         cls,
         ctx: Context | str,
         operation: str,
