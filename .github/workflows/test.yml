@@ -60,9 +60,9 @@ jobs:
       - uses: actions/setup-go@v5
       - run: poetry install
       - run: go install github.com/richardlehane/siegfried/cmd/sf@latest
-      - name: Unit test
+      - name: pytest
         env:
           GOPATH: /home/runner/go
-        run: |
-          poetry run coverage run -m pytest
-          poetry run coverage report -m --fail-under=80 --skip-empty --skip-covered
+        run: poetry run coverage run -m pytest
+      - name: coverage
+        run: poetry run coverage report -m --fail-under=80 --skip-empty --skip-covered
