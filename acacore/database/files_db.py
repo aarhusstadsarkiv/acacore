@@ -5,14 +5,14 @@ from pydantic import BaseModel
 
 from acacore.models.file import ConvertedFile
 from acacore.models.file import OriginalFile
-from acacore.models.history import HistoryEntry
+from acacore.models.history import Event
 from acacore.models.metadata import Metadata
 from acacore.models.reference_files import TActionType
 
 from .database import Database
 
 
-class HistoryEntryPath(HistoryEntry):
+class EventPath(Event):
     relative_path: Path | None = None
 
 
@@ -82,12 +82,12 @@ class FilesDB(Database):
         )
 
         self.log = self.create_table(
-            HistoryEntry,
+            Event,
             "log",
             indices={"uuid": ["uuid"], "time": ["time"], "operation": ["operation"]},
         )
         self.log_paths = self.create_view(
-            HistoryEntryPath,
+            EventPath,
             "log_paths",
             f"select f.relative_path as relative_path, h.* from {self.log.name} h left join {self.original_files.name} f on f.uuid = h.uuid",
         )

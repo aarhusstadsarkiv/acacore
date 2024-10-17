@@ -15,7 +15,7 @@ from click import Command
 from click import Context
 from click import Parameter
 
-from acacore.models.history import HistoryEntry
+from acacore.models.history import Event
 from acacore.utils.helpers import ExceptionManager
 from acacore.utils.log import setup_logger
 
@@ -102,7 +102,7 @@ def start_program(
     log_file: bool = True,
     log_stdout: bool = True,
     dry_run: bool = False,
-) -> tuple[Logger | None, Logger | None, HistoryEntry]:
+) -> tuple[Logger | None, Logger | None, Event]:
     """
     Create loggers and ``HistoryEntry`` for the start of a click program.
 
@@ -126,7 +126,7 @@ def start_program(
         setup_logger(f"{prog}_file", files=[database.path.parent / f"{prog}.log"]) if log_file else None
     )
     log_stdout: Logger | None = setup_logger(f"{prog}_stdout", streams=[stdout]) if log_stdout else None
-    program_start: HistoryEntry = HistoryEntry.command_history(
+    program_start: Event = Event.command_event(
         ctx,
         "start",
         data={"version": version},
@@ -163,7 +163,7 @@ def end_program(
     :param dry_run: Whether the command was run in dry-run mode.
     :param loggers: A list of loggers to which to save the end event.
     """
-    program_end: HistoryEntry = HistoryEntry.command_history(
+    program_end: Event = Event.command_event(
         ctx,
         "end",
         data=repr(exception.exception) if exception.exception else None,

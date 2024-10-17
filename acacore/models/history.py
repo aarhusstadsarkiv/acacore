@@ -1,6 +1,7 @@
 from datetime import datetime
 from logging import Logger
 from typing import Any
+from typing import Self
 from typing import Sequence
 
 from click import Context
@@ -11,7 +12,7 @@ from pydantic import UUID4
 from acacore.__version__ import __version__
 
 
-class HistoryEntry(BaseModel):
+class Event(BaseModel):
     uuid: UUID4 | None = None
     time: datetime = Field(default_factory=datetime.now)
     operation: str
@@ -19,7 +20,7 @@ class HistoryEntry(BaseModel):
     reason: str | None = None
 
     @classmethod
-    def command_history(
+    def command_event(
         cls,
         ctx: Context | str,
         operation: str,
@@ -28,7 +29,7 @@ class HistoryEntry(BaseModel):
         reason: str | None = None,
         time: datetime | None = None,
         add_params_to_data: bool = False,
-    ) -> "HistoryEntry":
+    ) -> Self:
         """
         Create a HistoryEntry for a command.
 
