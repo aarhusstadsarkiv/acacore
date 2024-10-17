@@ -16,7 +16,7 @@ __all__ = [
 ]
 
 
-from .files_db import FileDB
+from .files_db import FilesDB
 
 
 def get_db_version(conn: Connection) -> Version | None:
@@ -153,12 +153,14 @@ def upgrade_3to3_0_2(conn: Connection) -> Version:
     return set_db_version(conn, Version("3.0.2"))
 
 
+# noinspection SqlResolve
 def upgrade_3_0_2to3_0_6(conn: Connection) -> Version:
     conn.execute("update Files set action = 'ignore' where action = 'template'")
     conn.commit()
     return set_db_version(conn, Version("3.0.6"))
 
 
+# noinspection SqlResolve
 def upgrade_3_0_6to3_0_7(conn: Connection) -> Version:
     def convert_action_data(data: dict) -> dict | None:
         if (reidentify := data.get("reidentify")) and reidentify.get("on_fail"):
@@ -180,6 +182,7 @@ def upgrade_3_0_6to3_0_7(conn: Connection) -> Version:
     return set_db_version(conn, Version("3.0.7"))
 
 
+# noinspection SqlResolve
 def upgrade_3_1to3_2(conn: Connection) -> Version:
     def convert_action_data(data: dict) -> dict:
         if not data.get("convert"):
@@ -235,7 +238,8 @@ def get_upgrade_function(current_version: Version, latest_version: Version) -> C
         return lambda _: latest_version
 
 
-def is_latest(db: FileDB, *, raise_on_difference: bool = False) -> bool:
+# noinspection SqlResolve
+def is_latest(db: FilesDB, *, raise_on_difference: bool = False) -> bool:
     """
     Check if a database is using the latest version of acacore.
 
@@ -249,7 +253,7 @@ def is_latest(db: FileDB, *, raise_on_difference: bool = False) -> bool:
     if not db.is_initialised(check_views=False, check_indices=False):
         raise DatabaseError("Database is not initialised")
 
-    current_version: Version | None = get_db_version(db)
+    current_version: Version | None = get_db_version(db.connection)
     latest_version: Version = Version(__version__)
 
     if not current_version:
@@ -262,7 +266,7 @@ def is_latest(db: FileDB, *, raise_on_difference: bool = False) -> bool:
     return current_version == latest_version
 
 
-def upgrade(db: FileDB):
+def upgrade(db: FilesDB):
     """
     Upgrade a database to the latest version of acacore.
 
@@ -270,15 +274,15 @@ def upgrade(db: FileDB):
     """
     if not db.is_initialised(check_views=False, check_indices=False):
         raise DatabaseError("Database is not initialised")
-    if db.committed_changes != db.total_changes:
+    if db.uncommitted_changes:
         raise DatabaseError("Database has uncommited transactions")
 
     if is_latest(db):
         return
 
-    current_version: Version = get_db_version(db)
+    current_version: Version = get_db_version(db.connection)
     latest_version: Version = Version(__version__)
 
     while current_version < latest_version:
         update_function = get_upgrade_function(current_version, latest_version)
-        current_version = update_function(db)
+        current_version = update_function(db.connection)
