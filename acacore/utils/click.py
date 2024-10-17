@@ -104,7 +104,7 @@ def start_program(
     dry_run: bool = False,
 ) -> tuple[Logger | None, Logger | None, Event]:
     """
-    Create loggers and ``HistoryEntry`` for the start of a click program.
+    Create loggers and ``Event`` for the start of a click program.
 
     If ``log_file`` is ``False``, the file logger return value is ``None``. If ``log_stdout`` is ``False``, the
     standard output logger return value is ``None``.
@@ -114,12 +114,12 @@ def start_program(
     :param ctx: The context of the command that should be logged.
     :param database: The database instance.
     :param version: The version of the command/program.
-    :param time: Optionally, the time to use for the ``HistoryEntry`` event. Defaults to now.
+    :param time: Optionally, the time to use for the ``Event`` object. Defaults to now.
     :param log_file: Whether a file log should be opened and returned. Defaults to ``False``.
     :param log_stdout: Whether a standard output log should be opened and returned. Defaults to ``False``.
     :param dry_run: Whether the command is run in dry-run mode.
     :return: A tuple containing the file logger (if set with ``log_file`` otherwise ``None``), the standard output
-        logger (if set with ``log_stdout`` otherwise ``None``), and the ``HistoryEntry`` start event.
+        logger (if set with ``log_stdout`` otherwise ``None``), and the ``Event`` object for the start of the program.
     """
     prog: str = ctx.find_root().command.name
     log_file: Logger | None = (
@@ -153,7 +153,7 @@ def end_program(
     *loggers: Logger | None,
 ):
     """
-    Create ``HistoryEntry`` event for the end of a click program.
+    Create ``Event`` event for the end of a click program.
 
     If ``dry_run`` is ``True``, the end event is not added to the database, and the database changes are not committed.
 

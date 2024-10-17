@@ -31,7 +31,7 @@ class Event(BaseModel):
         add_params_to_data: bool = False,
     ) -> Self:
         """
-        Create a HistoryEntry for a command.
+        Create an Event for a command.
 
         :param ctx: The context object representing the current command execution.
         :param operation: The name of the operation for which the command history entry is being created.
@@ -40,7 +40,7 @@ class Event(BaseModel):
         :param reason: Optional. The reason for the command execution, defaults to None.
         :param time: Optional. The timestamp of the command execution, defaults to None.
         :param add_params_to_data: If true, add context parameters to data, defaults to False.
-        :return: A `HistoryEntry` instance representing the command history entry.
+        :return: An `Event` instance representing the command history entry.
         """
         command: str
 
