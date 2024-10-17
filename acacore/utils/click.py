@@ -15,7 +15,7 @@ from click import Command
 from click import Context
 from click import Parameter
 
-from acacore.models.history import Event
+from acacore.models.event import Event
 from acacore.utils.helpers import ExceptionManager
 from acacore.utils.log import setup_logger
 

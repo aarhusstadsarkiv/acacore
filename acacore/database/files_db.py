@@ -3,9 +3,9 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
+from acacore.models.event import Event
 from acacore.models.file import ConvertedFile
 from acacore.models.file import OriginalFile
-from acacore.models.history import Event
 from acacore.models.metadata import Metadata
 from acacore.models.reference_files import TActionType
 
