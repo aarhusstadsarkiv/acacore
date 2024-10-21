@@ -12,6 +12,9 @@ from acacore.models.metadata import Metadata
 from acacore.models.reference_files import TActionType
 
 from .database import Database
+from .database import KeysTable
+from .database import Table
+from .database import View
 
 
 class EventPath(Event):
@@ -54,28 +57,32 @@ class FilesDB(Database):
             cached_statements=cached_statements,
         )
 
-        self.original_files = self.create_table(
+        self.original_files: Table[OriginalFile] = Table(
+            self.connection,
             OriginalFile,
             "files_original",
             ["relative_path"],
             {"uuid": ["uuid"], "checksum": ["checksum"], "action": ["action"]},
             ["root"],
         )
-        self.master_files = self.create_table(
+        self.master_files: Table[ConvertedFile] = Table(
+            self.connection,
             ConvertedFile,
             "files_master",
             ["relative_path"],
             {"uuid": ["uuid"], "checksum": ["checksum"], "action": ["action"]},
             ["root"],
         )
-        self.access_files = self.create_table(
+        self.access_files: Table[ConvertedFile] = Table(
+            self.connection,
             ConvertedFile,
             "files_master",
             ["relative_path"],
             {"uuid": ["uuid"], "checksum": ["checksum"], "action": ["action"]},
             ["root"],
         )
-        self.statutory_files = self.create_table(
+        self.statutory_files: Table[ConvertedFile] = Table(
+            self.connection,
             ConvertedFile,
             "files_statutory",
             ["relative_path"],
@@ -83,42 +90,48 @@ class FilesDB(Database):
             ["root"],
         )
 
-        self.log = self.create_table(
+        self.log: Table[Event] = Table(
+            self.connection,
             Event,
             "log",
             indices={"uuid": ["uuid"], "time": ["time"], "operation": ["operation"]},
         )
-        self.log_paths = self.create_view(
+        self.log_paths: View[EventPath] = View(
+            self.connection,
             EventPath,
             "log_paths",
             f"select f.relative_path as relative_path, h.* from {self.log.name} h left join {self.original_files.name} f on f.uuid = h.uuid",
         )
 
-        self.identification_warnings = self.create_view(
+        self.identification_warnings: View[OriginalFile] = View(
+            self.connection,
             OriginalFile,
             "view_identification_warnings",
             f"select * from {self.original_files.name} where (warning is not null or puid is null) and size != 0",
         )
 
-        self.signatures_count = self.create_view(
+        self.signatures_count: View[SignatureCount] = View(
+            self.connection,
             SignatureCount,
             "view_signatures_count",
             f"select puid, count(*) as count from {self.original_files.name} group by puid, signature order by count desc",
         )
 
-        self.actions_count = self.create_view(
+        self.actions_count: View[ActionCount] = View(
+            self.connection,
             ActionCount,
             "view_actions_count",
             f"select action, count(*) as count from {self.original_files.name} group by action order by count desc",
         )
 
-        self.checksums_count = self.create_view(
+        self.checksums_count: View[ChecksumCount] = View(
+            self.connection,
             ChecksumCount,
             "view_checksums_count",
             f"select checksum, count(*) as count from {self.original_files.name} group by checksum order by count desc",
         )
 
-        self.metadata = self.create_keys_table(Metadata, "metadata", exist_ok=True)
+        self.metadata: KeysTable[Metadata] = KeysTable(self.connection, Metadata, "metadata")
 
     def is_initialised(self) -> bool:
         return self.metadata.name in self.tables()
@@ -127,3 +140,18 @@ class FilesDB(Database):
         if self.is_initialised():
             return self.metadata.get("version")
         raise DatabaseError("Not initialised")
+
+    def init(self):
+        self.original_files.create(exist_ok=True)
+        self.master_files.create(exist_ok=True)
+        self.access_files.create(exist_ok=True)
+        self.statutory_files.create(exist_ok=True)
+        self.log.create(exist_ok=True)
+        self.log_paths.create(exist_ok=True)
+        self.identification_warnings.create(exist_ok=True)
+        self.signatures_count.create(exist_ok=True)
+        self.actions_count.create(exist_ok=True)
+        self.checksums_count.create(exist_ok=True)
+        self.metadata.create(exist_ok=True)
+        if not self.metadata.get():
+            self.metadata.set(Metadata())
