@@ -133,6 +133,9 @@ class FilesDB(Database):
 
         self.metadata: KeysTable[Metadata] = KeysTable(self.connection, Metadata, "metadata")
 
+    def upgrade(self):
+        pass
+
     def is_initialised(self) -> bool:
         return self.metadata.name in self.tables()
 
