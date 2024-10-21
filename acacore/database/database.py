@@ -77,6 +77,12 @@ class Database:
     def close(self):
         self.connection.close()
 
+    def tables(self) -> list[str]:
+        return [t for [t] in self.connection.execute("select name from sqlite_master where type = 'table'")]
+
+    def views(self) -> list[str]:
+        return [v for [v] in self.connection.execute("select name from sqlite_master where type = 'view'")]
+
     def create_table(
         self,
         model: Type[_M],
