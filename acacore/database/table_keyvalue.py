@@ -23,6 +23,14 @@ class KeysTable(Generic[M]):
         self.table: Table[KeysTableModel] = Table(database, KeysTableModel, name)
         self.model: Type[M] = model
 
+    @property
+    def name(self) -> str:
+        return self.table.name
+
+    @name.setter
+    def name(self, value: str):
+        self.table.name = value
+
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.table.name!r}, {self.model.__name__})"
 
