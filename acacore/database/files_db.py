@@ -141,7 +141,7 @@ class FilesDB(Database):
 
     def version(self) -> Version:
         if self.is_initialised():
-            return self.metadata.get("version")
+            return Version(self.metadata.get("version"))
         raise DatabaseError("Not initialised")
 
     def init(self):
