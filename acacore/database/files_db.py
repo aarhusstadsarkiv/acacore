@@ -1,6 +1,8 @@
 from os import PathLike
 from pathlib import Path
+from sqlite3 import DatabaseError
 
+from packaging.version import Version
 from pydantic import BaseModel
 
 from acacore.models.event import Event
@@ -118,5 +120,10 @@ class FilesDB(Database):
 
         self.metadata = self.create_keys_table(Metadata, "metadata", exist_ok=True)
 
-        if not self.metadata.get():
-            self.metadata.set(Metadata())
+    def is_initialised(self) -> bool:
+        return self.metadata.name in self.tables()
+
+    def version(self) -> Version:
+        if self.is_initialised():
+            return self.metadata.get("version")
+        raise DatabaseError("Not initialised")
