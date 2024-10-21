@@ -3,6 +3,7 @@ from os import PathLike
 from pathlib import Path
 from sqlite3 import Connection
 from sqlite3 import Cursor as SQLiteCursor
+from sqlite3 import ProgrammingError
 from typing import Iterable
 from typing import Mapping
 from typing import overload
@@ -73,6 +74,13 @@ class Database:
     @property
     def uncommitted_changes(self):
         return self.total_changes - self._committed_changes
+
+    def is_open(self) -> bool:
+        try:
+            self.connection.execute("select 1 from sqlite_master limit 1")
+            return True
+        except ProgrammingError:
+            return False
 
     def close(self):
         self.connection.close()
