@@ -88,7 +88,7 @@ class BaseFile(BaseModel):
         cls,
         path: str | PathLike[str],
         root: str | PathLike[str],
-        siegfried: Siegfried | SiegfriedFile = None,
+        siegfried: Siegfried | SiegfriedFile | None = None,
         custom_signatures: list[CustomSignature] | None = None,
         uuid: UUID | None = None,
     ) -> Self:
@@ -423,7 +423,7 @@ class ConvertedFile(BaseFile):
         path: str | PathLike[str],
         root: str | PathLike[str],
         original_uuid: UUID | None = None,
-        siegfried: Siegfried | SiegfriedFile = None,
+        siegfried: Siegfried | SiegfriedFile | None = None,
         custom_signatures: list[CustomSignature] | None = None,
         uuid: UUID | None = None,
     ) -> Self:
@@ -452,7 +452,7 @@ class MasterFile(ConvertedFile):
         path: str | PathLike[str],
         root: str | PathLike[str],
         original_uuid: UUID | None = None,
-        siegfried: Siegfried | SiegfriedFile = None,
+        siegfried: Siegfried | SiegfriedFile | None = None,
         custom_signatures: list[CustomSignature] | None = None,
         actions_access: dict[str, ConvertAction] | None = None,
         actions_statutory: dict[str, ConvertAction] | None = None,
