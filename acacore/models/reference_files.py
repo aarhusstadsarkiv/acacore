@@ -50,7 +50,7 @@ class CustomSignature(BaseModel):
     signature: str
     bof: str | None = None
     eof: str | None = None
-    operator: str | None = None
+    operator: Literal["AND", "OR"] | None = None
     extension: str | None = None
 
     # noinspection PyNestedDecorators
