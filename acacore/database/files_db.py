@@ -71,7 +71,7 @@ class FilesDB(Database):
             MasterFile,
             "files_master",
             ["relative_path"],
-            {"uuid": ["uuid"], "checksum": ["checksum"]},
+            {"uuid": ["uuid"], "checksum": ["checksum"], "original_uuid": ["original_uuid"]},
             ["root"],
         )
         self.access_files: Table[ConvertedFile] = Table(
@@ -79,7 +79,7 @@ class FilesDB(Database):
             ConvertedFile,
             "files_access",
             ["relative_path"],
-            {"uuid": ["uuid"], "checksum": ["checksum"]},
+            {"uuid": ["uuid"], "checksum": ["checksum"], "original_uuid": ["original_uuid"]},
             ["root"],
         )
         self.statutory_files: Table[ConvertedFile] = Table(
@@ -87,7 +87,7 @@ class FilesDB(Database):
             ConvertedFile,
             "files_statutory",
             ["relative_path"],
-            {"uuid": ["uuid"], "checksum": ["checksum"]},
+            {"uuid": ["uuid"], "checksum": ["checksum"], "original_uuid": ["original_uuid"]},
             ["root"],
         )
 
