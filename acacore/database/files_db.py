@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from acacore.models.event import Event
 from acacore.models.file import ConvertedFile
+from acacore.models.file import MasterFile
 from acacore.models.file import OriginalFile
 from acacore.models.metadata import Metadata
 from acacore.models.reference_files import TActionType
@@ -65,12 +66,12 @@ class FilesDB(Database):
             {"uuid": ["uuid"], "checksum": ["checksum"], "action": ["action"]},
             ["root"],
         )
-        self.master_files: Table[ConvertedFile] = Table(
+        self.master_files: Table[MasterFile] = Table(
             self.connection,
-            ConvertedFile,
+            MasterFile,
             "files_master",
             ["relative_path"],
-            {"uuid": ["uuid"], "checksum": ["checksum"], "action": ["action"]},
+            {"uuid": ["uuid"], "checksum": ["checksum"]},
             ["root"],
         )
         self.access_files: Table[ConvertedFile] = Table(
@@ -78,7 +79,7 @@ class FilesDB(Database):
             ConvertedFile,
             "files_master",
             ["relative_path"],
-            {"uuid": ["uuid"], "checksum": ["checksum"], "action": ["action"]},
+            {"uuid": ["uuid"], "checksum": ["checksum"]},
             ["root"],
         )
         self.statutory_files: Table[ConvertedFile] = Table(
@@ -86,7 +87,7 @@ class FilesDB(Database):
             ConvertedFile,
             "files_statutory",
             ["relative_path"],
-            {"uuid": ["uuid"], "checksum": ["checksum"], "action": ["action"]},
+            {"uuid": ["uuid"], "checksum": ["checksum"]},
             ["root"],
         )
 
