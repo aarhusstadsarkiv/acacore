@@ -23,13 +23,11 @@ class Cursor(Generic[M]):
         self.model: Type[M] = model
         self.columns: list[ColumnSpec] = columns
         self._cols: dict[str, Callable[[SQLValue], Any]] = {c.name: c.from_sql for c in columns}
-        self._load: Callable[[Row], M] = lambda r: self.model.model_validate(
-            {k: f(r[k]) for k, f in self._cols.items()}
-        )
+        self._row: Callable[[Row], M] = lambda r: self.model.model_validate({k: f(r[k]) for k, f in self._cols.items()})
 
     @property
     def rows(self) -> Generator[M, None, None]:
-        return (self._load(row) for row in self.cursor)
+        return (self._row(row) for row in self.cursor)
 
     def __iter__(self) -> Generator[M, None, None]:
         yield from self.rows
