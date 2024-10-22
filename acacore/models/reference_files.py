@@ -1,5 +1,7 @@
+from re import search
 from typing import get_args as get_type_args
 from typing import Literal
+from typing import Match
 from typing import Self
 
 from pydantic import AliasChoices
@@ -61,6 +63,30 @@ class CustomSignature(BaseModel):
         if self.bof and self.eof and not self.operator:
             raise ValueError("Operator must be set if both bof and eof are set.")
         return self
+
+    def match(self, bof: str | None, eof: str | None) -> int:
+        if not bof and not eof:
+            return 0
+        elif self.bof and self.bof:
+            match_bof: Match[str] | None = search(self.bof, bof or "")
+
+            if self.operator == "AND" and not match_bof:
+                return 0
+
+            match_eof: Match[str] | None = search(self.eof, eof or "")
+
+            if match_bof and match_eof:
+                return (match_bof.end() - match_bof.start()) + (match_eof.end() - match_eof.start())
+            elif self.operator == "OR" and match_bof:
+                return match_bof.end() - match_bof.start()
+            elif self.operator == "OR" and match_eof:
+                return match_eof.end() - match_eof.start()
+        elif self.bof and (match_bof := search(self.bof, bof or "")):
+            return match_bof.end() - match_bof.start()
+        elif self.eof and (match_eof := search(self.eof, eof or "")):
+            return match_eof.end() - match_eof.start()
+
+        return 0
 
 
 class IgnoreIfAction(NoDefaultsModel):
