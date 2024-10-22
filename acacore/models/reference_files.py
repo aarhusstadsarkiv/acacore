@@ -192,8 +192,9 @@ class IgnoreAction(NoDefaultsModel):
     # noinspection PyNestedDecorators
     @model_validator(mode="after")
     def _validate_model(self) -> Self:
-        if self.template == "text" and not self.reason:
+        if self.template == "text" and self.reason is None or not self.reason.strip():
             raise ValueError("Reason cannot be empty when template is set to text.")
+        self.reason = (self.reason.strip() or None) if self.reason else None
         return self
 
 
