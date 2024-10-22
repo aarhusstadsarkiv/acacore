@@ -414,10 +414,37 @@ class OriginalFile(BaseFile):
         return action
 
 
-class MasterFile(BaseFile):
+class ConvertedFile(BaseFile):
+    original_uuid: UUID4 | None = None
+
+    @classmethod
+    def from_file(
+        cls,
+        path: str | PathLike[str],
+        root: str | PathLike[str],
+        original_uuid: UUID | None = None,
+        siegfried: Siegfried | SiegfriedFile = None,
+        custom_signatures: list[CustomSignature] | None = None,
+        uuid: UUID | None = None,
+    ) -> Self:
+        file_base = super().from_file(path, root, siegfried, custom_signatures, uuid)
+        return cls(
+            uuid=file_base.uuid,
+            checksum=file_base.checksum,
+            relative_path=file_base.relative_path,
+            root=file_base.root,
+            is_binary=file_base.is_binary,
+            size=file_base.size,
+            puid=file_base.puid,
+            signature=file_base.signature,
+            warning=file_base.warning,
+            original_uuid=original_uuid,
+        )
+
+
+class MasterFile(ConvertedFile):
     convert_access: ConvertAction | None = None
     convert_statutory: ConvertAction | None = None
-    original_uuid: UUID4 | None = None
 
     @classmethod
     def from_file(
@@ -431,7 +458,7 @@ class MasterFile(BaseFile):
         actions_statutory: dict[str, Action] | None = None,
         uuid: UUID | None = None,
     ) -> Self:
-        file_base = super().from_file(path, root, siegfried, custom_signatures, uuid)
+        file_base = super().from_file(path, root, original_uuid, siegfried, custom_signatures, uuid)
         file = cls(
             uuid=file_base.uuid,
             checksum=file_base.checksum,
@@ -442,11 +469,8 @@ class MasterFile(BaseFile):
             puid=file_base.puid,
             signature=file_base.signature,
             warning=file_base.warning,
-            original_uuid=original_uuid,
+            original_uuid=file_base.original_uuid,
         )
-
-        if custom_signatures and not file.puid:
-            file.identify_custom(custom_signatures, set_match=True)
 
         if actions_access:
             file.get_action("access", actions_access, set_match=True)
@@ -509,31 +533,3 @@ class MasterFile(BaseFile):
                 self.convert_statutory = None
 
         return action
-
-
-class ConvertedFile(BaseFile):
-    original_uuid: UUID4 | None = None
-
-    @classmethod
-    def from_file(
-        cls,
-        path: str | PathLike[str],
-        root: str | PathLike[str],
-        original_uuid: UUID | None = None,
-        siegfried: Siegfried | SiegfriedFile = None,
-        custom_signatures: list[CustomSignature] | None = None,
-        uuid: UUID | None = None,
-    ) -> Self:
-        file_base = super().from_file(path, root, siegfried, custom_signatures, uuid)
-        return cls(
-            uuid=file_base.uuid,
-            checksum=file_base.checksum,
-            relative_path=file_base.relative_path,
-            root=file_base.root,
-            is_binary=file_base.is_binary,
-            size=file_base.size,
-            puid=file_base.puid,
-            signature=file_base.signature,
-            warning=file_base.warning,
-            original_uuid=original_uuid,
-        )
