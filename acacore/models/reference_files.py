@@ -55,7 +55,6 @@ class CustomSignature(BaseModel):
     operator: Literal["AND", "OR"] | None = None
     extension: str | None = None
 
-    # noinspection PyNestedDecorators
     @model_validator(mode="after")
     def _validate_model(self) -> Self:
         if not self.bof and not self.eof:
@@ -189,7 +188,6 @@ class IgnoreAction(NoDefaultsModel):
     template: TTemplateType
     reason: str | None = None
 
-    # noinspection PyNestedDecorators
     @model_validator(mode="after")
     def _validate_model(self) -> Self:
         if self.template == "text" and self.reason is None or not self.reason.strip():
