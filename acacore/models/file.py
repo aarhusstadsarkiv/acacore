@@ -513,3 +513,27 @@ class MasterFile(BaseFile):
 
 class ConvertedFile(BaseFile):
     original_uuid: UUID4 | None = None
+
+    @classmethod
+    def from_file(
+        cls,
+        path: str | PathLike[str],
+        root: str | PathLike[str],
+        original_uuid: UUID | None = None,
+        siegfried: Siegfried | SiegfriedFile = None,
+        custom_signatures: list[CustomSignature] | None = None,
+        uuid: UUID | None = None,
+    ) -> Self:
+        file_base = super().from_file(path, root, siegfried, custom_signatures, uuid)
+        return cls(
+            uuid=file_base.uuid,
+            checksum=file_base.checksum,
+            relative_path=file_base.relative_path,
+            root=file_base.root,
+            is_binary=file_base.is_binary,
+            size=file_base.size,
+            puid=file_base.puid,
+            signature=file_base.signature,
+            warning=file_base.warning,
+            original_uuid=original_uuid,
+        )
