@@ -454,8 +454,8 @@ class MasterFile(ConvertedFile):
         original_uuid: UUID | None = None,
         siegfried: Siegfried | SiegfriedFile = None,
         custom_signatures: list[CustomSignature] | None = None,
-        actions_access: dict[str, Action] | None = None,
-        actions_statutory: dict[str, Action] | None = None,
+        actions_access: dict[str, ConvertAction] | None = None,
+        actions_statutory: dict[str, ConvertAction] | None = None,
         uuid: UUID | None = None,
     ) -> Self:
         file_base = super().from_file(path, root, original_uuid, siegfried, custom_signatures, uuid)
@@ -483,10 +483,10 @@ class MasterFile(ConvertedFile):
     def get_action(
         self,
         target: Literal["access", "statutory"],
-        actions: dict[str, Action],
+        actions: dict[str, ConvertAction],
         *,
         set_match: bool = False,
-    ) -> Action | None:
+    ) -> ConvertAction | None:
         """
         Returns the access ``Action`` matching the file's PUID.
 
@@ -509,24 +509,14 @@ class MasterFile(ConvertedFile):
         if self.is_binary:
             identifiers.append("!binary")
 
-        action: Action | None = reduce(lambda acc, cur: acc or actions.get(cur), identifiers, None)
+        action: ConvertAction | None = reduce(lambda acc, cur: acc or actions.get(cur), identifiers, None)
 
-        if action and action.alternatives and (new_puid := action.alternatives.get(self.suffixes.lower(), None)):
-            puid: str | None = self.puid
-            self.puid = new_puid
-            if new_action := self.get_action_access(actions):
-                action = new_action
-            else:
-                self.puid = puid
-
-        if set_match and action and action.convert:
-            self.signature = action.name
+        if set_match and action:
             if target == "access":
-                self.convert_access = action.convert
+                self.convert_access = action
             elif target == "statutory":
-                self.convert_statutory = action.convert
+                self.convert_statutory = action
         elif set_match:
-            self.signature = self.signature if self.puid else None
             if target == "access":
                 self.convert_access = None
             elif target == "statutory":
