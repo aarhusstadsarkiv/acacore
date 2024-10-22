@@ -1,6 +1,7 @@
 from functools import reduce
 from os import PathLike
 from pathlib import Path
+from typing import Literal
 from typing import Self
 from uuid import UUID
 from uuid import uuid4
@@ -22,6 +23,7 @@ from acacore.utils.functions import is_valid_suffix
 
 from .reference_files import Action
 from .reference_files import ActionData
+from .reference_files import ConvertAction
 from .reference_files import CustomSignature
 from .reference_files import IgnoreAction
 from .reference_files import IgnoreIfAction
@@ -413,7 +415,100 @@ class OriginalFile(BaseFile):
 
 
 class MasterFile(BaseFile):
+    convert_access: ConvertAction | None = None
+    convert_statutory: ConvertAction | None = None
     original_uuid: UUID4 | None = None
+
+    @classmethod
+    def from_file(
+        cls,
+        path: str | PathLike[str],
+        root: str | PathLike[str],
+        original_uuid: UUID | None = None,
+        siegfried: Siegfried | SiegfriedFile = None,
+        custom_signatures: list[CustomSignature] | None = None,
+        actions_access: dict[str, Action] | None = None,
+        actions_statutory: dict[str, Action] | None = None,
+        uuid: UUID | None = None,
+    ) -> Self:
+        file_base = super().from_file(path, root, siegfried, custom_signatures, uuid)
+        file = cls(
+            uuid=file_base.uuid,
+            checksum=file_base.checksum,
+            relative_path=file_base.relative_path,
+            root=file_base.root,
+            is_binary=file_base.is_binary,
+            size=file_base.size,
+            puid=file_base.puid,
+            signature=file_base.signature,
+            warning=file_base.warning,
+            original_uuid=original_uuid,
+        )
+
+        if custom_signatures and not file.puid:
+            file.identify_custom(custom_signatures, set_match=True)
+
+        if actions_access:
+            file.get_action("access", actions_access, set_match=True)
+
+        if actions_statutory:
+            file.get_action("statutory", actions_statutory, set_match=True)
+
+        return file
+
+    def get_action(
+        self,
+        target: Literal["access", "statutory"],
+        actions: dict[str, Action],
+        *,
+        set_match: bool = False,
+    ) -> Action | None:
+        """
+        Returns the access ``Action`` matching the file's PUID.
+
+        :param target:
+        :param actions: A dictionary containing the available access actions.
+        :param set_match: Set the matched action if ``True``, defaults to ``False``.
+        :return: The matched ``Action`` object, if any, otherwise ``None``.
+        """
+        identifiers: list[str] = [
+            f"!name={self.relative_path.name}",
+            f"!iname={self.relative_path.name.lower()}",
+        ]
+
+        if not self.size:
+            identifiers.insert(0, "!empty")
+        if self.puid:
+            identifiers.append(self.puid)
+        if self.suffix:
+            identifiers.append(f"!ext={''.join(self.relative_path.suffixes)}")
+        if self.is_binary:
+            identifiers.append("!binary")
+
+        action: Action | None = reduce(lambda acc, cur: acc or actions.get(cur), identifiers, None)
+
+        if action and action.alternatives and (new_puid := action.alternatives.get(self.suffixes.lower(), None)):
+            puid: str | None = self.puid
+            self.puid = new_puid
+            if new_action := self.get_action_access(actions):
+                action = new_action
+            else:
+                self.puid = puid
+
+        if set_match and action and action.convert:
+            self.signature = action.name
+            if target == "access":
+                self.convert_access = action.convert
+            elif target == "statutory":
+                self.convert_statutory = action.convert
+        elif set_match:
+            self.signature = self.signature if self.puid else None
+            if target == "access":
+                self.convert_access = None
+            elif target == "statutory":
+                self.convert_statutory = None
+
+        return action
 
 
 class ConvertedFile(BaseFile):
