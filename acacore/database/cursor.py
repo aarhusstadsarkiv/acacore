@@ -22,25 +22,26 @@ class Cursor(Generic[M]):
         self.cursor.row_factory = Row
         self.model: Type[M] = model
         self.columns: list[ColumnSpec] = columns
+        self._cols: dict[str, Callable[[SQLValue], Any]] = {c.name: c.from_sql for c in columns}
+        self._load: Callable[[Row], M] = lambda r: self.model.model_validate(
+            {k: f(r[k]) for k, f in self._cols.items()}
+        )
 
-        _cols: dict[str, Callable[[SQLValue], Any]] = {c.name: c.from_sql for c in columns}
-
-        def _loader(row: Row) -> M:
-            return self.model.model_validate({k: f(row[k]) for k, f in _cols.items()})
-
-        self.entries: Generator[M, None, None] = (_loader(row) for row in self.cursor)
+    @property
+    def rows(self) -> Generator[M, None, None]:
+        return (self._load(row) for row in self.cursor)
 
     def __iter__(self) -> Generator[M, None, None]:
-        yield from self.entries
+        yield from self.rows
 
     def __next__(self) -> M:
-        return next(self.entries)
+        return next(self.rows)
 
     def fetchone(self) -> M | None:
-        return next(self, None)
+        return next(self.rows, None)
 
     def fetchmany(self, size: int) -> list[M]:
-        return list(islice(self, size))
+        return list(islice(self.rows, size))
 
     def fetchall(self) -> list[M]:
-        return list(self)
+        return list(self.rows)
