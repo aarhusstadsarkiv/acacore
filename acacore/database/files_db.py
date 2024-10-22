@@ -77,7 +77,7 @@ class FilesDB(Database):
         self.access_files: Table[ConvertedFile] = Table(
             self.connection,
             ConvertedFile,
-            "files_master",
+            "files_access",
             ["relative_path"],
             {"uuid": ["uuid"], "checksum": ["checksum"]},
             ["root"],
