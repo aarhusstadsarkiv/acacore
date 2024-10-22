@@ -66,7 +66,7 @@ class CustomSignature(BaseModel):
     def match(self, bof: str | None, eof: str | None) -> int:
         if not bof and not eof:
             return 0
-        elif self.bof and self.bof:
+        elif self.bof and self.eof:
             match_bof: Match[str] | None = search(self.bof, bof or "")
 
             if self.operator == "AND" and not match_bof:
