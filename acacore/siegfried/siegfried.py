@@ -87,7 +87,7 @@ class SiegfriedMatch(BaseModel):
     format: str
     version: str | None = None
     mime: str
-    match_class: list[TSiegfriedFileClass] | None = Field(None, alias="class")
+    match_class: list[TSiegfriedFileClass] = Field(default_factory=list, alias="class")
     basis: list[str]
     warning: list[str]
     URI: AnyUrl | None = None
