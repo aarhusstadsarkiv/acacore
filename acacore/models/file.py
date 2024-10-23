@@ -3,6 +3,7 @@ from os import PathLike
 from pathlib import Path
 from typing import Literal
 from typing import Self
+from typing import TypeVar
 from uuid import UUID
 from uuid import uuid4
 
@@ -30,6 +31,8 @@ from .reference_files import IgnoreIfAction
 from .reference_files import ManualAction
 from .reference_files import TActionType
 
+_A = TypeVar("_A")
+
 
 def ignore_if(file: "OriginalFile", rules: IgnoreIfAction) -> "OriginalFile":
     action: TActionType | None = None
@@ -56,6 +59,26 @@ def ignore_if(file: "OriginalFile", rules: IgnoreIfAction) -> "OriginalFile":
         file.action_data.ignore = ignore_action
 
     return file
+
+
+def get_identifier(file: "BaseFile", file_classes: list[TSiegfriedFileClass], actions: dict[str, _A]) -> _A | None:
+    identifiers: list[str] = [
+        f"!name={file.relative_path.name}",
+        f"!iname={file.relative_path.name.lower()}",
+    ]
+
+    if not file.size:
+        identifiers.insert(0, "!empty")
+    if file.puid:
+        identifiers.append(file.puid)
+    if file.suffix:
+        identifiers.append(f"!ext={''.join(file.relative_path.suffixes)}")
+    if file_classes:
+        identifiers.extend(f"!{c}" for c in file_classes)
+    if file.is_binary:
+        identifiers.append("!binary")
+
+    return reduce(lambda acc, cur: acc or actions.get(cur), identifiers, None)
 
 
 class BaseFile(BaseModel):
@@ -376,23 +399,7 @@ class OriginalFile(BaseFile):
         :param set_match: Set the matched action if ``True``, defaults to ``False``.
         :return: The matched ``Action`` object, if any, otherwise ``None``.
         """
-        identifiers: list[str] = [
-            f"!name={self.relative_path.name}",
-            f"!iname={self.relative_path.name.lower()}",
-        ]
-
-        if not self.size:
-            identifiers.insert(0, "!empty")
-        if self.puid:
-            identifiers.append(self.puid)
-        if self.suffix:
-            identifiers.append(f"!ext={''.join(self.relative_path.suffixes)}")
-        if file_classes:
-            identifiers.extend(f"!{c}" for c in file_classes)
-        if self.is_binary:
-            identifiers.append("!binary")
-
-        action: Action | None = reduce(lambda acc, cur: acc or actions.get(cur), identifiers, None)
+        action: Action | None = get_identifier(self, file_classes, actions)
 
         if action and action.alternatives and (new_puid := action.alternatives.get(self.suffixes.lower(), None)):
             puid: str | None = self.puid
@@ -495,21 +502,7 @@ class MasterFile(ConvertedFile):
         :param set_match: Set the matched action if ``True``, defaults to ``False``.
         :return: The matched ``Action`` object, if any, otherwise ``None``.
         """
-        identifiers: list[str] = [
-            f"!name={self.relative_path.name}",
-            f"!iname={self.relative_path.name.lower()}",
-        ]
-
-        if not self.size:
-            identifiers.insert(0, "!empty")
-        if self.puid:
-            identifiers.append(self.puid)
-        if self.suffix:
-            identifiers.append(f"!ext={''.join(self.relative_path.suffixes)}")
-        if self.is_binary:
-            identifiers.append("!binary")
-
-        action: ConvertAction | None = reduce(lambda acc, cur: acc or actions.get(cur), identifiers, None)
+        action: ConvertAction | None = get_identifier(self, [], actions)
 
         if set_match and action:
             if target == "access":
