@@ -84,10 +84,10 @@ def check_database_version(ctx: Context, param: Parameter, path: Path):
     if not path.is_file():
         return
 
-    from acacore.database import FileDB
+    from acacore.database import FilesDB
     from acacore.database.upgrade import is_latest
 
-    with FileDB(path, check_version=False) as db:
+    with FilesDB(path) as db:
         try:
             is_latest(db, raise_on_difference=True)
         except DatabaseError as err:
@@ -96,7 +96,7 @@ def check_database_version(ctx: Context, param: Parameter, path: Path):
 
 def start_program(
     ctx: Context,
-    database: "FileDB",  # noqa: F821
+    database: "FilesDB",  # noqa: F821
     version: str,
     time: datetime | None = None,
     log_file: bool = True,
@@ -122,10 +122,10 @@ def start_program(
         logger (if set with ``log_stdout`` otherwise ``None``), and the ``Event`` object for the start of the program.
     """
     prog: str = ctx.find_root().command.name
-    log_file: Logger | None = (
+    logger_file: Logger | None = (
         setup_logger(f"{prog}_file", files=[database.path.parent / f"{prog}.log"]) if log_file else None
     )
-    log_stdout: Logger | None = setup_logger(f"{prog}_stdout", streams=[stdout]) if log_stdout else None
+    logger_stdout: Logger | None = setup_logger(f"{prog}_stdout", streams=[stdout]) if log_stdout else None
     program_start: Event = Event.from_command(
         ctx,
         "start",
@@ -138,16 +138,16 @@ def start_program(
         database.history.insert(program_start)
 
     if log_file:
-        program_start.log(INFO, log_file)
+        program_start.log(INFO, logger_file)
     if log_stdout:
-        program_start.log(INFO, log_stdout, show_args=False)
+        program_start.log(INFO, logger_stdout, show_args=False)
 
-    return log_file, log_stdout, program_start
+    return logger_file, logger_stdout, program_start
 
 
 def end_program(
     ctx: Context,
-    database: "FileDB",  # noqa: F821
+    database: "FilesDB",  # noqa: F821
     exception: ExceptionManager,
     dry_run: bool = False,
     *loggers: Logger | None,
@@ -175,5 +175,5 @@ def end_program(
             program_end.log(ERROR if exception.exception else INFO, logger)
 
     if not dry_run:
-        database.history.insert(program_end)
+        database.log.insert(program_end)
         database.commit()
