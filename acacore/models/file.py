@@ -317,7 +317,7 @@ class OriginalFile(BaseFile):
         actions: dict[str, Action] | None = None,
         custom_signatures: list[CustomSignature] | None = None,
         uuid: UUID | None = None,
-        parent: UUID4 | None = None,
+        parent: UUID | None = None,
         processed: bool = False,
         lock: bool = False,
     ) -> Self:

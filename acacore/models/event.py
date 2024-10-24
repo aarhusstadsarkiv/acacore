@@ -3,6 +3,7 @@ from logging import Logger
 from typing import Any
 from typing import Self
 from typing import Sequence
+from uuid import UUID
 
 from click import Context
 from pydantic import BaseModel
@@ -24,7 +25,7 @@ class Event(BaseModel):
         cls,
         ctx: Context | str,
         operation: str,
-        uuid: UUID4 | None = None,
+        uuid: UUID | None = None,
         data: object | None = None,
         reason: str | None = None,
         time: datetime | None = None,
