@@ -36,6 +36,9 @@ class View(Generic[M]):
     def __iter__(self) -> Generator[M, None, None]:
         yield from self.select()
 
+    def __len__(self) -> int:
+        return len(self._table)
+
     def __getitem__(self, where: _Where | M) -> M | None:
         return self._table.select(where, limit=1).fetchone()
 

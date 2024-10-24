@@ -100,6 +100,9 @@ class Table(Generic[M]):
     def __iter__(self) -> Generator[M, None, None]:
         yield from self.select()
 
+    def __len__(self) -> int:
+        return self.database.execute(f"select count(*) from {self.name}").fetchone()[0]
+
     def __getitem__(self, where: _Where | M) -> M | None:
         return self.select(where, limit=1).fetchone()
 
