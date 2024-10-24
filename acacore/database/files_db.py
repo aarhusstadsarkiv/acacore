@@ -116,7 +116,7 @@ class FilesDB(Database):
             self.connection,
             SignatureCount,
             "view_signatures_count",
-            f"select puid, count(*) as count from {self.original_files.name} group by puid, signature order by count desc",
+            f"select puid, signature, count(*) as count from {self.original_files.name} group by puid, signature order by count desc",
         )
 
         self.actions_count: View[ActionCount] = View(
