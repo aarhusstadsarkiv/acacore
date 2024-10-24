@@ -109,6 +109,7 @@ class FilesDB(Database):
             OriginalFile,
             "view_identification_warnings",
             f"select * from {self.original_files.name} where (warning is not null or puid is null) and size != 0",
+            ignore=["root"],
         )
 
         self.signatures_count: View[SignatureCount] = View(
