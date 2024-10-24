@@ -4,9 +4,11 @@ from pathlib import Path
 from sqlite3 import Connection
 from sqlite3 import Cursor as SQLiteCursor
 from sqlite3 import ProgrammingError
+from types import TracebackType
 from typing import Iterable
 from typing import Mapping
 from typing import overload
+from typing import Self
 from typing import Type
 from typing import TypeAlias
 from typing import TypeVar
@@ -43,6 +45,13 @@ class Database:
             cached_statements=cached_statements,
         )
         self._committed_changes: int = 0
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(self, _exc_type: Type[BaseException], _exc_val: BaseException, _exc_tb: TracebackType) -> None:
+        if self.is_open():
+            self.close()
 
     @overload
     def execute(self, sql: str, /) -> SQLiteCursor: ...
