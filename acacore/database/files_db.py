@@ -34,7 +34,7 @@ class ChecksumCount(BaseModel):
 
 
 class ActionCount(BaseModel):
-    action: TActionType
+    action: TActionType | None
     count: int
 
 
