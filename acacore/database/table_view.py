@@ -22,12 +22,13 @@ class View(Generic[M]):
         model: Type[M],
         name: str,
         select: str,
+        ignore: list[str] | None = None,
     ) -> None:
         self.database: Connection = database
         self.model: Type[M] = model
         self.name: str = name
         self.select_stmt: str = select
-        self._table: Table[M] = Table(self.database, self.model, self.name)
+        self._table: Table[M] = Table(self.database, self.model, self.name, ignore=ignore)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.name!r}, {self.model.__name__})"
