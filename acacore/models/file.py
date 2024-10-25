@@ -91,7 +91,7 @@ class File(BaseModel):
     processed: bool = False
     lock: bool = False
     original_name: str
-    converted_name: str | None = None
+    processed_name: str | None = None
     root: Path | None = DBField(None, ignore=True)
 
     # noinspection PyNestedDecorators
