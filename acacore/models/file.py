@@ -89,6 +89,8 @@ class File(BaseModel):
     parent: UUID4 | None = None
     processed: bool = False
     lock: bool = False
+    original_name: str
+    converted_name: str | None = None
     root: Path | None = DBField(None, ignore=True)
 
     # noinspection PyNestedDecorators
