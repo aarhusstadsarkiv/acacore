@@ -6,7 +6,6 @@ from typing import Generic
 from typing import Literal
 from typing import Self
 from typing import Type
-from typing import TypeAlias
 from typing import TypeVar
 
 from pydantic import BaseModel
@@ -16,7 +15,7 @@ from .column import SQLValue
 from .cursor import Cursor
 
 _M = TypeVar("_M", bound=BaseModel)
-_W: TypeAlias = str | dict[str, SQLValue | list[SQLValue]]
+_W = str | dict[str, SQLValue | list[SQLValue]]
 
 
 def _where_dict_to_sql(where: dict[str, SQLValue | list[SQLValue]]) -> tuple[str, list[SQLValue]]:

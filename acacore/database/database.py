@@ -10,7 +10,6 @@ from typing import Mapping
 from typing import overload
 from typing import Self
 from typing import Type
-from typing import TypeAlias
 from typing import TypeVar
 
 from pydantic import BaseModel
@@ -21,7 +20,7 @@ from .table_keyvalue import KeysTable
 from .table_view import View
 
 _M = TypeVar("_M", bound=BaseModel)
-_P: TypeAlias = Sequence[SQLValue] | Mapping[str, SQLValue]
+_P = Sequence[SQLValue] | Mapping[str, SQLValue]
 
 
 class Database:
