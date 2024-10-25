@@ -13,33 +13,35 @@ from pydantic import BaseModel
 from .column import ColumnSpec
 from .column import SQLValue
 
-M = TypeVar("M", bound=BaseModel)
+_M = TypeVar("_M", bound=BaseModel)
 
 
-class Cursor(Generic[M]):
-    def __init__(self, cursor: SQLiteCursor, model: Type[M], columns: list[ColumnSpec]) -> None:
+class Cursor(Generic[_M]):
+    def __init__(self, cursor: SQLiteCursor, model: Type[_M], columns: list[ColumnSpec]) -> None:
         self.cursor: SQLiteCursor[Row] = cursor
         self.cursor.row_factory = Row
-        self.model: Type[M] = model
+        self.model: Type[_M] = model
         self.columns: list[ColumnSpec] = columns
         self._cols: dict[str, Callable[[SQLValue], Any]] = {c.name: c.from_sql for c in columns}
-        self._row: Callable[[Row], M] = lambda r: self.model.model_validate({k: f(r[k]) for k, f in self._cols.items()})
+        self._row: Callable[[Row], _M] = lambda r: self.model.model_validate(
+            {k: f(r[k]) for k, f in self._cols.items()}
+        )
 
     @property
-    def rows(self) -> Generator[M, None, None]:
+    def rows(self) -> Generator[_M, None, None]:
         return (self._row(row) for row in self.cursor)
 
-    def __iter__(self) -> Generator[M, None, None]:
+    def __iter__(self) -> Generator[_M, None, None]:
         yield from self.rows
 
-    def __next__(self) -> M:
+    def __next__(self) -> _M:
         return next(self.rows)
 
-    def fetchone(self) -> M | None:
+    def fetchone(self) -> _M | None:
         return next(self.rows, None)
 
-    def fetchmany(self, size: int) -> list[M]:
+    def fetchmany(self, size: int) -> list[_M]:
         return list(islice(self.rows, size))
 
-    def fetchall(self) -> list[M]:
+    def fetchall(self) -> list[_M]:
         return list(self.rows)

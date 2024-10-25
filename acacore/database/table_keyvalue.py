@@ -4,13 +4,11 @@ from typing import Generator
 from typing import Generic
 from typing import overload
 from typing import Type
-from typing import TypeVar
 
 from pydantic import BaseModel
 
+from .table import _M
 from .table import Table
-
-M = TypeVar("M", bound=BaseModel)
 
 
 class KeysTableModel(BaseModel):
@@ -18,10 +16,10 @@ class KeysTableModel(BaseModel):
     value: object | None
 
 
-class KeysTable(Generic[M]):
-    def __init__(self, database: Connection, model: Type[M], name: str) -> None:
+class KeysTable(Generic[_M]):
+    def __init__(self, database: Connection, model: Type[_M], name: str) -> None:
         self.table: Table[KeysTableModel] = Table(database, KeysTableModel, name)
-        self.model: Type[M] = model
+        self.model: Type[_M] = model
 
     @property
     def name(self) -> str:
@@ -53,16 +51,16 @@ class KeysTable(Generic[M]):
         self.table.create(exist_ok=exist_ok)
         return self
 
-    def set(self, obj: M):
+    def set(self, obj: _M):
         self.table.insert(*(KeysTableModel(key=k, value=o) for k, o in obj.model_dump().items()), on_exists="replace")
 
     @overload
-    def get(self) -> M | None: ...
+    def get(self) -> _M | None: ...
 
     @overload
     def get(self, key: str) -> Any | None: ...  # noqa: ANN401
 
-    def get(self, key: str | None = None) -> M | Any | None:
+    def get(self, key: str | None = None) -> _M | Any | None:
         if key is not None and key not in self.model.model_fields:
             raise AttributeError(f"{self.model.__name__!r} object has no attribute {key!r}")
 

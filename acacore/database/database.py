@@ -21,7 +21,7 @@ from .table_keyvalue import KeysTable
 from .table_view import View
 
 _M = TypeVar("_M", bound=BaseModel)
-P: TypeAlias = Sequence[SQLValue] | Mapping[str, SQLValue]
+_P: TypeAlias = Sequence[SQLValue] | Mapping[str, SQLValue]
 
 
 class Database:
@@ -56,12 +56,12 @@ class Database:
     def execute(self, sql: str, /) -> SQLiteCursor: ...
 
     @overload
-    def execute(self, sql: str, parameters: P, /) -> SQLiteCursor: ...
+    def execute(self, sql: str, parameters: _P, /) -> SQLiteCursor: ...
 
-    def execute(self, sql: str, parameters: P | None = None, /) -> SQLiteCursor:
+    def execute(self, sql: str, parameters: _P | None = None, /) -> SQLiteCursor:
         return self.connection.execute(sql, parameters or [])
 
-    def executemany(self, sql: str, parameters: Iterable[P], /) -> SQLiteCursor:
+    def executemany(self, sql: str, parameters: Iterable[_P], /) -> SQLiteCursor:
         return self.connection.executemany(sql, parameters)
 
     def commit(self):
