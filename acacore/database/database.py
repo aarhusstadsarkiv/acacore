@@ -50,8 +50,7 @@ class Database:
         return self
 
     def __exit__(self, _exc_type: Type[BaseException], _exc_val: BaseException, _exc_tb: TracebackType) -> None:
-        if self.is_open():
-            self.close()
+        self.close()
 
     @overload
     def execute(self, sql: str, /) -> SQLiteCursor: ...
