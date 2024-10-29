@@ -273,6 +273,14 @@ def upgrade_3_2to3_3(conn: Connection) -> Version:
         ),
     )
 
+    conn.executemany(
+        "update Files set original_name = ? where uuid = ?",
+        (
+            (Path(relative_path).name, uuid)
+            for uuid, relative_path in conn.execute("select uuid, relative_path from Files where original_name = ''")
+        ),
+    )
+
     return set_db_version(conn, Version("3.3.0"))
 
 
