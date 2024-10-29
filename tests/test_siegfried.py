@@ -8,6 +8,11 @@ from acacore.siegfried import Siegfried
 
 
 @pytest.fixture
+def siegfried_folder(test_folder: Path) -> Path:
+    return test_folder / "siegfried"
+
+
+@pytest.fixture
 def siegfried(siegfried_folder: Path) -> Siegfried:
     return Siegfried(Path(environ["GOPATH"], "bin", "sf"), "pronom.sig", siegfried_folder)
 
