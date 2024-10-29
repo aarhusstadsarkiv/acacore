@@ -219,8 +219,8 @@ def upgrade_3_1to3_2(conn: Connection) -> Version:
 def upgrade_3_2to3_3(conn: Connection) -> Version:
     if not conn.execute("select 1 from pragma_table_info('Files') where name = 'original_name'").fetchone():
         conn.execute("alter table Files add column original_name text not null default ''")
-    if not conn.execute("select 1 from pragma_table_info('Files') where name = 'processed_name'").fetchone():
-        conn.execute("alter table Files add column processed_name text default '[]'")
+    if not conn.execute("select 1 from pragma_table_info('Files') where name = 'processed_names'").fetchone():
+        conn.execute("alter table Files add column processed_names text default '[]'")
 
     def _find_original_name(uuid: str, relative_path: str) -> str:
         original_path: Path = Path(relative_path)
@@ -284,6 +284,14 @@ def upgrade_3_2to3_3(conn: Connection) -> Version:
     return set_db_version(conn, Version("3.3.0"))
 
 
+# noinspection SqlResolve
+def upgrade_3_3to3_3_1(conn: Connection) -> Version:
+    if conn.execute("select 1 from pragma_table_info('Files') where name = 'processed_name'").fetchone():
+        conn.execute("alter table Files rename column processed_name to processed_names")
+
+    return set_db_version(conn, Version("3.3.1"))
+
+
 def get_upgrade_function(current_version: Version, latest_version: Version) -> Callable[[Connection], Version]:
     if current_version < Version("2.0.0"):
         return upgrade_1to2
@@ -301,6 +309,8 @@ def get_upgrade_function(current_version: Version, latest_version: Version) -> C
         return upgrade_3_1to3_2
     elif current_version < Version("3.3.0"):
         return upgrade_3_2to3_3
+    elif current_version < Version("3.3.1"):
+        return upgrade_3_3to3_3_1
     elif current_version < latest_version:
         return lambda c: set_db_version(c, Version(__version__))
     else:
