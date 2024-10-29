@@ -1,6 +1,8 @@
 from functools import reduce
 from json import dumps
+from json import JSONDecodeError
 from json import loads
+from pathlib import Path
 from sqlite3 import Connection
 from sqlite3 import DatabaseError
 from typing import Any
@@ -14,7 +16,6 @@ __all__ = [
     "upgrade",
     "is_latest",
 ]
-
 
 from .files_db import FileDB
 
@@ -214,6 +215,75 @@ def upgrade_3_1to3_2(conn: Connection) -> Version:
     return set_db_version(conn, Version("3.2.0"))
 
 
+# noinspection SqlResolve
+def upgrade_3_2to3_3(conn: Connection) -> Version:
+    if not conn.execute("select 1 from pragma_table_info('Files') where name = 'original_name'").fetchone():
+        conn.execute("alter table Files add column original_name text not null default ''")
+    if not conn.execute("select 1 from pragma_table_info('Files') where name = 'processed_name'").fetchone():
+        conn.execute("alter table Files add column processed_name text default '[]'")
+
+    def _find_original_name(uuid: str, relative_path: str) -> str:
+        original_path: Path = Path(relative_path)
+        original_name: str = original_path.name
+
+        for [data_raw] in conn.execute(
+            "select data from History"
+            " where uuid = ? and data is not null and data not in ('', '\"\"', 'null', '[]', '{}')"
+            " order by time desc",
+            (uuid,),
+        ):
+            try:
+                data = loads(data_raw)
+            except JSONDecodeError:
+                continue
+
+            if (
+                not isinstance(data, list)
+                or len(data) != 2
+                or not isinstance(data[0], str)
+                or not isinstance(data[1], str)
+            ):
+                continue
+
+            a: str = data[0]
+            b: str = data[1]
+
+            if a == str(original_path):
+                original_path = Path(b)
+                original_name = original_path.name
+            elif b == str(original_path):
+                original_path = Path(a)
+                original_name = original_path.name
+            elif a == original_name:
+                original_name = b
+                original_path = original_path.with_name(original_name)
+            elif b == original_name:
+                original_name = a
+                original_path = original_path.with_name(original_name)
+
+        return original_name
+
+    conn.executemany(
+        "update Files set original_name = ? where uuid = ?",
+        (
+            (_find_original_name(uuid, relative_path), uuid)
+            for uuid, relative_path in conn.execute(
+                "select distinct f.uuid, f.relative_path from Files f join History h where h.uuid = f.uuid"
+            )
+        ),
+    )
+
+    conn.executemany(
+        "update Files set original_name = ? where uuid = ?",
+        (
+            (Path(relative_path).name, uuid)
+            for uuid, relative_path in conn.execute("select uuid, relative_path from Files where original_name = ''")
+        ),
+    )
+
+    return set_db_version(conn, Version("3.3.0"))
+
+
 def get_upgrade_function(current_version: Version, latest_version: Version) -> Callable[[Connection], Version]:
     if current_version < Version("2.0.0"):
         return upgrade_1to2
@@ -229,6 +299,8 @@ def get_upgrade_function(current_version: Version, latest_version: Version) -> C
         return upgrade_3_0_6to3_0_7
     elif current_version < Version("3.2.0"):
         return upgrade_3_1to3_2
+    elif current_version < Version("3.3.0"):
+        return upgrade_3_2to3_3
     elif current_version < latest_version:
         return lambda c: set_db_version(c, Version(__version__))
     else:

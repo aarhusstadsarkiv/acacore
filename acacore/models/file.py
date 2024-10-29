@@ -6,6 +6,7 @@ from uuid import uuid4
 from pydantic import BaseModel
 from pydantic import Field
 from pydantic import field_validator
+from pydantic import model_validator
 from pydantic import UUID4
 
 from acacore.database.column import DBField
@@ -89,7 +90,17 @@ class File(BaseModel):
     parent: UUID4 | None = None
     processed: bool = False
     lock: bool = False
+    original_name: str
+    processed_names: list[str] = Field(default_factory=list)
     root: Path | None = DBField(None, ignore=True)
+
+    # noinspection PyNestedDecorators
+    @model_validator(mode="before")
+    @classmethod
+    def _model_validator(cls, data: dict):
+        if isinstance(data, dict):
+            data["original_name"] = data.get("original_name", "").strip() or Path(data["relative_path"]).name
+        return data
 
     # noinspection PyNestedDecorators
     @field_validator("action_data", mode="before")

@@ -26,7 +26,7 @@ from acacore.models.reference_files import Action
 from acacore.models.reference_files import ConvertAction
 
 
-@pytest.fixture()
+@pytest.fixture
 def database_path(temp_folder: Path) -> Path:
     path: Path = temp_folder / "files.db"
     path.unlink(missing_ok=True)
