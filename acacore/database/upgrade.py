@@ -220,7 +220,7 @@ def upgrade_3_2to3_3(conn: Connection) -> Version:
     if not conn.execute("select 1 from pragma_table_info('Files') where name = 'original_name'").fetchone():
         conn.execute("alter table Files add column original_name text not null default ''")
     if not conn.execute("select 1 from pragma_table_info('Files') where name = 'processed_name'").fetchone():
-        conn.execute("alter table Files add column processed_name text default null")
+        conn.execute("alter table Files add column processed_name text default '[]'")
 
     def _find_original_name(uuid: str, relative_path: str) -> str:
         original_path: Path = Path(relative_path)
