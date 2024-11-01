@@ -90,7 +90,7 @@ class File(BaseModel):
     parent: UUID4 | None = None
     processed: bool = False
     lock: bool = False
-    original_name: str
+    original_path: Path
     processed_names: list[str] = Field(default_factory=list)
     root: Path | None = DBField(None, ignore=True)
 
@@ -99,7 +99,7 @@ class File(BaseModel):
     @classmethod
     def _model_validator(cls, data: dict):
         if isinstance(data, dict):
-            data["original_name"] = data.get("original_name", "").strip() or Path(data["relative_path"]).name
+            data["original_path"] = data.get("original_path", "").strip() or data["relative_path"]
         return data
 
     # noinspection PyNestedDecorators
