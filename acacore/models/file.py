@@ -243,11 +243,11 @@ class BaseFile(BaseModel):
 
         :return: File stem.
         """
-        return self.relative_path.stem
+        return self.relative_path.name.removesuffix(self.suffixes)
 
     @stem.setter
     def stem(self, new_stem: str):
-        self.relative_path = self.relative_path.with_stem(new_stem)
+        self.relative_path = self.relative_path.with_name(new_stem).with_suffix(self.suffixes)
 
     @property
     def suffix(self) -> str:
