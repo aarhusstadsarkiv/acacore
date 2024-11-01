@@ -256,7 +256,7 @@ class BaseFile(BaseModel):
 
         :return: File extension.
         """
-        return self.relative_path.suffix.lower()
+        return self.relative_path.suffix
 
     @suffix.setter
     def suffix(self, new_suffix: str):
