@@ -290,7 +290,7 @@ class OriginalFile(BaseFile):
     :ivar action_data: The data for the action for the file's PUID, if one exists.
     :ivar processed: True if the file has been processed, false otherwise.
     :ivar lock: True if the file is locked for edits, false otherwise.
-    :ivar original_name: The original name of the file.
+    :ivar original_path: The original relative path of the file.
     """
 
     action: TActionType | None = None
@@ -298,14 +298,14 @@ class OriginalFile(BaseFile):
     parent: UUID4 | None = None
     processed: bool = False
     lock: bool = False
-    original_name: str
+    original_path: Path
 
     # noinspection PyNestedDecorators
     @model_validator(mode="before")
     @classmethod
     def _model_validator(cls, data: dict):
         if isinstance(data, dict):
-            data["original_name"] = data.get("original_name", "").strip() or Path(data["relative_path"]).name
+            data["original_path"] = data.get("original_path", "") or data["relative_path"]
         return data
 
     @classmethod
