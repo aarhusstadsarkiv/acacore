@@ -16,6 +16,7 @@ from .database import Database
 from .database import KeysTable
 from .database import Table
 from .database import View
+from .upgrade import upgrade
 
 
 class EventPath(Event):
@@ -140,7 +141,11 @@ class FilesDB(Database):
         self.metadata: KeysTable[Metadata] = KeysTable(self.connection, Metadata, "metadata")
 
     def upgrade(self):
-        pass
+        if not self.is_initialised():
+            raise DatabaseError("Database is not initialized")
+        if self.uncommitted_changes:
+            raise DatabaseError("Database has uncommitted changes")
+        upgrade(self.connection)
 
     def is_initialised(self) -> bool:
         return self.metadata.name in self.tables()
