@@ -20,6 +20,7 @@ __all__ = [
 from .files_db import FileDB
 
 
+# noinspection SqlResolve
 def get_db_version(conn: Connection) -> Version | None:
     if res := conn.execute("select VALUE from Metadata where KEY like 'version'").fetchone():
         return Version(res[0])
