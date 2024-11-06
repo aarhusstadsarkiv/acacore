@@ -1,18 +1,10 @@
-from functools import reduce
-from json import dumps
-from json import JSONDecodeError
-from json import loads
-from pathlib import Path
 from sqlite3 import Connection
 from sqlite3 import DatabaseError
-from typing import Any
 from typing import Callable
 
 from packaging.version import Version
 
 from acacore.__version__ import __version__
-
-from .files_db import FilesDB
 
 __all__ = [
     "upgrade",
@@ -33,371 +25,26 @@ def set_db_version(conn: Connection, version: Version) -> Version:
     return version
 
 
-# noinspection SqlResolve
-def upgrade_1to2(conn: Connection) -> Version:
-    def convert_action_data(data: dict[str, Any]) -> dict[str, Any]:
-        # Rename "replace" action to "template"
-        data["template"] = data.get("replace")
-        data["replace"] = None
-        # Remove None and empty elements (default values)
-        return {k: v for k, v in data.items() if v}
-
-    # Add "lock" column if not already present
-    if not conn.execute("select 1 from pragma_table_info('Files') where name = 'lock'").fetchone():
-        conn.execute("alter table Files add column lock boolean")
-        # noinspection SqlWithoutWhere
-        conn.execute("update Files set lock = false")
-    # Rename "replace" action to "template"
-    conn.execute("update Files set action = 'template' where action = 'replace'")
-    # Ensure action_data is always a readable JSON
-    conn.execute("update Files set action_data = '{}' where action_data is null or action_data = ''")
-
-    # Reset _IdentificationWarnings view
-    conn.execute("drop view if exists _IdentificationWarnings")
-    conn.execute(
-        "CREATE VIEW _IdentificationWarnings AS"
-        ' SELECT * FROM Files WHERE "Files".warning is not null or "Files".puid is NULL;'
-    )
-
-    conn.executemany(
-        "update Files set action_data = ? where uuid = ?",
-        (
-            (dumps(convert_action_data(loads(action_data_raw))), uuid)
-            for uuid, action_data_raw in conn.execute("select uuid, action_data from files where action_data != '{}'")
-        ),
-    )
-
-    conn.commit()
-
-    return set_db_version(conn, Version("2.0.0"))
-
-
-# noinspection SqlResolve
-def upgrade_2to2_0_2(conn: Connection) -> Version:
-    conn.execute("drop view if exists _IdentificationWarnings")
-    conn.execute(
-        "CREATE VIEW _IdentificationWarnings AS"
-        ' SELECT * FROM Files WHERE "Files".warning is not null or "Files".puid is NULL;'
-    )
-    conn.commit()
-    return set_db_version(conn, Version("2.0.2"))
-
-
-# noinspection SqlResolve
-def upgrade_2_0_2to3(conn: Connection) -> Version:
-    def convert_action_data(data: dict):
-        new_data: dict[str, Any] = {}
-
-        if rename := data.get("rename"):
-            new_data["rename"] = rename
-
-        if reidentify := data.get("reidentify"):
-            new_data["reidentify"] = {"reason": reidentify["reason"]}
-            if reidentify.get("onfail"):
-                new_data["reidentify"]["on_fail"] = "action"
-
-        if convert := data.get("convert"):
-            new_data["convert"] = {"tool": convert[0]["converter"], "outputs": convert[0]["outputs"]}
-
-        if extract := data.get("extract"):
-            new_data["extract"] = {"tool": extract["tool"]}
-            if extension := extract.get("extension"):
-                new_data["extract"]["extension"] = extension
-
-        if manual := data.get("manual"):
-            new_data["manual"] = manual
-
-        if (ignore := data.get("ignore")) and ignore.get("reason"):
-            new_data["ignore"] = {"template": "not-preservable", "reason": ignore.get("reason", "")}
-        elif template := data.get("template"):
-            new_data["ignore"] = {"template": template["template"]}
-            if template_text := template.get("template_text"):
-                new_data["ignore"]["reason"] = template_text
-
-        return new_data
-
-    # Add "parent" column if not already present
-    if not conn.execute("select 1 from pragma_table_info('Files') where name = 'parent'").fetchone():
-        conn.execute("alter table Files add column parent text")
-        # noinspection SqlWithoutWhere
-        conn.execute("update Files set parent = null")
-    conn.execute("update Files set action = 'ignore' where action = 'template'")
-
-    # Reset _IdentificationWarnings view
-    conn.execute("drop view if exists _IdentificationWarnings")
-    conn.execute(
-        "CREATE VIEW _IdentificationWarnings AS"
-        ' SELECT * FROM Files WHERE "Files".warning is not null or "Files".puid is NULL;'
-    )
-
-    conn.executemany(
-        "update Files set action_data = ? where uuid = ?",
-        (
-            (dumps(convert_action_data(loads(action_data_raw))), uuid)
-            for uuid, action_data_raw in conn.execute("select uuid, action_data from Files where action_data != '{}'")
-        ),
-    )
-
-    conn.commit()
-
-    return set_db_version(conn, Version("3.0.0"))
-
-
-# noinspection SqlResolve
-def upgrade_3to3_0_2(conn: Connection) -> Version:
-    conn.execute("update Files set action = 'ignore' where action = 'template'")
-    conn.execute("drop view if exists _IdentificationWarnings")
-    conn.execute(
-        "CREATE VIEW _IdentificationWarnings AS"
-        ' SELECT * FROM Files WHERE ("Files".warning is not null or "Files".puid is null) and "Files".size != 0'
-    )
-    conn.commit()
-    return set_db_version(conn, Version("3.0.2"))
-
-
-# noinspection SqlResolve
-def upgrade_3_0_2to3_0_6(conn: Connection) -> Version:
-    conn.execute("update Files set action = 'ignore' where action = 'template'")
-    conn.commit()
-    return set_db_version(conn, Version("3.0.6"))
-
-
-# noinspection SqlResolve
-def upgrade_3_0_6to3_0_7(conn: Connection) -> Version:
-    def convert_action_data(data: dict) -> dict | None:
-        if (reidentify := data.get("reidentify")) and reidentify.get("on_fail"):
-            data["reidentify"]["on_fail"] = "action"
-            return data
-        else:
-            return None
-
-    conn.executemany(
-        "update Files set action_data = ? where uuid = ?",
-        (
-            (dumps(data), uuid)
-            for uuid, action_data_raw in conn.execute("select uuid, action_data from Files where action_data != '{}'")
-            if (data := convert_action_data(loads(action_data_raw)))
-        ),
-    )
-
-    conn.commit()
-    return set_db_version(conn, Version("3.0.7"))
-
-
-# noinspection SqlResolve
-def upgrade_3_1to3_2(conn: Connection) -> Version:
-    def convert_action_data(data: dict) -> dict:
-        if not data.get("convert"):
-            pass
-        elif data["convert"]["tool"] == "copy":
-            if data["convert"].get("outputs"):
-                del data["convert"]["outputs"]
-        elif o := reduce(
-            lambda a, c: a or (c if c in data["convert"]["outputs"] else None),
-            ["ods", "odt", "odp", "svg", "html", "xml", "svg", "msg"],
-            None,
-        ):
-            data["convert"]["output"] = o
-            del data["convert"]["outputs"]
-        else:
-            data["convert"]["output"] = data["convert"]["outputs"][0]
-            del data["convert"]["outputs"]
-
-        return data
-
-    conn.executemany(
-        "update Files set action_data = ? where uuid = ?",
-        (
-            (dumps(action_data), uuid)
-            for uuid, action_data_raw in conn.execute("select uuid, action_data from Files where action_data != '{}'")
-            if (action_data := convert_action_data(loads(action_data_raw)))
-        ),
-    )
-
-    conn.commit()
-
-    return set_db_version(conn, Version("3.2.0"))
-
-
-# noinspection SqlResolve
-def upgrade_3_2to3_3(conn: Connection) -> Version:
-    if not conn.execute("select 1 from pragma_table_info('Files') where name = 'original_name'").fetchone():
-        conn.execute("alter table Files add column original_name text not null default ''")
-    if not conn.execute("select 1 from pragma_table_info('Files') where name = 'processed_names'").fetchone():
-        conn.execute("alter table Files add column processed_names text default '[]'")
-
-    # noinspection SqlResolve,DuplicatedCode
-    def _find_original_name(uuid: str, relative_path: str) -> str:
-        original_path: Path = Path(relative_path)
-        original_name: str = original_path.name
-
-        for [data_raw] in conn.execute(
-            "select data from History"
-            " where uuid = ? and data is not null and data not in ('', '\"\"', 'null', '[]', '{}')"
-            " order by time desc",
-            (uuid,),
-        ):
-            try:
-                data = loads(data_raw)
-            except JSONDecodeError:
-                continue
-
-            if (
-                not isinstance(data, list)
-                or len(data) != 2
-                or not isinstance(data[0], str)
-                or not isinstance(data[1], str)
-            ):
-                continue
-
-            a: str = data[0]
-            b: str = data[1]
-
-            if a == str(original_path):
-                original_path = Path(b)
-                original_name = original_path.name
-            elif b == str(original_path):
-                original_path = Path(a)
-                original_name = original_path.name
-            elif a == original_name:
-                original_name = b
-                original_path = original_path.with_name(original_name)
-            elif b == original_name:
-                original_name = a
-                original_path = original_path.with_name(original_name)
-
-        return original_name
-
-    conn.executemany(
-        "update Files set original_name = ? where uuid = ?",
-        (
-            (_find_original_name(uuid, relative_path), uuid)
-            for uuid, relative_path in conn.execute(
-                "select distinct f.uuid, f.relative_path from Files f join History h where h.uuid = f.uuid"
-            )
-        ),
-    )
-
-    conn.executemany(
-        "update Files set original_name = ? where uuid = ?",
-        (
-            (Path(relative_path).name, uuid)
-            for uuid, relative_path in conn.execute("select uuid, relative_path from Files where original_name = ''")
-        ),
-    )
-
-    return set_db_version(conn, Version("3.3.0"))
-
-
-# noinspection SqlResolve
-def upgrade_3_3to3_3_1(conn: Connection) -> Version:
-    if conn.execute("select 1 from pragma_table_info('Files') where name = 'processed_name'").fetchone():
-        conn.execute("alter table Files rename column processed_name to processed_names")
-
-    return set_db_version(conn, Version("3.3.1"))
-
-
-# noinspection SqlResolve
-def upgrade_3_3_1to3_3_2(conn: Connection) -> Version:
-    if conn.execute("select 1 from pragma_table_info('Files') where name = 'original_name'").fetchone():
-        conn.execute("alter table Files rename column original_name to original_path")
-
-    # noinspection SqlResolve,DuplicatedCode
-    def _find_original_path(uuid: str, relative_path: str) -> str:
-        original_path: Path = Path(relative_path)
-
-        for [data_raw] in conn.execute(
-            "select data from History"
-            " where uuid = ? and data is not null and data not in ('', '\"\"', 'null', '[]', '{}')"
-            " order by time desc",
-            (uuid,),
-        ):
-            try:
-                data = loads(data_raw)
-            except JSONDecodeError:
-                continue
-
-            if (
-                not isinstance(data, list)
-                or len(data) != 2
-                or not isinstance(data[0], str)
-                or not isinstance(data[1], str)
-            ):
-                continue
-
-            a: str = data[0]
-            b: str = data[1]
-
-            if a == str(original_path):
-                original_path = Path(b)
-            elif b == str(original_path):
-                original_path = Path(a)
-            elif a == original_path.name:
-                original_path = original_path.with_name(b)
-            elif b == original_path.name:
-                original_path = original_path.with_name(a)
-
-        return str(original_path)
-
-    # noinspection SqlWithoutWhere
-    conn.execute("update Files set original_path = relative_path")
-
-    conn.executemany(
-        "update Files set original_path = ? where uuid = ?",
-        (
-            (_find_original_path(uuid, relative_path), uuid)
-            for uuid, relative_path in conn.execute(
-                "select distinct f.uuid, f.relative_path from Files f join History h where h.uuid = f.uuid"
-            )
-        ),
-    )
-
-    return set_db_version(conn, Version("3.3.2"))
-
-
 def get_upgrade_function(current_version: Version, latest_version: Version) -> Callable[[Connection], Version]:
-    if current_version < Version("2.0.0"):
-        return upgrade_1to2
-    elif current_version < Version("2.0.2"):
-        return upgrade_2to2_0_2
-    elif current_version < Version("3.0.0"):
-        return upgrade_2_0_2to3
-    elif current_version < Version("3.0.2"):
-        return upgrade_3to3_0_2
-    elif current_version < Version("3.0.6"):
-        return upgrade_3_0_2to3_0_6
-    elif current_version < Version("3.0.7"):
-        return upgrade_3_0_6to3_0_7
-    elif current_version < Version("3.2.0"):
-        return upgrade_3_1to3_2
-    elif current_version < Version("3.3.0"):
-        return upgrade_3_2to3_3
-    elif current_version < Version("3.3.1"):
-        return upgrade_3_3to3_3_1
-    elif current_version < Version("3.3.2"):
-        return upgrade_3_3_1to3_3_2
-    elif current_version < latest_version:
+    if current_version < latest_version:
         return lambda c: set_db_version(c, Version(__version__))
     else:
         return lambda _: latest_version
 
 
 # noinspection SqlResolve
-def is_latest(db: FilesDB, *, raise_on_difference: bool = False) -> bool:
+def is_latest(connection: Connection, *, raise_on_difference: bool = False) -> bool:
     """
     Check if a database is using the latest version of acacore.
 
-    :param db: A ``FileDB`` object representing the database.
+    :param connection: A ``Connection`` object to the database.
     :param raise_on_difference: Set to ``True`` to raise a ``DatabaseError`` exception when the database version is
         lower than the module's
     :raises DatabaseError: If the database is not initialised, or if it is using a newer version that the
         acacore library, or ``raise_on_difference`` is set to ``True`` and the database is not up-to-date.
     :return: True if the database is using the latest version, False otherwise.
     """
-    if not db.is_initialised(check_views=False, check_indices=False):
-        raise DatabaseError("Database is not initialised")
-
-    current_version: Version | None = get_db_version(db.connection)
+    current_version: Version | None = get_db_version(connection)
     latest_version: Version = Version(__version__)
 
     if not current_version:
@@ -410,23 +57,18 @@ def is_latest(db: FilesDB, *, raise_on_difference: bool = False) -> bool:
     return current_version == latest_version
 
 
-def upgrade(db: FilesDB):
+def upgrade(connection: Connection):
     """
     Upgrade a database to the latest version of acacore.
 
-    :param db: A ``FileDB`` object representing the database.
+    :param connection: A ``Connection`` object to the database.
     """
-    if not db.is_initialised(check_views=False, check_indices=False):
-        raise DatabaseError("Database is not initialised")
-    if db.uncommitted_changes:
-        raise DatabaseError("Database has uncommited transactions")
-
-    if is_latest(db):
+    if is_latest(connection):
         return
 
-    current_version: Version = get_db_version(db.connection)
+    current_version: Version = get_db_version(connection)
     latest_version: Version = Version(__version__)
 
     while current_version < latest_version:
         update_function = get_upgrade_function(current_version, latest_version)
-        current_version = update_function(db.connection)
+        current_version = update_function(connection)
