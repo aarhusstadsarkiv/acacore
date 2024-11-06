@@ -77,7 +77,7 @@ def test_database_insert_select(database_file: Path):
         db.master_files.insert(MasterFile.from_file(database_file, database_file.parent, original_file.uuid))
         db.access_files.insert(ConvertedFile.from_file(database_file, database_file.parent, original_file.uuid))
         db.statutory_files.insert(ConvertedFile.from_file(database_file, database_file.parent, original_file.uuid))
-        db.log.insert(Event(uuid=original_file.uuid, operation="test_database_models"))
+        db.log.insert(Event(file_uuid=original_file.uuid, file_type="original", operation="test_database_models"))
         db.commit()
 
         assert len(db.original_files) == 2
