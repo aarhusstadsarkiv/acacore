@@ -1,6 +1,7 @@
 from datetime import datetime
 from logging import Logger
 from typing import Any
+from typing import Literal
 from typing import Self
 from typing import Sequence
 from uuid import UUID
@@ -8,17 +9,26 @@ from uuid import UUID
 from click import Context
 from pydantic import BaseModel
 from pydantic import Field
+from pydantic import model_validator
 from pydantic import UUID4
 
 from acacore.__version__ import __version__
 
 
 class Event(BaseModel):
-    uuid: UUID4 | None = None
+    file_uuid: UUID4 | None = None
+    file_type: Literal["original", "master"] | None = None
     time: datetime = Field(default_factory=datetime.now)
     operation: str
     data: object | None = None
     reason: str | None = None
+
+    @classmethod
+    @model_validator(mode="after")
+    def _model_validator(cls, data: Self):
+        if (data.file_uuid and not data.file_type) or (not data.file_uuid and data.file_type):
+            raise ValueError("uuid and file type must be set together")
+        return data
 
     @classmethod
     def from_command(
