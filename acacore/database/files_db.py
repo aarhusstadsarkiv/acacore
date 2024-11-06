@@ -19,7 +19,7 @@ from .database import View
 
 
 class EventPath(Event):
-    relative_path: Path | None = None
+    file_relative_path: Path | None = None
 
 
 class SignatureCount(BaseModel):
@@ -101,7 +101,7 @@ class FilesDB(Database):
             self.connection,
             EventPath,
             "log_paths",
-            f"select f.relative_path as relative_path, h.* from {self.log.name} h left join {self.original_files.name} f on f.uuid = h.uuid",
+            f"select f.relative_path as file_relative_path, h.* from {self.log.name} h left join {self.original_files.name} f on f.uuid = h.uuid",
         )
 
         self.identification_warnings: View[OriginalFile] = View(
