@@ -90,7 +90,7 @@ def test_original_file(
         assert file.parent == parent
         assert file.processed == processed
         assert file.lock == lock
-        assert file.original_name == filename
+        assert file.original_path == test_files.joinpath(filename).relative_to(test_folder)
 
         action = actions.get(filedata["matches"]["id"])
 
