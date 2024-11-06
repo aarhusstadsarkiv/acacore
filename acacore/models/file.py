@@ -99,7 +99,7 @@ class File(BaseModel):
     @classmethod
     def _model_validator(cls, data: dict):
         if isinstance(data, dict):
-            if (op := data.get("original_path", None)) and isinstance(op, Path):
+            if (op := data.get("original_path")) and isinstance(op, Path):
                 data["original_path"] = op
             elif isinstance(op, str) and op.strip():
                 data["original_path"] = Path(op)
