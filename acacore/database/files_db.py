@@ -95,7 +95,7 @@ class FilesDB(Database):
             self.connection,
             Event,
             "log",
-            indices={"uuid": ["uuid"], "time": ["time"], "operation": ["operation"]},
+            indices={"uuid": ["file_uuid", "file_type"], "time": ["time"], "operation": ["operation"]},
         )
         self.log_paths: View[EventPath] = View(
             self.connection,
@@ -103,8 +103,8 @@ class FilesDB(Database):
             "log_paths",
             f"""
             select coalesce(fo.relative_path, fm.relative_path) as file_relative_path, l.* from {self.log.name} l
-                left join {self.original_files.name} fo on l.file_type = 'original' and fo.uuid = l.uuid
-                left join {self.master_files.name} fm on l.file_type = 'master' and fm.uuid = l.uuid
+                left join {self.original_files.name} fo on l.file_type = 'original' and fo.uuid = l.file_uuid
+                left join {self.master_files.name} fm on l.file_type = 'master' and fm.uuid = l.file_uuid
             """,
         )
 
