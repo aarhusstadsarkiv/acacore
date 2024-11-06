@@ -152,7 +152,7 @@ class FilesDB(Database):
         upgrade(self.connection)
 
     def is_initialised(self) -> bool:
-        return self.metadata.name in self.tables()
+        return self.metadata.name in self.tables() and self.metadata.get("version")
 
     def version(self) -> Version:
         if self.is_initialised():
