@@ -351,7 +351,7 @@ def upgrade_3_3_1to3_3_2(conn: Connection) -> Version:
         ),
     )
 
-    return set_db_version(conn, Version("3.3.0"))
+    return set_db_version(conn, Version("3.3.2"))
 
 
 def get_upgrade_function(current_version: Version, latest_version: Version) -> Callable[[Connection], Version]:
