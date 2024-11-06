@@ -6,6 +6,7 @@ from packaging.version import Version
 from pydantic import BaseModel
 
 from acacore.models.event import Event
+from acacore.models.file import BaseFile
 from acacore.models.file import ConvertedFile
 from acacore.models.file import MasterFile
 from acacore.models.file import OriginalFile
@@ -91,6 +92,21 @@ class FilesDB(Database):
             ["relative_path"],
             {"uuid": ["uuid"], "checksum": ["checksum"], "original_uuid": ["original_uuid"]},
             ["root"],
+        )
+        self.all_files: View[BaseFile] = View(
+            self.connection,
+            BaseFile,
+            "files_all",
+            f"""
+        select uuid, checksum, relative_path, is_binary, size, puid, signature, warning from {self.original_files.name}
+        union
+        select uuid, checksum, relative_path, is_binary, size, puid, signature, warning from {self.master_files.name}
+        union
+        select uuid, checksum, relative_path, is_binary, size, puid, signature, warning from {self.access_files.name}
+        union
+        select uuid, checksum, relative_path, is_binary, size, puid, signature, warning from {self.statutory_files.name}
+        """,
+            ignore=["root"],
         )
 
         self.log: Table[Event] = Table(
