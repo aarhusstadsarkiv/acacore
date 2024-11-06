@@ -53,15 +53,15 @@ def test_event_log(log_file: Path, logger: Logger):
     reason: str = "test"
     extra: tuple[str, float] = ("extra", random())
 
-    event: Event = Event(uuid=uuid, time=time, operation=operation, data=data, reason=reason)
+    event: Event = Event(file_uuid=uuid, file_type="original", time=time, operation=operation, data=data, reason=reason)
     expected: str
 
     for level in (CRITICAL, ERROR, WARNING, INFO, DEBUG):
-        expected = f"{getLevelName(level)}: {operation} uuid={uuid} data={data} reason={reason}"
+        expected = f"{getLevelName(level)}: {operation} uuid=original:{uuid} data={data} reason={reason}"
         event.log(level, logger)
         assert _get_log_output(log_file)[-1] == expected
 
-    expected = f"{getLevelName(INFO)}: {operation} uuid={uuid} {extra[0]}={extra[1]}"
+    expected = f"{getLevelName(INFO)}: {operation} uuid=original:{uuid} {extra[0]}={extra[1]}"
     event.data = None
     event.log(INFO, logger, show_args=["uuid"], show_null=False, **dict([extra]))
     assert _get_log_output(log_file)[-1] == expected
@@ -79,14 +79,15 @@ def test_event_from_command(log_file: Path, logger: Logger):
     @option("--value-option", type=int)
     @pass_context
     def _app(ctx: Context, *_, **__) -> tuple[Event, Context]:
-        return Event.from_command(ctx, operation, uuid, data, reason, time, add_params_to_data=True), ctx
+        return Event.from_command(ctx, operation, (uuid, "original"), data, reason, time, add_params_to_data=True), ctx
 
     args: tuple[str, ...] = ("hello world",)
     value_option: int = 42
     event: Event
     context: Context
     event, context = _app.main([*args, "--value-option", str(value_option)], standalone_mode=False)
-    assert event.uuid == uuid
+    assert event.file_uuid == uuid
+    assert event.file_type == "original"
     assert event.time == time
     assert event.operation == f"{_app.name}:{operation}"
     assert event.data == data | {"acacore": __version__, "params": {"arg": args, "value_option": value_option}}
