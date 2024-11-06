@@ -12,6 +12,7 @@ from acacore.database.files_db import ChecksumCount
 from acacore.database.files_db import EventPath
 from acacore.database.files_db import SignatureCount
 from acacore.models.event import Event
+from acacore.models.file import BaseFile
 from acacore.models.file import ConvertedFile
 from acacore.models.file import MasterFile
 from acacore.models.file import OriginalFile
@@ -58,6 +59,7 @@ def test_database_tables(database_file: Path):
         assert db.statutory_files.name in tables
         assert db.log.name in tables
         assert db.metadata.name in tables
+        assert db.all_files.name in views
         assert db.log_paths.name in views
         assert db.identification_warnings.name in views
         assert db.signatures_count.name in views
@@ -65,6 +67,7 @@ def test_database_tables(database_file: Path):
         assert db.checksums_count.name in views
 
 
+# noinspection DuplicatedCode
 def test_database_insert_select(database_file: Path):
     with FilesDB(database_file) as db:
         db.init()
@@ -84,6 +87,9 @@ def test_database_insert_select(database_file: Path):
         assert len(db.master_files) == 1
         assert len(db.access_files) == 1
         assert len(db.statutory_files) == 1
+        assert len(db.all_files) == (
+            len(db.original_files) + len(db.master_files) + len(db.access_files) + len(db.statutory_files)
+        )
         assert len(db.log) == 1
         assert len(db.log_paths) == 1
         assert len(db.identification_warnings) == 2
@@ -102,6 +108,7 @@ def test_database_insert_select(database_file: Path):
         assert isinstance(db.master_files.select().fetchone(), MasterFile)
         assert isinstance(db.access_files.select().fetchone(), ConvertedFile)
         assert isinstance(db.statutory_files.select().fetchone(), ConvertedFile)
+        assert isinstance(db.all_files.select().fetchone(), BaseFile)
         assert isinstance(db.log.select().fetchone(), Event)
 
         assert isinstance(db.log_paths.select().fetchone(), EventPath)
