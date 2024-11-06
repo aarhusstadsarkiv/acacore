@@ -16,6 +16,7 @@ from .database import Database
 from .database import KeysTable
 from .database import Table
 from .database import View
+from .upgrade import is_latest
 from .upgrade import upgrade
 
 
@@ -139,6 +140,9 @@ class FilesDB(Database):
         )
 
         self.metadata: KeysTable[Metadata] = KeysTable(self.connection, Metadata, "metadata")
+
+        if self.is_initialised():
+            is_latest(self.connection, raise_on_difference=True)
 
     def upgrade(self):
         if not self.is_initialised():
