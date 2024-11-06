@@ -110,21 +110,23 @@ class Event(BaseModel):
             argument names to show only specific ones. Default is True.
         :param extra: Additional arguments to be shown in the log message.
         """
+        uuid_msg: str | None = f"{self.file_type}:{self.file_uuid}" if self.file_uuid else None
+
         if not show_args:
             msg: str = self.operation
         elif show_args is True and show_null:
-            msg: str = f"{self.operation} uuid={self.uuid} data={self.data} reason={self.reason}"
+            msg: str = f"{self.operation} uuid={uuid_msg} data={self.data} reason={self.reason}"
         elif show_args is True:
             msg: str = (
                 f"{self.operation}"
-                + (f" uuid={self.uuid}" if self.uuid is not None else "")
+                + (f" uuid={uuid_msg}" if self.file_uuid is not None else "")
                 + (f" data={self.data}" if self.data is not None else "")
                 + (f" reason={self.reason.strip()}" if self.reason is not None else "")
             )
         else:
             msg: str = (
                 f"{self.operation}"
-                + (f" uuid={self.uuid}" if "uuid" in show_args else "")
+                + (f" uuid={uuid_msg}" if "uuid" in show_args else "")
                 + (f" data={self.data}" if "data" in show_args else "")
                 + (f" reason={self.reason.strip()}" if "reason" in show_args else "")
             )
