@@ -99,7 +99,12 @@ class File(BaseModel):
     @classmethod
     def _model_validator(cls, data: dict):
         if isinstance(data, dict):
-            data["original_path"] = data.get("original_path", "").strip() or data["relative_path"]
+            if (op := data.get("original_path", None)) and isinstance(op, Path):
+                data["original_path"] = op
+            elif isinstance(op, str) and op.strip():
+                data["original_path"] = Path(op)
+            else:
+                data["original_path"] = data["relative_path"]
         return data
 
     # noinspection PyNestedDecorators
