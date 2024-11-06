@@ -20,6 +20,7 @@ __all__ = [
 from .files_db import FileDB
 
 
+# noinspection SqlResolve
 def get_db_version(conn: Connection) -> Version | None:
     if res := conn.execute("select VALUE from Metadata where KEY like 'version'").fetchone():
         return Version(res[0])
@@ -154,12 +155,14 @@ def upgrade_3to3_0_2(conn: Connection) -> Version:
     return set_db_version(conn, Version("3.0.2"))
 
 
+# noinspection SqlResolve
 def upgrade_3_0_2to3_0_6(conn: Connection) -> Version:
     conn.execute("update Files set action = 'ignore' where action = 'template'")
     conn.commit()
     return set_db_version(conn, Version("3.0.6"))
 
 
+# noinspection SqlResolve
 def upgrade_3_0_6to3_0_7(conn: Connection) -> Version:
     def convert_action_data(data: dict) -> dict | None:
         if (reidentify := data.get("reidentify")) and reidentify.get("on_fail"):
@@ -181,6 +184,7 @@ def upgrade_3_0_6to3_0_7(conn: Connection) -> Version:
     return set_db_version(conn, Version("3.0.7"))
 
 
+# noinspection SqlResolve
 def upgrade_3_1to3_2(conn: Connection) -> Version:
     def convert_action_data(data: dict) -> dict:
         if not data.get("convert"):
@@ -222,6 +226,7 @@ def upgrade_3_2to3_3(conn: Connection) -> Version:
     if not conn.execute("select 1 from pragma_table_info('Files') where name = 'processed_names'").fetchone():
         conn.execute("alter table Files add column processed_names text default '[]'")
 
+    # noinspection SqlResolve,DuplicatedCode
     def _find_original_name(uuid: str, relative_path: str) -> str:
         original_path: Path = Path(relative_path)
         original_name: str = original_path.name
@@ -292,6 +297,64 @@ def upgrade_3_3to3_3_1(conn: Connection) -> Version:
     return set_db_version(conn, Version("3.3.1"))
 
 
+# noinspection SqlResolve
+def upgrade_3_3_1to3_3_2(conn: Connection) -> Version:
+    if conn.execute("select 1 from pragma_table_info('Files') where name = 'original_name'").fetchone():
+        conn.execute("alter table Files rename column original_name to original_path")
+
+    # noinspection SqlResolve,DuplicatedCode
+    def _find_original_path(uuid: str, relative_path: str) -> str:
+        original_path: Path = Path(relative_path)
+
+        for [data_raw] in conn.execute(
+            "select data from History"
+            " where uuid = ? and data is not null and data not in ('', '\"\"', 'null', '[]', '{}')"
+            " order by time desc",
+            (uuid,),
+        ):
+            try:
+                data = loads(data_raw)
+            except JSONDecodeError:
+                continue
+
+            if (
+                not isinstance(data, list)
+                or len(data) != 2
+                or not isinstance(data[0], str)
+                or not isinstance(data[1], str)
+            ):
+                continue
+
+            a: str = data[0]
+            b: str = data[1]
+
+            if a == str(original_path):
+                original_path = Path(b)
+            elif b == str(original_path):
+                original_path = Path(a)
+            elif a == original_path.name:
+                original_path = original_path.with_name(b)
+            elif b == original_path.name:
+                original_path = original_path.with_name(a)
+
+        return str(original_path)
+
+    # noinspection SqlWithoutWhere
+    conn.execute("update Files set original_path = relative_path")
+
+    conn.executemany(
+        "update Files set original_path = ? where uuid = ?",
+        (
+            (_find_original_path(uuid, relative_path), uuid)
+            for uuid, relative_path in conn.execute(
+                "select distinct f.uuid, f.relative_path from Files f join History h where h.uuid = f.uuid"
+            )
+        ),
+    )
+
+    return set_db_version(conn, Version("3.3.2"))
+
+
 def get_upgrade_function(current_version: Version, latest_version: Version) -> Callable[[Connection], Version]:
     if current_version < Version("2.0.0"):
         return upgrade_1to2
@@ -311,6 +374,8 @@ def get_upgrade_function(current_version: Version, latest_version: Version) -> C
         return upgrade_3_2to3_3
     elif current_version < Version("3.3.1"):
         return upgrade_3_3to3_3_1
+    elif current_version < Version("3.3.2"):
+        return upgrade_3_3_1to3_3_2
     elif current_version < latest_version:
         return lambda c: set_db_version(c, Version(__version__))
     else:
