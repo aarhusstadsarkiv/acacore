@@ -98,14 +98,14 @@ class FilesDB(Database):
             BaseFile,
             "files_all",
             f"""
-        select uuid, checksum, relative_path, is_binary, size, puid, signature, warning from {self.original_files.name}
-        union
-        select uuid, checksum, relative_path, is_binary, size, puid, signature, warning from {self.master_files.name}
-        union
-        select uuid, checksum, relative_path, is_binary, size, puid, signature, warning from {self.access_files.name}
-        union
-        select uuid, checksum, relative_path, is_binary, size, puid, signature, warning from {self.statutory_files.name}
-        """,
+            select uuid, checksum, relative_path, is_binary, size, puid, signature, warning from {self.original_files.name}
+            union
+            select uuid, checksum, relative_path, is_binary, size, puid, signature, warning from {self.master_files.name}
+            union
+            select uuid, checksum, relative_path, is_binary, size, puid, signature, warning from {self.access_files.name}
+            union
+            select uuid, checksum, relative_path, is_binary, size, puid, signature, warning from {self.statutory_files.name}
+            """,
             ignore=["root"],
         )
 
