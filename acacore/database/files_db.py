@@ -175,11 +175,13 @@ class FilesDB(Database):
             return Version(self.metadata.get("version"))
         raise DatabaseError("Not initialised")
 
+    # noinspection DuplicatedCode
     def init(self):
         self.original_files.create(exist_ok=True)
         self.master_files.create(exist_ok=True)
         self.access_files.create(exist_ok=True)
         self.statutory_files.create(exist_ok=True)
+        self.all_files.create(exist_ok=True)
         self.log.create(exist_ok=True)
         self.log_paths.create(exist_ok=True)
         self.identification_warnings.create(exist_ok=True)
