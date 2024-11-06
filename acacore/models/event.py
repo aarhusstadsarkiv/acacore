@@ -35,7 +35,7 @@ class Event(BaseModel):
         cls,
         ctx: Context | str,
         operation: str,
-        uuid: UUID | None = None,
+        file: tuple[UUID, Literal["original", "master"]] | None = None,
         data: object | None = None,
         reason: str | None = None,
         time: datetime | None = None,
@@ -46,7 +46,8 @@ class Event(BaseModel):
 
         :param ctx: The context object representing the current command execution.
         :param operation: The name of the operation for which the command history entry is being created.
-        :param uuid: Optional. The UUID associated with the command history entry, defaults to None.
+        :param file: Optional. The UUID and file type (original or master) associated with the command history entry,
+            defaults to None.
         :param data: Optional. Additional data or parameters associated with the command history entry.
         :param reason: Optional. The reason for the command execution, defaults to None.
         :param time: Optional. The timestamp of the command execution, defaults to None.
@@ -80,7 +81,8 @@ class Event(BaseModel):
             raise TypeError(f"Data type {type(data)} is not compatible with add_params_to_data")
 
         return cls(
-            uuid=uuid,
+            file_uuid=file[0] if file else None,
+            file_type=file[1] if file else None,
             time=time or datetime.now(),
             operation=operation,
             data=data,
