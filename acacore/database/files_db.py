@@ -50,6 +50,8 @@ class FilesDB(Database):
         detect_types: int = 0,
         isolation_level: str | None = "DEFERRED",
         check_same_thread: bool = True,
+        check_initialisation: bool = False,
+        check_version: bool = True,
         cached_statements: int = 100,
     ) -> None:
         super().__init__(
@@ -157,7 +159,10 @@ class FilesDB(Database):
 
         self.metadata: KeysTable[Metadata] = KeysTable(self.connection, Metadata, "metadata")
 
-        if self.is_initialised():
+        if (check_initialisation or check_version) and not self.is_initialised():
+            raise DatabaseError("Database is not initialized")
+
+        if check_version and self.is_initialised():
             is_latest(self.connection, raise_on_difference=True)
 
     def upgrade(self):
