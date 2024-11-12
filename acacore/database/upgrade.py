@@ -1,8 +1,10 @@
+from plistlib import loads
 from sqlite3 import Connection
 from sqlite3 import DatabaseError
 from sqlite3 import OperationalError
 from typing import Callable
 
+from packaging.version import InvalidVersion
 from packaging.version import Version
 
 from acacore.__version__ import __version__
@@ -17,8 +19,8 @@ __all__ = [
 def get_db_version(conn: Connection) -> Version | None:
     try:
         cur = conn.execute("select VALUE from Metadata where KEY like 'version'").fetchone()
-        return Version(cur[0]) if cur else None
-    except OperationalError:
+        return Version(loads(cur[0])) if cur else None
+    except (OperationalError, ValueError, InvalidVersion):
         raise None
 
 
