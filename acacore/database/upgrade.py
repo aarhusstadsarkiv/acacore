@@ -21,7 +21,7 @@ def get_db_version(conn: Connection) -> Version | None:
         cur = conn.execute("select VALUE from Metadata where KEY like 'version'").fetchone()
         return Version(loads(cur[0])) if cur else None
     except (OperationalError, ValueError, InvalidVersion):
-        raise None
+        return None
 
 
 def set_db_version(conn: Connection, version: Version) -> Version:
