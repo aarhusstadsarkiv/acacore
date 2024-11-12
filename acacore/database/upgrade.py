@@ -1,4 +1,4 @@
-from plistlib import loads
+from json import loads
 from sqlite3 import Connection
 from sqlite3 import DatabaseError
 from sqlite3 import OperationalError
