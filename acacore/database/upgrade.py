@@ -1,5 +1,6 @@
 from sqlite3 import Connection
 from sqlite3 import DatabaseError
+from sqlite3 import OperationalError
 from typing import Callable
 
 from packaging.version import Version
@@ -14,9 +15,11 @@ __all__ = [
 
 # noinspection SqlResolve
 def get_db_version(conn: Connection) -> Version | None:
-    if res := conn.execute("select VALUE from Metadata where KEY like 'version'").fetchone():
-        return Version(res[0])
-    return None
+    try:
+        cur = conn.execute("select VALUE from Metadata where KEY like 'version'").fetchone()
+        return Version(cur[0]) if cur else None
+    except OperationalError:
+        raise None
 
 
 def set_db_version(conn: Connection, version: Version) -> Version:
