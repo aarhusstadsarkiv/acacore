@@ -135,7 +135,7 @@ def start_program(
     )
 
     if not dry_run:
-        database.history.insert(program_start)
+        database.log.insert(program_start)
 
     if log_file:
         program_start.log(INFO, logger_file)
