@@ -17,7 +17,7 @@ from acacore.__version__ import __version__
 
 class Event(BaseModel):
     file_uuid: UUID4 | None = None
-    file_type: Literal["original", "master"] | None = None
+    file_type: Literal["original", "master", "access", "statutory"] | None = None
     time: datetime = Field(default_factory=datetime.now)
     operation: str
     data: object | None = None
@@ -35,7 +35,7 @@ class Event(BaseModel):
         cls,
         ctx: Context | str,
         operation: str,
-        file: tuple[UUID, Literal["original", "master"]] | None = None,
+        file: tuple[UUID, Literal["original", "master", "access", "statutory"]] | None = None,
         data: object | None = None,
         reason: str | None = None,
         time: datetime | None = None,
