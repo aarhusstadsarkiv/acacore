@@ -196,6 +196,15 @@ class IgnoreAction(NoDefaultsModel):
         return self
 
 
+class MasterConvertAction(NoDefaultsModel):
+    """Class representing the instructions to convert a master file to access and statutory formats."""
+
+    name: str
+    description: str | None = None
+    access: ConvertAction
+    statutory: ConvertAction
+
+
 class ActionData(NoDefaultsModel):
     """
     A class representing the data for a specific action.
