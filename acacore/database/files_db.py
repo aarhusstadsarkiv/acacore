@@ -159,7 +159,7 @@ class FilesDB(Database):
 
         self.metadata: KeysTable[Metadata] = KeysTable(self.connection, Metadata, "metadata")
 
-        if (check_initialisation or check_version) and not self.is_initialised():
+        if check_initialisation and not self.is_initialised():
             raise DatabaseError("Database is not initialized")
 
         if check_version and self.is_initialised():
