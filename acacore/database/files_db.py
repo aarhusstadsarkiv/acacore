@@ -2,6 +2,7 @@ from datetime import datetime
 from os import PathLike
 from pathlib import Path
 from sqlite3 import Connection
+from sqlite3 import DatabaseError
 from typing import Type
 from uuid import UUID
 
@@ -52,6 +53,7 @@ class FileDB(FileDBBase):
         cached_statements: int = 100,
         uri: bool = False,
         check_version: bool = True,
+        check_initialisation: bool = False,
     ) -> None:
         """
         A class that handles the SQLite database used by AArhus City Archives to process data archives.
@@ -203,13 +205,13 @@ class FileDB(FileDBBase):
             ],
         )
 
-        if self.is_initialised(check_views=False, check_indices=False):
-            if check_version:
-                from acacore.database.upgrade import is_latest
+        if check_initialisation and not self.is_initialised():
+            raise DatabaseError("Database is not initialised")
 
-                is_latest(self, raise_on_difference=True)
-        else:
-            self.init()
+        if check_version and self.is_initialised(check_views=False, check_indices=False):
+            from acacore.database.upgrade import is_latest
+
+            is_latest(self, raise_on_difference=True)
 
     def is_initialised(self, *, check_views: bool = True, check_indices: bool = True) -> bool:
         """
