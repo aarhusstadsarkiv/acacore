@@ -205,10 +205,10 @@ class FileDB(FileDBBase):
             ],
         )
 
-        if check_initialisation and not self.is_initialised(check_views=False, check_indices=False):
+        if check_initialisation and not self.is_initialised():
             raise DatabaseError("Database is not initialised")
 
-        if check_version and self.is_initialised():
+        if check_version and self.is_initialised(check_views=False, check_indices=False):
             from acacore.database.upgrade import is_latest
 
             is_latest(self, raise_on_difference=True)
