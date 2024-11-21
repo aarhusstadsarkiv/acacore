@@ -1,6 +1,8 @@
 from os import PathLike
 from pathlib import Path
 from sqlite3 import DatabaseError
+from typing import overload
+from typing import Union
 
 from packaging.version import Version
 from pydantic import BaseModel
@@ -180,19 +182,29 @@ class FilesDB(Database):
             return Version(self.metadata.get("version"))
         raise DatabaseError("Not initialised")
 
+    @overload
+    def init(self: str | PathLike[str]) -> "FilesDB": ...
+
     # noinspection DuplicatedCode
-    def init(self):
-        self.original_files.create(exist_ok=True)
-        self.master_files.create(exist_ok=True)
-        self.access_files.create(exist_ok=True)
-        self.statutory_files.create(exist_ok=True)
-        self.all_files.create(exist_ok=True)
-        self.log.create(exist_ok=True)
-        self.log_paths.create(exist_ok=True)
-        self.identification_warnings.create(exist_ok=True)
-        self.signatures_count.create(exist_ok=True)
-        self.actions_count.create(exist_ok=True)
-        self.checksums_count.create(exist_ok=True)
-        self.metadata.create(exist_ok=True)
-        if not self.metadata.get():
-            self.metadata.set(Metadata())
+    def init(self: Union[str, PathLike[str], "FilesDB"]) -> "FilesDB":
+        db = self if isinstance(self, FilesDB) else FilesDB(self)
+
+        db.original_files.create(exist_ok=True)
+        db.master_files.create(exist_ok=True)
+        db.access_files.create(exist_ok=True)
+        db.statutory_files.create(exist_ok=True)
+        db.all_files.create(exist_ok=True)
+        db.log.create(exist_ok=True)
+        db.log_paths.create(exist_ok=True)
+        db.identification_warnings.create(exist_ok=True)
+        db.signatures_count.create(exist_ok=True)
+        db.actions_count.create(exist_ok=True)
+        db.checksums_count.create(exist_ok=True)
+        db.metadata.create(exist_ok=True)
+        if not db.metadata.get():
+            db.metadata.set(Metadata())
+
+        if not isinstance(self, FilesDB):
+            db.commit()
+
+        return db
