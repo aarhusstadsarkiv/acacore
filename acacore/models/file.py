@@ -452,6 +452,7 @@ class ConvertedFile(BaseFile):
 class MasterFile(ConvertedFile):
     convert_access: ConvertAction | None = None
     convert_statutory: ConvertAction | None = None
+    processed: bool = False
 
     @classmethod
     def from_file(
@@ -464,6 +465,7 @@ class MasterFile(ConvertedFile):
         actions_access: dict[str, ConvertAction] | None = None,
         actions_statutory: dict[str, ConvertAction] | None = None,
         uuid: UUID | None = None,
+        processed: bool = False,
     ) -> Self:
         file_base = super().from_file(path, root, original_uuid, siegfried, custom_signatures, uuid)
         file = cls(
@@ -477,6 +479,7 @@ class MasterFile(ConvertedFile):
             signature=file_base.signature,
             warning=file_base.warning,
             original_uuid=file_base.original_uuid,
+            processed=processed,
         )
 
         if actions_access:
