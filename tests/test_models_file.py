@@ -145,6 +145,8 @@ def test_master_file(
             convert_actions,
             convert_actions_empty,
             uuid,
+            True,
         )
         assert file.convert_access == convert_actions.get(file.puid)
         assert file.convert_statutory is None
+        assert file.processed
