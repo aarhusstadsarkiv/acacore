@@ -149,6 +149,10 @@ def test_master_file(
             uuid,
             True,
         )
-        assert file.convert_access == (ma.access if (ma := master_actions.get(file.puid)) else None)  # noqa :RUF018
-        assert file.convert_statutory == (ma.statutory if (ma := master_actions.get(file.puid)) else None)  # noqa: RUF018
+        if ma := master_actions.get(file.puid):
+            assert file.convert_access == ma.access
+            assert file.convert_statutory == ma.statutory
+        else:
+            assert file.convert_access is None
+            assert file.convert_statutory is None
         assert file.processed
