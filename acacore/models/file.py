@@ -29,6 +29,7 @@ from .reference_files import CustomSignature
 from .reference_files import IgnoreAction
 from .reference_files import IgnoreIfAction
 from .reference_files import ManualAction
+from .reference_files import MasterConvertAction
 from .reference_files import TActionType
 
 _A = TypeVar("_A")
@@ -335,6 +336,7 @@ class OriginalFile(BaseFile):
             parent=parent,
             processed=processed or False,
             lock=lock or False,
+            original_path=file_base.relative_path,
         )
 
         from_custom_signatures: bool = False
@@ -462,8 +464,7 @@ class MasterFile(ConvertedFile):
         original_uuid: UUID | None = None,
         siegfried: Siegfried | SiegfriedFile | None = None,
         custom_signatures: list[CustomSignature] | None = None,
-        actions_access: dict[str, ConvertAction] | None = None,
-        actions_statutory: dict[str, ConvertAction] | None = None,
+        actions: dict[str, MasterConvertAction] | None = None,
         uuid: UUID | None = None,
         processed: bool = False,
     ) -> Self:
@@ -482,21 +483,19 @@ class MasterFile(ConvertedFile):
             processed=processed,
         )
 
-        if actions_access:
-            file.get_action("access", actions_access, set_match=True)
-
-        if actions_statutory:
-            file.get_action("statutory", actions_statutory, set_match=True)
+        if actions:
+            file.get_action("access", actions, set_match=True)
+            file.get_action("statutory", actions, set_match=True)
 
         return file
 
     def get_action(
         self,
         target: Literal["access", "statutory"],
-        actions: dict[str, ConvertAction],
+        actions: dict[str, MasterConvertAction],
         *,
         set_match: bool = False,
-    ) -> ConvertAction | None:
+    ) -> MasterConvertAction | None:
         """
         Returns the access ``Action`` matching the file's PUID.
 
@@ -505,13 +504,13 @@ class MasterFile(ConvertedFile):
         :param set_match: Set the matched action if ``True``, defaults to ``False``.
         :return: The matched ``Action`` object, if any, otherwise ``None``.
         """
-        action: ConvertAction | None = get_identifier(self, [], actions)
+        action: MasterConvertAction | None = get_identifier(self, [], actions)
 
         if set_match and action:
             if target == "access":
-                self.convert_access = action
+                self.convert_access = action.access
             elif target == "statutory":
-                self.convert_statutory = action
+                self.convert_statutory = action.statutory
         elif set_match:
             if target == "access":
                 self.convert_access = None
