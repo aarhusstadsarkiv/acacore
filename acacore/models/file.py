@@ -483,9 +483,14 @@ class MasterFile(ConvertedFile):
             processed=processed,
         )
 
+        file_classes: list[TSiegfriedFileClass] = []
+
+        if isinstance(siegfried, SiegfriedFile) and siegfried.matches:
+            file_classes = siegfried.best_match().file_classes
+
         if actions:
-            file.get_action("access", actions, set_match=True)
-            file.get_action("statutory", actions, set_match=True)
+            file.get_action("access", actions, file_classes, set_match=True)
+            file.get_action("statutory", actions, file_classes, set_match=True)
 
         return file
 
@@ -493,6 +498,7 @@ class MasterFile(ConvertedFile):
         self,
         target: Literal["access", "statutory", "all"],
         actions: dict[str, MasterConvertAction],
+        file_classes: list[TSiegfriedFileClass] | None = None,
         *,
         set_match: bool = False,
     ) -> MasterConvertAction | None:
@@ -501,10 +507,11 @@ class MasterFile(ConvertedFile):
 
         :param target:
         :param actions: A dictionary containing the available access actions.
+        :param file_classes: A list of file classes or ``None``.
         :param set_match: Set the matched action if ``True``, defaults to ``False``.
         :return: The matched ``Action`` object, if any, otherwise ``None``.
         """
-        action: MasterConvertAction | None = get_identifier(self, [], actions)
+        action: MasterConvertAction | None = get_identifier(self, file_classes, actions)
 
         if set_match and action:
             if target in ("access", "all"):
