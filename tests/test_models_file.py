@@ -9,8 +9,8 @@ from acacore.models.file import ConvertedFile
 from acacore.models.file import MasterFile
 from acacore.models.file import OriginalFile
 from acacore.models.reference_files import Action
-from acacore.models.reference_files import ConvertAction
 from acacore.models.reference_files import CustomSignature
+from acacore.models.reference_files import MasterConvertAction
 from acacore.reference_files import get_actions
 from acacore.reference_files import get_custom_signatures
 from acacore.siegfried import Siegfried
@@ -131,8 +131,11 @@ def test_master_file(
     actions: dict[str, Action],
     custom_signatures: list[CustomSignature],
 ) -> None:
-    convert_actions: dict[str, ConvertAction] = {p: a.convert for p, a in actions.items() if a.convert}
-    convert_actions_empty: dict[str, ConvertAction] = {"": next(iter(convert_actions.values()))}
+    master_actions: dict[str, MasterConvertAction] = {
+        p: MasterConvertAction(name=a.name, access=a.convert, statutory=a.convert)
+        for p, a in actions.items()
+        if a.convert
+    }
     for filename, filedata in test_files_data.items():
         uuid = uuid4()
         original_uuid = uuid4()
@@ -142,11 +145,10 @@ def test_master_file(
             original_uuid,
             siegfried,
             custom_signatures,
-            convert_actions,
-            convert_actions_empty,
+            master_actions,
             uuid,
             True,
         )
-        assert file.convert_access == convert_actions.get(file.puid)
-        assert file.convert_statutory is None
+        assert file.convert_access == (ma.access if (ma := master_actions.get(file.puid)) else None)  # noqa :RUF018
+        assert file.convert_statutory == (ma.statutory if (ma := master_actions.get(file.puid)) else None)  # noqa: RUF018
         assert file.processed
