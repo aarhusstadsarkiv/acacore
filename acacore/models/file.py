@@ -505,7 +505,7 @@ class MasterFile(ConvertedFile):
         """
         Returns the access ``Action`` matching the file's PUID.
 
-        :param target:
+        :param target: Which action to set, use "all" for both.
         :param actions: A dictionary containing the available access actions.
         :param file_classes: A list of file classes or ``None``.
         :param set_match: Set the matched action if ``True``, defaults to ``False``.
