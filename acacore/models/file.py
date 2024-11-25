@@ -491,7 +491,7 @@ class MasterFile(ConvertedFile):
 
     def get_action(
         self,
-        target: Literal["access", "statutory"],
+        target: Literal["access", "statutory", "all"],
         actions: dict[str, MasterConvertAction],
         *,
         set_match: bool = False,
@@ -507,14 +507,14 @@ class MasterFile(ConvertedFile):
         action: MasterConvertAction | None = get_identifier(self, [], actions)
 
         if set_match and action:
-            if target == "access":
+            if target in ("access", "all"):
                 self.convert_access = action.access
-            elif target == "statutory":
+            if target in ("statutory", "all"):
                 self.convert_statutory = action.statutory
         elif set_match:
-            if target == "access":
+            if target in ("access", "all"):
                 self.convert_access = None
-            elif target == "statutory":
+            if target in ("statutory", "all"):
                 self.convert_statutory = None
 
         return action
