@@ -189,8 +189,6 @@ class BaseFile(BaseModel):
                 self.warning = ["extension mismatch"]
             else:
                 self.warning = None
-        elif set_match:
-            self.puid = self.signature = self.warning = None
 
         return signature
 
