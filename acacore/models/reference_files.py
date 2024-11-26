@@ -199,7 +199,7 @@ class IgnoreAction(NoDefaultsModel):
 class MasterConvertAction(NoDefaultsModel):
     """Class representing the instructions to convert a master file to access and statutory formats."""
 
-    name: str
+    name: str | None = None
     description: str | None = None
     access: ConvertAction
     statutory: ConvertAction
