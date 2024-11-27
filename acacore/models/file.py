@@ -495,16 +495,29 @@ class MasterFile(ConvertedFile):
             processed=processed,
         )
 
-        file_classes: list[TSiegfriedFileClass] = []
-
-        if isinstance(siegfried, SiegfriedFile) and siegfried.matches:
-            file_classes = siegfried.best_match().file_classes
-
-        if actions:
-            file.get_action("access", actions, file_classes, set_match=True)
-            file.get_action("statutory", actions, file_classes, set_match=True)
+        file.identify(siegfried, custom_signatures, actions)
 
         return file
+
+    def identify(
+        self,
+        siegfried: Siegfried | SiegfriedFile | None = None,
+        custom_signatures: list[CustomSignature] | None = None,
+        actions: dict[str, MasterConvertAction] | None = None,
+    ):
+        if not siegfried and not custom_signatures:
+            return
+
+        file_classes: list[TSiegfriedFileClass] = []
+
+        if siegfried and (match := super().identify(siegfried, set_match=True).best_match()):
+            file_classes = match.match_class
+        elif custom_signatures:
+            self.identify_custom(custom_signatures, set_match=True)
+
+        if actions:
+            self.get_action("access", actions, file_classes, set_match=True)
+            self.get_action("statutory", actions, file_classes, set_match=True)
 
     def get_action(
         self,
