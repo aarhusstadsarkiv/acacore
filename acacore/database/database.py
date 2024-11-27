@@ -152,17 +152,26 @@ class Database:
         """
         return Table(self.connection, model, name, primary_keys, indices, ignore).create(exist_ok=exist_ok)
 
-    def create_view(self, model: Type[_M], name: str, select: str, *, exist_ok: bool = True) -> View[_M]:
+    def create_view(
+        self,
+        model: Type[_M],
+        name: str,
+        select: str,
+        ignore: list[str] | None = None,
+        *,
+        exist_ok: bool = True,
+    ) -> View[_M]:
         """
         Create a view in the database based on a model.
 
         :param model: The Pydantic model to create the view for.
         :param name: The name of the view.
         :param select: The select SQL expression to use to populate the view.
+        :param ignore: A list of field names to ignore from the model.
         :param exist_ok: Whether to ignore any existing view with the same name.
         :return: A ``View`` instance.
         """
-        return View(self.connection, model, name, select).create(exist_ok=exist_ok)
+        return View(self.connection, model, name, select, ignore).create(exist_ok=exist_ok)
 
     def create_keys_table(self, model: Type[_M], name: str, *, exist_ok: bool = True) -> KeysTable[_M]:
         """
