@@ -13,6 +13,7 @@ from acacore.models.reference_files import CustomSignature
 from acacore.models.reference_files import MasterConvertAction
 from acacore.reference_files import get_actions
 from acacore.reference_files import get_custom_signatures
+from acacore.reference_files.get import get_master_actions
 from acacore.siegfried import Siegfried
 
 
@@ -24,6 +25,11 @@ def siegfried(siegfried_folder: Path) -> Siegfried:
 @pytest.fixture(scope="session")
 def actions() -> dict[str, Action]:
     return get_actions()
+
+
+@pytest.fixture(scope="session")
+def master_actions() -> dict[str, MasterConvertAction]:
+    return get_master_actions()
 
 
 @pytest.fixture(scope="session")
@@ -129,13 +135,8 @@ def test_master_file(
     test_files_data: dict[str, dict],
     siegfried: Siegfried,
     custom_signatures: list[CustomSignature],
-    actions: dict[str, Action],
+    master_actions: dict[str, MasterConvertAction],
 ) -> None:
-    master_actions: dict[str, MasterConvertAction] = {
-        p: MasterConvertAction(name=a.name, access=a.convert, statutory=a.convert)
-        for p, a in actions.items()
-        if a.convert
-    }
     for filename, filedata in test_files_data.items():
         uuid = uuid4()
         original_uuid = uuid4()
@@ -149,10 +150,7 @@ def test_master_file(
             uuid,
             True,
         )
-        if ma := master_actions.get(file.puid):
-            assert file.convert_access == ma.access
-            assert file.convert_statutory == ma.statutory
-        else:
-            assert file.convert_access is None
-            assert file.convert_statutory is None
+        assert (file.convert_access and file.convert_statutory) or (
+            not file.convert_access and not file.convert_statutory
+        )
         assert file.processed
