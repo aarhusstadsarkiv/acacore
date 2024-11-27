@@ -19,6 +19,14 @@ _W = str | dict[str, SQLValue | list[SQLValue]]
 
 
 def _where_dict_to_sql(where: dict[str, SQLValue | list[SQLValue]]) -> tuple[str, list[SQLValue]]:
+    """
+    Convert a where statement in dict format into an SQL string and parameters list.
+
+    :param where: The statement to convert a dictionary containing column names and
+        values. Each value can be a single object or a list, if it is the latter the values will be matched with "OR".
+    :return: A tuple containing the SQL where expression as a string, and a list of parameters converted to
+        SQLite-compatible types
+    """
     params: list[SQLValue] = []
     sql: list[str] = []
 
@@ -46,6 +54,17 @@ def _where_to_sql(
     params: list[SQLValue] | None,
     primary_keys: list[ColumnSpec],
 ) -> tuple[str, list[SQLValue]]:
+    """
+    Turn a where statement/dict/model into an SQL string and parameters list.
+
+    :param where: The statement to convert. This can be a string, a dictionary containing column names and
+        values, or an instance of the model used by the table if primary keys have been defined.
+    :param params: The parameters for the where statement, only used if ``where`` is a string.
+    :param primary_keys: The primary keys of the table, only used if ``where`` is a ``BaseModel`` instance.
+    :raise TypeError: If ``where`` is anything but a string, a dict, or a ``BaseModel`` instance.
+    :return: A tuple containing the SQL where expression as a string, and a list of parameters converted to
+        SQLite-compatible types
+    """
     params = params or []
 
     if where is None:
@@ -63,6 +82,15 @@ def _where_to_sql(
 
 
 class Table(Generic[_M]):
+    """
+    A class that represents a table in an SQLite database and allows accessing rows as Pydantic models.
+
+    :ivar database: The connection to the database.
+    :ivar model: The model the table is based on.
+    :ivar name: The name of the table.
+    :ivar columns: The columns in the table as a dictionary of name keys and ``ColumnSpec`` values.
+    """
+
     def __init__(
         self,
         database: Connection,
@@ -72,6 +100,14 @@ class Table(Generic[_M]):
         indices: dict[str, list[str]] | None = None,
         ignore: list[str] | None = None,
     ) -> None:
+        """
+        :param database: The connection to the database.
+        :param model: The Pydantic model to create the table for.
+        :param name: The name of the table.
+        :param primary_keys: The primary keys of the table.
+        :param indices: The indices of the table as index in the form {index name: list of indexed columns}.
+        :param ignore: A list of field names to ignore from the model.
+        """  # noqa: D205
         self.database: Connection = database
         self.model: Type[_M] = model
         self.name: str = name
@@ -118,6 +154,7 @@ class Table(Generic[_M]):
         return self.select(where, limit=1).cursor.fetchone() is not None
 
     def create_sql(self, *, exist_ok: bool = False) -> str:
+        """Generate the SQL statement to create the table."""
         sql: list[str] = ["create table"]
 
         if exist_ok:
@@ -134,12 +171,18 @@ class Table(Generic[_M]):
         return " ".join(sql)
 
     def indices_sql(self, *, exist_ok: bool = False) -> list[str]:
+        """Generate the SQL statements to create the tables' indices."""
         return [
             f"create index {'if not exists' if exist_ok else ''} idx_{self.name}_{index} on {self.name} ({','.join(c.name for c in cols)})"
             for index, cols in self.indices.items()
         ]
 
     def create(self, *, exist_ok: bool = False) -> Self:
+        """
+        Create the table in the connected database.
+
+        :param exist_ok: Whether to ignore any existing table with the same name.
+        """
         self.database.execute(self.create_sql(exist_ok=exist_ok))
         for index_sql in self.indices_sql(exist_ok=exist_ok):
             self.database.execute(index_sql)
@@ -153,6 +196,18 @@ class Table(Generic[_M]):
         limit: int | None = None,
         offset: int | None = None,
     ) -> Cursor[_M]:
+        """
+        Select entries from the table.
+
+        :param where: The where statement to use. This can be a string, a dictionary containing column names and
+            values, or an instance of the model used by the table if primary keys have been defined.
+        :param params: The parameters to use for the query, they are ignored if the ``where`` argument is anything but
+            a string.
+        :param order_by: A list of column names and direction ("asc", "desc") tuples to sort the results.
+        :param limit: The maximum number of results to return.
+        :param offset: The offset to start the results from.
+        :return: A ``Cursor`` instance.
+        """
         where, params = _where_to_sql(where, params, self.primary_keys)
 
         sql: list[str] = [f"select * from {self.name}"]
@@ -171,6 +226,14 @@ class Table(Generic[_M]):
         return Cursor(self.database.execute(" ".join(sql), params), self.model, list(self.columns.values()))
 
     def insert(self, *rows: _M, on_exists: Literal["ignore", "replace", "error"] = "error") -> int:
+        """
+        Insert entries into the table.
+
+        :param rows: The objects to insert.
+        :param on_exists: What to do if the object exists: "ignore" to ignore any existing entries, "replace" to
+            replace any existing entry, "error" to raise an error. Defaults to "error".
+        :return: The number of inserted rows.
+        """
         cols: list[ColumnSpec] = list(self.columns.values())
         sql: list[str] = ["insert"]
 
@@ -187,9 +250,23 @@ class Table(Generic[_M]):
         ).rowcount
 
     def upsert(self, *rows: _M) -> int:
+        """
+        Insert entries into the table or update existing entries.
+
+        :param rows: The objects to upsert.
+        :return: The number of inserted/modified rows.
+        """
         return self.insert(*rows, on_exists="replace")
 
     def update(self, row: _M, where: _W | _M = None, params: list[SQLValue] | None = None) -> int:
+        """
+        Update a single entry in the table.
+
+        :param row: The object to update.
+        :param where: Optionally, a where statement to specify which row(s) should be updated, uses ``row`` by default.
+        :param params: The parameters to use for ``where``, if given.
+        :return: The number of modified rows.
+        """
         where, params = _where_to_sql(where or row, params, self.primary_keys)
 
         if not where:
@@ -203,6 +280,14 @@ class Table(Generic[_M]):
         ).rowcount
 
     def delete(self, where: _W | _M) -> int:
+        """
+        Delete rows from the table.
+
+        :param where: The where statement to use. This can be a string, a dictionary containing column names and
+            values, or an instance of the model used by the table if primary keys have been defined.
+        :raise ProgrammingError: If ``where`` is empty.
+        :return: The number of deleted rows.
+        """
         where, params = _where_to_sql(where, [], self.primary_keys)
 
         if not where:
