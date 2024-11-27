@@ -56,6 +56,23 @@ class FilesDB(Database):
         check_version: bool = True,
         cached_statements: int = 100,
     ) -> None:
+        """
+        A class that handles the SQLite database used by AArhus City Archives to process data archives.
+
+        :param path: The path to the database.
+        :param timeout: How many seconds the connection should wait before raising an OperationalError when a table
+            is locked, defaults to 5.0.
+        :param detect_types: Control whether and how data types not natively supported by SQLite are looked up to be
+            converted to Python types, defaults to 0.
+        :param isolation_level: The isolation_level of the connection, controlling whether and how transactions are
+            implicitly opened, defaults to "DEFERRED".
+        :param check_same_thread: If True (default), ProgrammingError will be raised if the database connection is
+            used by a thread other than the one that created it, defaults to True.
+        :param cached_statements: The number of statements that sqlite3 should internally cache for this connection,
+            to avoid parsing overhead, defaults to 100.
+        :param check_initialisation: If set to True, ensure the databse is initialized..
+        :param check_version: If set to True, check the database version and ensure it is the latest.
+        """
         super().__init__(
             path,
             timeout=timeout,
@@ -168,6 +185,11 @@ class FilesDB(Database):
             is_latest(self.connection, raise_on_difference=True)
 
     def upgrade(self):
+        """
+        Upgrade the database to the latest version.
+
+        :raise DatabaseError: If the database is not initialized or if there are uncommitted changes.
+        """
         if not self.is_initialised():
             raise DatabaseError("Database is not initialized")
         if self.uncommitted_changes:
@@ -175,9 +197,20 @@ class FilesDB(Database):
         upgrade(self.connection)
 
     def is_initialised(self) -> bool:
+        """
+        Check if the database is initialised.
+
+        :return: ``True`` if the database is initialised, ``False`` otherwise.
+        """
         return self.metadata.name in self.tables() and self.metadata.get("version")
 
     def version(self) -> Version:
+        """
+        Get the database version.
+
+        :return: The database version as a ``Version`` object.
+        :raise DatabaseError: If the database is not initialized.
+        """
         if self.is_initialised():
             return Version(self.metadata.get("version"))
         raise DatabaseError("Not initialised")
@@ -187,6 +220,11 @@ class FilesDB(Database):
 
     # noinspection DuplicatedCode
     def init(self: Union[str, PathLike[str], "FilesDB"]) -> "FilesDB":
+        """
+        Initialize the database with all the necessary tables and views.
+
+        :return: An instance of ``FilesDB``.
+        """
         db = self if isinstance(self, FilesDB) else FilesDB(self)
 
         db.original_files.create(exist_ok=True)
