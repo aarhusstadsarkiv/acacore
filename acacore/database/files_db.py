@@ -44,6 +44,23 @@ class ActionCount(BaseModel):
 
 
 class FilesDB(Database):
+    """
+    A class that handles the SQLite database used by Aarhus City Archives to process data archives.
+
+    :ivar original_files: The table containing the original files.
+    :ivar master_files: The table containing the master archival files.
+    :ivar access_files: The table containing the access files.
+    :ivar statutory_files: The table containing the statutory files.
+    :ivar all_files: A view showing all files in the database.
+    :ivar log: The table containing the event log.
+    :ivar log_paths: A view containing the event log together with the path of the files for events that reference them.
+    :ivar identification_warnings: A view containing a list of files from "original files" that have identification issues.
+    :ivar signatures_count: A view containing a list of all PUIDs from "original files" and how many times they occur.
+    :ivar actions_count: A view containing a list of actions from "original files" and how many times they occur.
+    :ivar checksums_count: A view containing a list of checksums from "original files" and how many times they occur.
+    :ivar metadata: A table containing metadata about the database itself.
+    """
+
     def __init__(
         self,
         path: str | PathLike[str],
@@ -57,8 +74,6 @@ class FilesDB(Database):
         cached_statements: int = 100,
     ) -> None:
         """
-        A class that handles the SQLite database used by AArhus City Archives to process data archives.
-
         :param path: The path to the database.
         :param timeout: How many seconds the connection should wait before raising an OperationalError when a table
             is locked, defaults to 5.0.
@@ -70,9 +85,9 @@ class FilesDB(Database):
             used by a thread other than the one that created it, defaults to True.
         :param cached_statements: The number of statements that sqlite3 should internally cache for this connection,
             to avoid parsing overhead, defaults to 100.
-        :param check_initialisation: If set to True, ensure the databse is initialized..
+        :param check_initialisation: If set to True, ensure the databse is initialized.
         :param check_version: If set to True, check the database version and ensure it is the latest.
-        """
+        """  # noqa: D205
         super().__init__(
             path,
             timeout=timeout,
