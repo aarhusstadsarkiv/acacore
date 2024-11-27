@@ -68,8 +68,8 @@ def test_original_file(
     test_files: Path,
     test_files_data: dict[str, dict],
     siegfried: Siegfried,
-    actions: dict[str, Action],
     custom_signatures: list[CustomSignature],
+    actions: dict[str, Action],
 ) -> None:
     for filename, filedata in test_files_data.items():
         uuid = uuid4()
@@ -80,8 +80,8 @@ def test_original_file(
             test_files / filename,
             test_folder,
             siegfried,
-            actions,
             custom_signatures,
+            actions,
             uuid,
             parent,
             processed,
@@ -128,8 +128,8 @@ def test_master_file(
     test_files: Path,
     test_files_data: dict[str, dict],
     siegfried: Siegfried,
-    actions: dict[str, Action],
     custom_signatures: list[CustomSignature],
+    actions: dict[str, Action],
 ) -> None:
     master_actions: dict[str, MasterConvertAction] = {
         p: MasterConvertAction(name=a.name, access=a.convert, statutory=a.convert)
