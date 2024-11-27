@@ -116,6 +116,17 @@ class BaseFile(BaseModel):
         custom_signatures: list[CustomSignature] | None = None,
         uuid: UUID | None = None,
     ) -> Self:
+        """
+        Create a file object from a given path.
+
+        :param path: The path to the file.
+        :param root: The folder to use as root for the file.
+        :param siegfried: Optionally, an insteance of ``Siegfried`` or ``SiegfriedFile`` to identify the file with.
+        :param custom_signatures: Optionally, a list of ``CustomSignature`` to identify the file if ``siegfried`` is
+            not provided or fails to find a match.
+        :param uuid: Optionally, the UUID of the file.
+        :return: A ``BaseFile`` object.
+        """
         path = Path(path)
         root = Path(root)
         file = BaseFile(
