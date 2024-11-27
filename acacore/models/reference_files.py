@@ -106,18 +106,6 @@ class IgnoreIfAction(NoDefaultsModel):
     size: int | None = Field(None, gt=0)
 
 
-class RenameAction(NoDefaultsModel):
-    """
-    Class representing an action to change file's extension.
-
-    :ivar extension: A string representing the new extension for the file.
-    """
-
-    extension: str
-    append: bool = False
-    on_extension_mismatch: bool = False
-
-
 class ReIdentifyAction(NoDefaultsModel):
     """
     Class representing an action to ignore a specific file based on the given reason.
@@ -217,15 +205,12 @@ class ActionData(NoDefaultsModel):
         Defaults to None.
     :ivar manual: A ManualAction object representing the manual action to be performed.
         Defaults to None.
-    :ivar rename: A RenameAction object representing the renaming action to be performed.
-        Defaults to None.
     :ivar ignore: An IgnoreAction object representing the ignore action to be performed.
         Defaults to None.
     :ivar reidentify: A ReIdentifyAction object representing the re-identification action to be performed.
         Defaults to None.
     """
 
-    rename: RenameAction | None = None
     reidentify: ReIdentifyAction | None = None
     convert: ConvertAction | None = None
     extract: ExtractAction | None = None
