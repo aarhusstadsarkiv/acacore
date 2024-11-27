@@ -35,7 +35,7 @@ from .reference_files import TActionType
 _A = TypeVar("_A")
 
 
-def ignore_if(file: "OriginalFile", rules: IgnoreIfAction) -> "OriginalFile":
+def ignore_if(file: "OriginalFile", rules: IgnoreIfAction) -> tuple[TActionType | None, ActionData]:
     action: TActionType | None = None
     ignore_action: IgnoreAction = IgnoreAction(template="not-preservable")
 
@@ -55,11 +55,11 @@ def ignore_if(file: "OriginalFile", rules: IgnoreIfAction) -> "OriginalFile":
         ignore_action.reason = "File size is too small"
 
     if action:
-        file.action = action
-        file.action_data = file.action_data or ActionData()
-        file.action_data.ignore = ignore_action
+        action_data = file.action_data.model_copy(deep=True)
+        action_data.ignore = ignore_action
+        return action, action_data
 
-    return file
+    return file.action, file.action_data
 
 
 def get_identifier(file: "BaseFile", file_classes: list[TSiegfriedFileClass], actions: dict[str, _A]) -> _A | None:
@@ -382,10 +382,10 @@ class OriginalFile(BaseFile):
             self.action_data = action.action_data
 
             if action.ignore_if:
-                ignore_if(self, action.ignore_if)
+                self.action, self.action_data = ignore_if(self, action.ignore_if)
 
             if self.action != "ignore" and actions and "*" in actions and actions["*"].ignore_if:
-                ignore_if(self, actions["*"].ignore_if)
+                self.action, self.action_data = ignore_if(self, actions["*"].ignore_if)
 
             if action.ignore_warnings and self.warning is not None:
                 ignore_warnings: list[str] = [iw.lower() for iw in action.ignore_warnings]
