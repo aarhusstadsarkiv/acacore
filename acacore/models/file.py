@@ -337,25 +337,35 @@ class OriginalFile(BaseFile):
             original_path=file_base.relative_path,
         )
 
+        file.identify(siegfried, actions, custom_signatures)
+
+        return file
+
+    def identify(
+        self,
+        siegfried: Siegfried | SiegfriedFile | None = None,
+        actions: dict[str, Action] | None = None,
+        custom_signatures: list[CustomSignature] | None = None,
+    ):
         from_custom_signatures: bool = False
         file_classes: list[TSiegfriedFileClass] = []
         action: Action | None = None
 
         if siegfried:
-            siegfried_match = file.identify(siegfried, set_match=True).best_match()
+            siegfried_match = super().identify(siegfried, set_match=True).best_match()
             file_classes = siegfried_match.match_class if siegfried_match else []
 
-        if custom_signatures and not file.puid:
-            file.identify_custom(custom_signatures, set_match=True)
+        if custom_signatures and not self.puid:
+            self.identify_custom(custom_signatures, set_match=True)
             from_custom_signatures = True
 
         if actions:
-            action = file.get_action(actions, file_classes)
+            action = self.get_action(actions, file_classes)
 
         if action:
             if action.reidentify and custom_signatures and not from_custom_signatures:
-                if file.identify_custom(custom_signatures, chunk_size=action.reidentify.chunk_size, set_match=True):
-                    if new_action := file.get_action(actions, file_classes):
+                if self.identify_custom(custom_signatures, chunk_size=action.reidentify.chunk_size, set_match=True):
+                    if new_action := self.get_action(actions, file_classes):
                         action = new_action
                     else:
                         action = Action(
@@ -368,21 +378,22 @@ class OriginalFile(BaseFile):
                 elif action.reidentify.on_fail == "null":
                     action.action = None
 
-            file.action = action.action
-            file.action_data = action.action_data
+            self.action = action.action
+            self.action_data = action.action_data
 
             if action.ignore_if:
-                file = ignore_if(file, action.ignore_if)
+                ignore_if(self, action.ignore_if)
 
-            if file.action != "ignore" and actions and "*" in actions and actions["*"].ignore_if:
-                file = ignore_if(file, actions["*"].ignore_if)
+            if self.action != "ignore" and actions and "*" in actions and actions["*"].ignore_if:
+                ignore_if(self, actions["*"].ignore_if)
 
-            if action.ignore_warnings and file.warning is not None:
+            if action.ignore_warnings and self.warning is not None:
                 ignore_warnings: list[str] = [iw.lower() for iw in action.ignore_warnings]
-                file.warning = [w for w in file.warning if w.lower() not in ignore_warnings]
-                file.warning = file.warning or None
-
-        return file
+                self.warning = [w for w in self.warning if w.lower() not in ignore_warnings]
+                self.warning = self.warning or None
+        elif actions:
+            self.action = None
+            self.action_data = ActionData()
 
     def get_action(
         self,
