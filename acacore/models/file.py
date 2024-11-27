@@ -451,12 +451,14 @@ class OriginalFile(BaseFile):
         :return: The matched ``Action`` object, if any, otherwise ``None``.
         """
         action: Action | None = get_identifier(self, file_classes, actions)
+        from_alternative: bool = False
 
         if action and action.alternatives and (new_puid := action.alternatives.get(self.suffixes.lower(), None)):
             puid: str | None = self.puid
             self.puid = new_puid
             if new_action := self.get_action(actions, file_classes):
                 action = new_action
+                from_alternative = True
             else:
                 self.puid = puid
 
@@ -464,6 +466,8 @@ class OriginalFile(BaseFile):
             self.signature = action.name
             self.action = action.action
             self.action_data = action.action_data
+            if from_alternative and self.warning:
+                self.warning = [w for w in self.warning if w.lower() != "extension mismatch"]
         elif set_match:
             self.signature = self.signature if self.puid else None
             self.action = None
