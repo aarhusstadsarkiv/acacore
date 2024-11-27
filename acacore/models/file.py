@@ -118,7 +118,7 @@ class BaseFile(BaseModel):
     ) -> Self:
         path = Path(path)
         root = Path(root)
-        file = cls(
+        file = BaseFile(
             root=root,
             relative_path=path.relative_to(root) if root else path,
             uuid=uuid or uuid4(),
@@ -321,7 +321,7 @@ class OriginalFile(BaseFile):
         lock: bool = False,
     ) -> Self:
         file_base = super().from_file(path, root, None, uuid=uuid)
-        file = cls(
+        file = OriginalFile(
             uuid=file_base.uuid,
             root=file_base.root,
             relative_path=file_base.relative_path,
@@ -446,7 +446,7 @@ class ConvertedFile(BaseFile):
         uuid: UUID | None = None,
     ) -> Self:
         file_base = super().from_file(path, root, siegfried, custom_signatures, uuid)
-        return cls(
+        return ConvertedFile(
             uuid=file_base.uuid,
             checksum=file_base.checksum,
             relative_path=file_base.relative_path,
@@ -478,7 +478,7 @@ class MasterFile(ConvertedFile):
         processed: bool = False,
     ) -> Self:
         file_base = super().from_file(path, root, original_uuid, siegfried, custom_signatures, uuid)
-        file = cls(
+        file = MasterFile(
             uuid=file_base.uuid,
             checksum=file_base.checksum,
             relative_path=file_base.relative_path,
