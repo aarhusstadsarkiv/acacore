@@ -320,6 +320,21 @@ class OriginalFile(BaseFile):
         processed: bool = False,
         lock: bool = False,
     ) -> Self:
+        """
+        Create a file object from a given path.
+
+        :param path: The path to the file.
+        :param root: The folder to use as root for the file.
+        :param siegfried: Optionally, an insteance of ``Siegfried`` or ``SiegfriedFile`` to identify the file with.
+        :param custom_signatures: Optionally, a list of ``CustomSignature`` to identify the file if ``siegfried`` is
+            not provided or fails to find a match.
+        :param actions: Optionally, a dictionary of ``Action`` objects to assign an action to the file.
+        :param uuid: Optionally, the UUID of the file.
+        :param parent: Optional, the UUID of the parent file.
+        :param processed: Optionally, a boolean indicating if the file was processed.
+        :param lock: Optionally, a boolean indicating if the file was processed.
+        :return: An ``OriginalFile`` object.
+        """
         file_base = super().from_file(path, root, None, uuid=uuid)
         file = OriginalFile(
             uuid=file_base.uuid,
@@ -347,6 +362,17 @@ class OriginalFile(BaseFile):
         custom_signatures: list[CustomSignature] | None = None,
         actions: dict[str, Action] | None = None,
     ):
+        """
+        Identify the file using `siegfried` or custom signatures and assign actions.
+
+        If neither ``siegfried`` nor ``custom_signatures`` are provided, then no changes are made.
+
+        If ``actions`` is provided and no action can be found with the new identity, the file's action fields are reset.
+
+        :param siegfried: A ``Siegfried`` or ``SiegfriedFile`` object.
+        :param custom_signatures: A list of ``CustomSignature`` objects.
+        :param actions: A dictionary containing the available actions as ``Action`` objects.
+        """
         if not siegfried and not custom_signatures:
             return
 
@@ -448,6 +474,18 @@ class ConvertedFile(BaseFile):
         custom_signatures: list[CustomSignature] | None = None,
         uuid: UUID | None = None,
     ) -> Self:
+        """
+        Create a file object from a given path.
+
+        :param path: The path to the file.
+        :param root: The folder to use as root for the file.
+        :param original_uuid: The UUID of the parent file.
+        :param siegfried: Optionally, an insteance of ``Siegfried`` or ``SiegfriedFile`` to identify the file with.
+        :param custom_signatures: Optionally, a list of ``CustomSignature`` to identify the file if ``siegfried`` is
+            not provided or fails to find a match.
+        :param uuid: Optionally, the UUID of the file.
+        :return: A ``ConvertedFile`` object.
+        """
         file_base = super().from_file(path, root, siegfried, custom_signatures, uuid)
         return ConvertedFile(
             uuid=file_base.uuid,
@@ -480,6 +518,20 @@ class MasterFile(ConvertedFile):
         uuid: UUID | None = None,
         processed: bool = False,
     ) -> Self:
+        """
+        Create a file object from a given path.
+
+        :param path: The path to the file.
+        :param root: The folder to use as root for the file.
+        :param original_uuid: The UUID of the parent file.
+        :param siegfried: Optionally, an insteance of ``Siegfried`` or ``SiegfriedFile`` to identify the file with.
+        :param custom_signatures: Optionally, a list of ``CustomSignature`` to identify the file if ``siegfried`` is
+            not provided or fails to find a match.
+        :param actions: Optionally, a dictionary of ``MasterConvertAction`` objects to assign an action to the file.
+        :param uuid: Optionally, the UUID of the file.
+        :param processed: Optionally, a boolean indicating if the file was processed.
+        :return: A ``MasterFile`` object.
+        """
         file_base = super().from_file(path, root, original_uuid, siegfried, custom_signatures, uuid)
         file = MasterFile(
             uuid=file_base.uuid,
@@ -505,6 +557,17 @@ class MasterFile(ConvertedFile):
         custom_signatures: list[CustomSignature] | None = None,
         actions: dict[str, MasterConvertAction] | None = None,
     ):
+        """
+        Identify the file using `siegfried` or custom signatures and assign actions.
+
+        If neither ``siegfried`` nor ``custom_signatures`` are provided, then no changes are made.
+
+        If ``actions`` is provided and no action can be found with the new identity, the file's action fields are reset.
+
+        :param siegfried: A ``Siegfried`` or ``SiegfriedFile`` object.
+        :param custom_signatures: A list of ``CustomSignature`` objects.
+        :param actions: A dictionary containing the available actions as ``MasterConvertAction`` objects.
+        """
         if not siegfried and not custom_signatures:
             return
 
