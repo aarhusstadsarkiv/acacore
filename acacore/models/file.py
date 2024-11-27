@@ -337,16 +337,19 @@ class OriginalFile(BaseFile):
             original_path=file_base.relative_path,
         )
 
-        file.identify(siegfried, actions, custom_signatures)
+        file.identify(siegfried, custom_signatures, actions)
 
         return file
 
     def identify(
         self,
         siegfried: Siegfried | SiegfriedFile | None = None,
-        actions: dict[str, Action] | None = None,
         custom_signatures: list[CustomSignature] | None = None,
+        actions: dict[str, Action] | None = None,
     ):
+        if not siegfried and not custom_signatures:
+            return
+
         from_custom_signatures: bool = False
         file_classes: list[TSiegfriedFileClass] = []
         action: Action | None = None
