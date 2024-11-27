@@ -30,6 +30,7 @@ class View(Generic[_M]):
         ignore: list[str] | None = None,
     ) -> None:
         """
+        :param database: The connection to the database.
         :param model: The Pydantic model to create the view for.
         :param name: The name of the view.
         :param select: The select SQL expression to use to populate the view.
