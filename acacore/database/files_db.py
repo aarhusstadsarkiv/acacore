@@ -1,27 +1,30 @@
-from datetime import datetime
 from os import PathLike
 from pathlib import Path
-from sqlite3 import Connection
 from sqlite3 import DatabaseError
-from typing import Type
-from uuid import UUID
+from typing import overload
+from typing import Union
 
+from packaging.version import Version
 from pydantic import BaseModel
 
-from acacore.models.file import File
-from acacore.models.history import HistoryEntry
+from acacore.models.event import Event
+from acacore.models.file import BaseFile
+from acacore.models.file import ConvertedFile
+from acacore.models.file import MasterFile
+from acacore.models.file import OriginalFile
 from acacore.models.metadata import Metadata
 from acacore.models.reference_files import TActionType
-from acacore.utils.functions import or_none
 
-from .base import Column
-from .base import FileDBBase
-from .base import SelectColumn
-from .column import model_to_columns
+from .database import Database
+from .database import KeysTable
+from .database import Table
+from .database import View
+from .upgrade import is_latest
+from .upgrade import upgrade
 
 
-class HistoryEntryPath(HistoryEntry):
-    relative_path: Path | None = None
+class EventPath(Event):
+    file_relative_path: Path | None = None
 
 
 class SignatureCount(BaseModel):
@@ -36,29 +39,42 @@ class ChecksumCount(BaseModel):
 
 
 class ActionCount(BaseModel):
-    action: TActionType
+    action: TActionType | None
     count: int
 
 
-class FileDB(FileDBBase):
+class FilesDB(Database):
+    """
+    A class that handles the SQLite database used by Aarhus City Archives to process data archives.
+
+    :ivar original_files: The table containing the original files.
+    :ivar master_files: The table containing the master archival files.
+    :ivar access_files: The table containing the access files.
+    :ivar statutory_files: The table containing the statutory files.
+    :ivar all_files: A view showing all files in the database.
+    :ivar log: The table containing the event log.
+    :ivar log_paths: A view containing the event log together with the path of the files for events that reference them.
+    :ivar identification_warnings: A view containing a list of files from "original files" that have identification issues.
+    :ivar signatures_count: A view containing a list of all PUIDs from "original files" and how many times they occur.
+    :ivar actions_count: A view containing a list of actions from "original files" and how many times they occur.
+    :ivar checksums_count: A view containing a list of checksums from "original files" and how many times they occur.
+    :ivar metadata: A table containing metadata about the database itself.
+    """
+
     def __init__(
         self,
-        database: str | bytes | PathLike[str] | PathLike[bytes],
+        path: str | PathLike[str],
         *,
         timeout: float = 5.0,
         detect_types: int = 0,
         isolation_level: str | None = "DEFERRED",
         check_same_thread: bool = True,
-        factory: Type[Connection] | None = Connection,
-        cached_statements: int = 100,
-        uri: bool = False,
-        check_version: bool = True,
         check_initialisation: bool = False,
+        check_version: bool = True,
+        cached_statements: int = 100,
     ) -> None:
         """
-        A class that handles the SQLite database used by AArhus City Archives to process data archives.
-
-        :param database: The path or URI to the database.
+        :param path: The path to the database.
         :param timeout: How many seconds the connection should wait before raising an OperationalError when a table
             is locked, defaults to 5.0.
         :param detect_types: Control whether and how data types not natively supported by SQLite are looked up to be
@@ -67,244 +83,181 @@ class FileDB(FileDBBase):
             implicitly opened, defaults to "DEFERRED".
         :param check_same_thread: If True (default), ProgrammingError will be raised if the database connection is
             used by a thread other than the one that created it, defaults to True.
-        :param factory: A custom subclass of Connection to create the connection with, if not the default Connection
-            class, defaults to Connection.
         :param cached_statements: The number of statements that sqlite3 should internally cache for this connection,
             to avoid parsing overhead, defaults to 100.
-        :param uri: If set to True, database is interpreted as a URI with a file path and an optional query string,
-            defaults to False.
+        :param check_initialisation: If set to True, ensure the databse is initialized.
         :param check_version: If set to True, check the database version and ensure it is the latest.
-        """
+        """  # noqa: D205
         super().__init__(
-            database,
+            path,
             timeout=timeout,
             detect_types=detect_types,
             isolation_level=isolation_level,
             check_same_thread=check_same_thread,
-            factory=factory,
             cached_statements=cached_statements,
-            uri=uri,
         )
 
-        self.files = self.create_table("Files", File)
-        self.history = self.create_table("History", HistoryEntry)
-        self.metadata = self.create_keys_table("Metadata", Metadata)
+        self.original_files: Table[OriginalFile] = Table(
+            self.connection,
+            OriginalFile,
+            "files_original",
+            ["relative_path"],
+            {"uuid": ["uuid"], "checksum": ["checksum"], "action": ["action"]},
+            ["root"],
+        )
+        self.master_files: Table[MasterFile] = Table(
+            self.connection,
+            MasterFile,
+            "files_master",
+            ["relative_path"],
+            {"uuid": ["uuid"], "checksum": ["checksum"], "original_uuid": ["original_uuid"]},
+            ["root"],
+        )
+        self.access_files: Table[ConvertedFile] = Table(
+            self.connection,
+            ConvertedFile,
+            "files_access",
+            ["relative_path"],
+            {"uuid": ["uuid"], "checksum": ["checksum"], "original_uuid": ["original_uuid"]},
+            ["root"],
+        )
+        self.statutory_files: Table[ConvertedFile] = Table(
+            self.connection,
+            ConvertedFile,
+            "files_statutory",
+            ["relative_path"],
+            {"uuid": ["uuid"], "checksum": ["checksum"], "original_uuid": ["original_uuid"]},
+            ["root"],
+        )
+        self.all_files: View[BaseFile] = View(
+            self.connection,
+            BaseFile,
+            "files_all",
+            f"""
+            select uuid, checksum, relative_path, is_binary, size, puid, signature, warning from {self.original_files.name}
+            union
+            select uuid, checksum, relative_path, is_binary, size, puid, signature, warning from {self.master_files.name}
+            union
+            select uuid, checksum, relative_path, is_binary, size, puid, signature, warning from {self.access_files.name}
+            union
+            select uuid, checksum, relative_path, is_binary, size, puid, signature, warning from {self.statutory_files.name}
+            """,
+            ignore=["root"],
+        )
 
-        self.history_paths = self.create_view(
-            "_HistoryPaths",
-            self.history,
-            HistoryEntryPath,
-            select_columns=[
-                SelectColumn("F.relative_path", str, "relative_path"),
-                *model_to_columns(HistoryEntry),
-            ],
-            joins=[f"left join {self.files.name} F on F.UUID = {self.history.name}.uuid"],
+        self.log: Table[Event] = Table(
+            self.connection,
+            Event,
+            "log",
+            indices={"uuid": ["file_uuid", "file_type"], "time": ["time"], "operation": ["operation"]},
         )
-        self.identification_warnings = self.create_view(
-            "_IdentificationWarnings",
-            self.files,
-            self.files.model,
-            f'("{self.files.name}".warning is not null or "{self.files.name}".puid is null)'
-            f' and "{self.files.name}".size != 0',
+        self.log_paths: View[EventPath] = View(
+            self.connection,
+            EventPath,
+            "log_paths",
+            f"""
+            select coalesce(fo.relative_path, fm.relative_path) as file_relative_path, l.* from {self.log.name} l
+                left join {self.original_files.name} fo on l.file_type = 'original' and fo.uuid = l.file_uuid
+                left join {self.master_files.name} fm on l.file_type = 'master' and fm.uuid = l.file_uuid
+            """,
         )
-        self.checksum_count = self.create_view(
-            "_ChecksumCount",
-            self.files,
-            ChecksumCount,
-            None,
-            [
-                Column("checksum", "varchar", str, str, False, False, False),
-            ],
-            [
-                (Column("count", "int", str, str), "DESC"),
-            ],
-            select_columns=[
-                Column(
-                    "checksum",
-                    "varchar",
-                    or_none(str),
-                    or_none(str),
-                    False,
-                    False,
-                    False,
-                ),
-                SelectColumn(
-                    f'count("{self.files.name}.checksum")',
-                    int,
-                    "count",
-                ),
-            ],
+
+        self.identification_warnings: View[OriginalFile] = View(
+            self.connection,
+            OriginalFile,
+            "view_identification_warnings",
+            f"select * from {self.original_files.name} where (warning is not null or puid is null) and size != 0",
+            ignore=["root"],
         )
-        self.signature_count = self.create_view(
-            "_SignatureCount",
-            self.files,
+
+        self.signatures_count: View[SignatureCount] = View(
+            self.connection,
             SignatureCount,
-            None,
-            [
-                Column("puid", "varchar", str, str, False, False, False),
-            ],
-            [
-                (Column("count", "int", str, str), "ASC"),
-            ],
-            select_columns=[
-                Column(
-                    "puid",
-                    "varchar",
-                    or_none(str),
-                    or_none(str),
-                    False,
-                    False,
-                    False,
-                ),
-                Column(
-                    "signature",
-                    "varchar",
-                    or_none(str),
-                    or_none(str),
-                    False,
-                    False,
-                    False,
-                ),
-                SelectColumn(
-                    f"count("
-                    f'CASE WHEN ("{self.files.name}".puid IS NULL) '
-                    f"THEN 'None' "
-                    f'ELSE "{self.files.name}".puid '
-                    f"END)",
-                    int,
-                    "count",
-                ),
-            ],
+            "view_signatures_count",
+            f"select puid, signature, count(*) as count from {self.original_files.name} group by puid, signature order by count desc",
         )
-        self.actions_count = self.create_view(
-            "_ActionsCount",
-            self.files,
+
+        self.actions_count: View[ActionCount] = View(
+            self.connection,
             ActionCount,
-            None,
-            [
-                Column("action", "varchar", str, str, False, False, False),
-            ],
-            [
-                (Column("count", "int", str, str), "DESC"),
-            ],
-            select_columns=[
-                Column(
-                    "action",
-                    "varchar",
-                    or_none(str),
-                    or_none(str),
-                    False,
-                    False,
-                    False,
-                ),
-                SelectColumn(
-                    f'count("{self.files.name}.action")',
-                    int,
-                    "count",
-                ),
-            ],
+            "view_actions_count",
+            f"select action, count(*) as count from {self.original_files.name} group by action order by count desc",
         )
+
+        self.checksums_count: View[ChecksumCount] = View(
+            self.connection,
+            ChecksumCount,
+            "view_checksums_count",
+            f"select checksum, count(*) as count from {self.original_files.name} group by checksum order by count desc",
+        )
+
+        self.metadata: KeysTable[Metadata] = KeysTable(self.connection, Metadata, "metadata")
 
         if check_initialisation and not self.is_initialised():
-            raise DatabaseError("Database is not initialised")
+            raise DatabaseError("Database is not initialized")
 
-        if check_version and self.is_initialised(check_views=False, check_indices=False):
-            from acacore.database.upgrade import is_latest
+        if check_version and self.is_initialised():
+            is_latest(self.connection, raise_on_difference=True)
 
-            is_latest(self, raise_on_difference=True)
+    def upgrade(self):
+        """
+        Upgrade the database to the latest version.
 
-    def is_initialised(self, *, check_views: bool = True, check_indices: bool = True) -> bool:
+        :raise DatabaseError: If the database is not initialized or if there are uncommitted changes.
+        """
+        if not self.is_initialised():
+            raise DatabaseError("Database is not initialized")
+        if self.uncommitted_changes:
+            raise DatabaseError("Database has uncommitted changes")
+        upgrade(self.connection)
+
+    def is_initialised(self) -> bool:
         """
         Check if the database is initialised.
 
-        :param check_views: Whether to check if all views are present. Defaults to ``True``.
-        :param check_indices: Whether to check if all indices are present. Defaults to ``True``.
         :return: ``True`` if the database is initialised, ``False`` otherwise.
         """
-        tables: set[str] = {t.lower() for [t] in self.execute("select name from sqlite_master where type = 'table'")}
-        if not {self.files.name.lower(), self.history.name.lower(), self.metadata.name.lower()}.issubset(set(tables)):
-            return False
+        return self.metadata.name in self.tables() and self.metadata.get("version")
 
-        if check_views:
-            views: set[str] = {n.lower() for [n] in self.execute("select name from sqlite_master where type = 'view'")}
-            expected_views: set[str] = {
-                self.history_paths.name.lower(),
-                self.identification_warnings.name.lower(),
-                self.checksum_count.name.lower(),
-                self.signature_count.name.lower(),
-                self.actions_count.name.lower(),
-            }
-            if not expected_views.issubset(views):
-                return False
-
-        if check_indices:
-            indices: set[str] = {
-                n.lower() for [n] in self.execute("select name from sqlite_master where type = 'index'")
-            }
-            expected_indices: set[str] = {
-                i.name.lower()
-                for i in [
-                    *self.history_paths.indices,
-                    *self.identification_warnings.indices,
-                    *self.checksum_count.indices,
-                    *self.signature_count.indices,
-                    *self.actions_count.indices,
-                ]
-            }
-            if not expected_indices.issubset(indices):
-                return False
-
-        return True
-
-    def init(self):
-        """Initialize the database with all the necessary tables and views."""
-        self.files.create(True)
-        self.history.create(True)
-        self.metadata.create(True)
-        self.history_paths.create(True)
-        self.identification_warnings.create(True)
-        self.checksum_count.create(True)
-        self.signature_count.create(True)
-        self.actions_count.create(True)
-        self.metadata.update(self.metadata.model())
-        self.commit()
-
-    def upgrade(self):
-        """Upgrade the database to the latest version."""
-        from acacore.database.upgrade import upgrade
-
-        upgrade(self)
-        self.init()
-
-    def is_empty(self) -> bool:
-        """Check if the database contains any files."""
-        return not self.files.select(limit=1).fetchone()
-
-    def add_history(
-        self,
-        uuid: UUID | None,
-        operation: str,
-        data: dict | list | str | int | float | bool | datetime | None,
-        reason: str | None = None,
-        *,
-        time: datetime | None = None,
-    ) -> HistoryEntry:
+    def version(self) -> Version:
         """
-        Add a history entry to the database.
+        Get the database version.
 
-        :param uuid: The UUID of the file the event refers to, if any.
-        :param operation: The operation that was performed.
-        :param data: The data attached to the event.
-        :param reason: The reason for the event.
-        :param time: The time of the event, defaults to current time.
-        :return: The ``HistoryEntry`` object representing the event.
+        :return: The database version as a ``Version`` object.
+        :raise DatabaseError: If the database is not initialized.
         """
-        entry = self.history.model(
-            uuid=uuid,
-            operation=operation,
-            data=data,
-            reason=reason,
-            time=time or datetime.now(),
-        )
-        self.history.insert(entry)
-        return entry
+        if self.is_initialised():
+            return Version(self.metadata.get("version"))
+        raise DatabaseError("Not initialised")
+
+    @overload
+    def init(self: str | PathLike[str]) -> "FilesDB": ...
+
+    # noinspection DuplicatedCode
+    def init(self: Union[str, PathLike[str], "FilesDB"]) -> "FilesDB":
+        """
+        Initialize the database with all the necessary tables and views.
+
+        :return: An instance of ``FilesDB``.
+        """
+        db = self if isinstance(self, FilesDB) else FilesDB(self)
+
+        db.original_files.create(exist_ok=True)
+        db.master_files.create(exist_ok=True)
+        db.access_files.create(exist_ok=True)
+        db.statutory_files.create(exist_ok=True)
+        db.all_files.create(exist_ok=True)
+        db.log.create(exist_ok=True)
+        db.log_paths.create(exist_ok=True)
+        db.identification_warnings.create(exist_ok=True)
+        db.signatures_count.create(exist_ok=True)
+        db.actions_count.create(exist_ok=True)
+        db.checksums_count.create(exist_ok=True)
+        db.metadata.create(exist_ok=True)
+        if not db.metadata.get():
+            db.metadata.set(Metadata())
+
+        if not isinstance(self, FilesDB):
+            db.commit()
+
+        return db

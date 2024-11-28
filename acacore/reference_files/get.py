@@ -10,9 +10,11 @@ from yaml import Loader
 
 from acacore.models.reference_files import Action
 from acacore.models.reference_files import CustomSignature
+from acacore.models.reference_files import MasterConvertAction
 
 download_url: str = "https://github.com/aarhusstadsarkiv/reference-files/releases/latest/download/"
 actions_file: str = "fileformats.yml"
+master_actions_file: str = "fileformats_master.yml"
 custom_signatures_file: str = "custom_signatures.yml"
 
 
@@ -38,6 +40,24 @@ def get_actions(*, cache: bool = True) -> dict[str, Action]:
     """
     url: str = f"{download_url.rstrip('/')}/{actions_file.lstrip('/')}"
     return TypeAdapter(dict[str, Action]).validate_python(_get_yaml(url) if cache else _get_yaml.__wrapped__(url))
+
+
+def get_master_actions(*, cache: bool = True) -> dict[str, MasterConvertAction]:
+    """
+    Get the master convert actions for each of the supported PUIDs.
+
+    The data is fetched from the repository with a cached web request.
+
+    `Current fileformats.yml <https://github.com/aarhusstadsarkiv/reference-files/blob/main/fileformats_master.yml>`_
+
+    :param cache: Use cached data if True, otherwise fetch data regardless of cache status, defaults to True.
+    :raises HTTPError: If there is an issue with the request.
+    :return: A dictionary with PUID keys and Action values.
+    """
+    url: str = f"{download_url.rstrip('/')}/{master_actions_file.lstrip('/')}"
+    return TypeAdapter(dict[str, MasterConvertAction]).validate_python(
+        _get_yaml(url) if cache else _get_yaml.__wrapped__(url)
+    )
 
 
 def get_custom_signatures(*, cache: bool = True) -> list[CustomSignature]:

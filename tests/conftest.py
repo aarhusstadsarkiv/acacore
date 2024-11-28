@@ -26,6 +26,11 @@ def test_files_data(test_files: Path) -> dict[str, dict]:
     return loads(test_files.joinpath("files.json").read_text())
 
 
+@pytest.fixture(scope="session")
+def siegfried_folder(test_folder: Path) -> Path:
+    return test_folder / "siegfried"
+
+
 @pytest.fixture(autouse=True, scope="session")
 def _pre_test(temp_folder: Path):
     rm_tree(temp_folder)

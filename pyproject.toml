@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "acacore"
-version = "3.3.3"
+version = "4.0.0"
 description = ""
 authors = ["Matteo Campinoti <matteo.campinoti94@gmail.com>"]
 license = "GPL-3.0"
@@ -8,12 +8,13 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-pydantic = "^2.9.2"
+pydantic = "^2.10.2"
 pyyaml = "^6.0.2"
 click = "^8.1.7"
 imagesize = "^1.4.1"
-packaging = "^24.1"
-pillow = "^10.4.0"
+packaging = "^24.2"
+pillow = "^11.0.0"
+orjson = "^3.10.12"
 
 
 [tool.poetry.group.dev.dependencies]

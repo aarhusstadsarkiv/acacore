@@ -1,5 +1,7 @@
+from re import search
 from typing import get_args as get_type_args
 from typing import Literal
+from typing import Match
 from typing import Self
 
 from pydantic import AliasChoices
@@ -50,10 +52,9 @@ class CustomSignature(BaseModel):
     signature: str
     bof: str | None = None
     eof: str | None = None
-    operator: str | None = None
+    operator: Literal["AND", "OR"] | None = None
     extension: str | None = None
 
-    # noinspection PyNestedDecorators
     @model_validator(mode="after")
     def _validate_model(self) -> Self:
         if not self.bof and not self.eof:
@@ -61,6 +62,30 @@ class CustomSignature(BaseModel):
         if self.bof and self.eof and not self.operator:
             raise ValueError("Operator must be set if both bof and eof are set.")
         return self
+
+    def match(self, bof: str | None, eof: str | None) -> int:
+        if not bof and not eof:
+            return 0
+        elif self.bof and self.eof:
+            match_bof: Match[str] | None = search(self.bof, bof or "")
+
+            if self.operator == "AND" and not match_bof:
+                return 0
+
+            match_eof: Match[str] | None = search(self.eof, eof or "")
+
+            if match_bof and match_eof:
+                return (match_bof.end() - match_bof.start()) + (match_eof.end() - match_eof.start())
+            elif self.operator == "OR" and match_bof:
+                return match_bof.end() - match_bof.start()
+            elif self.operator == "OR" and match_eof:
+                return match_eof.end() - match_eof.start()
+        elif self.bof and (match_bof := search(self.bof, bof or "")):
+            return match_bof.end() - match_bof.start()
+        elif self.eof and (match_eof := search(self.eof, eof or "")):
+            return match_eof.end() - match_eof.start()
+
+        return 0
 
 
 class IgnoreIfAction(NoDefaultsModel):
@@ -79,18 +104,6 @@ class IgnoreIfAction(NoDefaultsModel):
     image_width_min: int | None = Field(None, gt=0)
     image_height_min: int | None = Field(None, gt=0)
     size: int | None = Field(None, gt=0)
-
-
-class RenameAction(NoDefaultsModel):
-    """
-    Class representing an action to change file's extension.
-
-    :ivar extension: A string representing the new extension for the file.
-    """
-
-    extension: str
-    append: bool = False
-    on_extension_mismatch: bool = False
 
 
 class ReIdentifyAction(NoDefaultsModel):
@@ -163,12 +176,21 @@ class IgnoreAction(NoDefaultsModel):
     template: TTemplateType
     reason: str | None = None
 
-    # noinspection PyNestedDecorators
     @model_validator(mode="after")
     def _validate_model(self) -> Self:
-        if self.template == "text" and not self.reason:
+        if self.template == "text" and (self.reason is None or not self.reason.strip()):
             raise ValueError("Reason cannot be empty when template is set to text.")
+        self.reason = (self.reason.strip() or None) if self.reason else None
         return self
+
+
+class MasterConvertAction(NoDefaultsModel):
+    """Class representing the instructions to convert a master file to access and statutory formats."""
+
+    name: str | None = None
+    description: str | None = None
+    access: ConvertAction
+    statutory: ConvertAction
 
 
 class ActionData(NoDefaultsModel):
@@ -183,15 +205,12 @@ class ActionData(NoDefaultsModel):
         Defaults to None.
     :ivar manual: A ManualAction object representing the manual action to be performed.
         Defaults to None.
-    :ivar rename: A RenameAction object representing the renaming action to be performed.
-        Defaults to None.
     :ivar ignore: An IgnoreAction object representing the ignore action to be performed.
         Defaults to None.
     :ivar reidentify: A ReIdentifyAction object representing the re-identification action to be performed.
         Defaults to None.
     """
 
-    rename: RenameAction | None = None
     reidentify: ReIdentifyAction | None = None
     convert: ConvertAction | None = None
     extract: ExtractAction | None = None

@@ -21,9 +21,9 @@ jobs:
           poetry-version: ${{ env.POETRY_VERSION }}
       - run: poetry install
       - name: ruff check
-        run: poetry run ruff check acacore
+        run: poetry run ruff check
       - name: ruff format
-        run: poetry run ruff format --check acacore
+        run: poetry run ruff format --check
 
   version:
     name: Test Version
@@ -41,7 +41,6 @@ jobs:
           version_package="${version_package%\"}"
           version_package="${version_package#*\"}"
           test "$version_project" = "$version_package"
-          echo $?
 
   pytest:
     name: pytest
@@ -60,9 +59,9 @@ jobs:
       - uses: actions/setup-go@v5
       - run: poetry install
       - run: go install github.com/richardlehane/siegfried/cmd/sf@latest
-      - name: Unit test
+      - name: pytest
         env:
           GOPATH: /home/runner/go
-        run: |
-          poetry run coverage run -m pytest
-          poetry run coverage report -m --fail-under=80 --skip-empty --skip-covered
+        run: poetry run coverage run -m pytest
+      - name: coverage
+        run: poetry run coverage report -m --fail-under=80 --skip-empty --skip-covered

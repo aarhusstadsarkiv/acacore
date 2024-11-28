@@ -41,13 +41,13 @@ def setup_logger(log_name: str, *, files: list[Path] | None = None, streams: lis
 
     for file in files:
         file.parent.mkdir(parents=True, exist_ok=True)
-        handler: FileHandler = FileHandler(file, "a", encoding="utf-8")
-        handler.setFormatter(logger_format)
-        logger.addHandler(handler)
+        file_handler: FileHandler = FileHandler(file, "a", encoding="utf-8")
+        file_handler.setFormatter(logger_format)
+        logger.addHandler(file_handler)
 
     for stream in streams:
-        handler: StreamHandler = StreamHandler(stream)
-        handler.setFormatter(logger_format)
-        logger.addHandler(handler)
+        stream_handler: StreamHandler = StreamHandler(stream)
+        stream_handler.setFormatter(logger_format)
+        logger.addHandler(stream_handler)
 
     return logger

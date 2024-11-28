@@ -13,6 +13,14 @@ def test_actions():
     assert error.value.code == 404
 
 
+def test_master_actions():
+    assert reference_files.get_master_actions()
+    with pytest.raises(HTTPError) as error:
+        reference_files.get.master_actions_file = f"wrong/path/{reference_files.get.master_actions_file}"
+        reference_files.get_master_actions()
+    assert error.value.code == 404
+
+
 def test_custom_signatures():
     assert reference_files.get_custom_signatures()
     with pytest.raises(HTTPError) as error:

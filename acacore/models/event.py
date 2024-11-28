@@ -1,46 +1,58 @@
 from datetime import datetime
 from logging import Logger
 from typing import Any
+from typing import Literal
+from typing import Self
 from typing import Sequence
+from uuid import UUID
 
 from click import Context
 from pydantic import BaseModel
 from pydantic import Field
+from pydantic import model_validator
 from pydantic import UUID4
 
 from acacore.__version__ import __version__
-from acacore.database.column import DBField
 
 
-class HistoryEntry(BaseModel):
-    uuid: UUID4 | None = DBField(default=None, index=["idx_uuid_history"])
+class Event(BaseModel):
+    file_uuid: UUID4 | None = None
+    file_type: Literal["original", "master", "access", "statutory"] | None = None
     time: datetime = Field(default_factory=datetime.now)
     operation: str
     data: object | None = None
     reason: str | None = None
 
     @classmethod
-    def command_history(
+    @model_validator(mode="after")
+    def _model_validator(cls, data: Self):
+        if (data.file_uuid and not data.file_type) or (not data.file_uuid and data.file_type):
+            raise ValueError("uuid and file type must be set together")
+        return data
+
+    @classmethod
+    def from_command(
         cls,
         ctx: Context | str,
         operation: str,
-        uuid: UUID4 | None = None,
+        file: tuple[UUID, Literal["original", "master", "access", "statutory"]] | None = None,
         data: object | None = None,
         reason: str | None = None,
         time: datetime | None = None,
         add_params_to_data: bool = False,
-    ) -> "HistoryEntry":
+    ) -> Self:
         """
-        Create a HistoryEntry for a command.
+        Create an Event for a command.
 
         :param ctx: The context object representing the current command execution.
         :param operation: The name of the operation for which the command history entry is being created.
-        :param uuid: Optional. The UUID associated with the command history entry, defaults to None.
+        :param file: Optional. The UUID and file type (original or master) associated with the command history entry,
+            defaults to None.
         :param data: Optional. Additional data or parameters associated with the command history entry.
         :param reason: Optional. The reason for the command execution, defaults to None.
         :param time: Optional. The timestamp of the command execution, defaults to None.
         :param add_params_to_data: If true, add context parameters to data, defaults to False.
-        :return: A `HistoryEntry` instance representing the command history entry.
+        :return: An `Event` instance representing the command history entry.
         """
         command: str
 
@@ -69,7 +81,8 @@ class HistoryEntry(BaseModel):
             raise TypeError(f"Data type {type(data)} is not compatible with add_params_to_data")
 
         return cls(
-            uuid=uuid,
+            file_uuid=file[0] if file else None,
+            file_type=file[1] if file else None,
             time=time or datetime.now(),
             operation=operation,
             data=data,
@@ -97,21 +110,23 @@ class HistoryEntry(BaseModel):
             argument names to show only specific ones. Default is True.
         :param extra: Additional arguments to be shown in the log message.
         """
+        uuid_msg: str | None = f"{self.file_type}:{self.file_uuid}" if self.file_uuid else None
+
         if not show_args:
             msg: str = self.operation
         elif show_args is True and show_null:
-            msg: str = f"{self.operation} uuid={self.uuid} data={self.data} reason={self.reason}"
+            msg: str = f"{self.operation} uuid={uuid_msg} data={self.data} reason={self.reason}"
         elif show_args is True:
             msg: str = (
                 f"{self.operation}"
-                + (f" uuid={self.uuid}" if self.uuid is not None else "")
+                + (f" uuid={uuid_msg}" if self.file_uuid is not None else "")
                 + (f" data={self.data}" if self.data is not None else "")
                 + (f" reason={self.reason.strip()}" if self.reason is not None else "")
             )
         else:
             msg: str = (
                 f"{self.operation}"
-                + (f" uuid={self.uuid}" if "uuid" in show_args else "")
+                + (f" uuid={uuid_msg}" if "uuid" in show_args else "")
                 + (f" data={self.data}" if "data" in show_args else "")
                 + (f" reason={self.reason.strip()}" if "reason" in show_args else "")
             )

@@ -142,7 +142,10 @@ def image_size(path: Path) -> tuple[int, int]:
     :return: A tuple representing the width and height of the image.
     """
     try:
-        width, height = get_image_size(path)
+        try:
+            width, height = get_image_size(path)
+        except ValueError:
+            width, height = -1, -1
 
         if width < 0 or height < 0:
             with Image.open(path) as i:

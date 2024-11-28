@@ -1,15 +1,17 @@
 from functools import reduce
+from os import PathLike
 from pathlib import Path
-from re import compile as re_compile
+from typing import Literal
+from typing import Self
+from typing import TypeVar
+from uuid import UUID
 from uuid import uuid4
 
 from pydantic import BaseModel
 from pydantic import Field
-from pydantic import field_validator
 from pydantic import model_validator
 from pydantic import UUID4
 
-from acacore.database.column import DBField
 from acacore.siegfried.siegfried import Siegfried
 from acacore.siegfried.siegfried import SiegfriedFile
 from acacore.siegfried.siegfried import TSiegfriedFileClass
@@ -22,43 +24,65 @@ from acacore.utils.functions import is_valid_suffix
 
 from .reference_files import Action
 from .reference_files import ActionData
+from .reference_files import ConvertAction
 from .reference_files import CustomSignature
 from .reference_files import IgnoreAction
 from .reference_files import IgnoreIfAction
 from .reference_files import ManualAction
+from .reference_files import MasterConvertAction
 from .reference_files import TActionType
 
+_A = TypeVar("_A")
 
-def ignore_if(file: "File", ignore_rules: IgnoreIfAction) -> "File":
+
+def ignore_if(file: "OriginalFile", rules: IgnoreIfAction) -> tuple[TActionType | None, ActionData]:
     action: TActionType | None = None
     ignore_action: IgnoreAction = IgnoreAction(template="not-preservable")
 
-    if ignore_rules.image_pixels_min or ignore_rules.image_width_min or ignore_rules.image_height_min:
+    if rules.image_pixels_min or rules.image_width_min or rules.image_height_min:
         width, height = image_size(file.get_absolute_path())
-        if ignore_rules.image_width_min and width < ignore_rules.image_width_min:
+        if rules.image_width_min and width < rules.image_width_min:
             action = "ignore"
-            ignore_action.reason = f"Image width is too small ({width}px < {ignore_rules.image_width_min})"
-        elif ignore_rules.image_height_min and height < ignore_rules.image_height_min:
+            ignore_action.reason = f"Image width is too small ({width}px < {rules.image_width_min})"
+        elif rules.image_height_min and height < rules.image_height_min:
             action = "ignore"
-            ignore_action.reason = f"Image height is too small  ({height}px < {ignore_rules.image_height_min})"
-        elif ignore_rules.image_pixels_min and (width * height) < ignore_rules.image_pixels_min:
+            ignore_action.reason = f"Image height is too small  ({height}px < {rules.image_height_min})"
+        elif rules.image_pixels_min and (width * height) < rules.image_pixels_min:
             action = "ignore"
-            ignore_action.reason = (
-                f"Image resolution is too small  ({width * height}px < {ignore_rules.image_pixels_min})"
-            )
-    elif ignore_rules.size and file.size < ignore_rules.size:
+            ignore_action.reason = f"Image resolution is too small  ({width * height}px < {rules.image_pixels_min})"
+    elif rules.size and file.size < rules.size:
         action = "ignore"
         ignore_action.reason = "File size is too small"
 
     if action:
-        file.action = action
-        file.action_data = file.action_data or ActionData()
-        file.action_data.ignore = ignore_action
+        action_data = file.action_data.model_copy(deep=True)
+        action_data.ignore = ignore_action
+        return action, action_data
 
-    return file
+    return file.action, file.action_data
 
 
-class File(BaseModel):
+def get_identifier(file: "BaseFile", file_classes: list[TSiegfriedFileClass], actions: dict[str, _A]) -> _A | None:
+    identifiers: list[str] = [
+        f"!name={file.relative_path.name}",
+        f"!iname={file.relative_path.name.lower()}",
+    ]
+
+    if not file.size:
+        identifiers.insert(0, "!empty")
+    if file.puid:
+        identifiers.append(file.puid)
+    if file.suffix:
+        identifiers.append(f"!ext={''.join(file.relative_path.suffixes)}")
+    if file_classes:
+        identifiers.extend(f"!{c}" for c in file_classes)
+    if file.is_binary:
+        identifiers.append("!binary")
+
+    return reduce(lambda acc, cur: acc or actions.get(cur), identifiers, None)
+
+
+class BaseFile(BaseModel):
     """
     File model containing all information used by the rest of the archival suite of tools.
 
@@ -70,144 +94,68 @@ class File(BaseModel):
     :ivar size: The size of the file.
     :ivar signature: The signature of the file.
     :ivar warning: Any warning associated with the file PUID.
-    :ivar action: The name of the main action for the file's PUID, if one exists.
-    :ivar action_data: The data for the action for the file's PUID, if one exists.
-    :ivar processed: True if the file has been processed, false otherwise.
-    :ivar lock: True if the file is locked for edits, false otherwise.
     :ivar root: The root directory for the file.
     """
 
-    uuid: UUID4 = DBField(default_factory=uuid4, index=["idx_uuid"])
-    checksum: str = DBField(index=["idx_checksum"])
-    relative_path: Path = DBField(primary_key=True)
+    uuid: UUID4 = Field(default_factory=uuid4)
+    checksum: str
+    relative_path: Path
     is_binary: bool
     size: int
     puid: str | None
     signature: str | None
     warning: list[str] | None = None
-    action: TActionType | None = DBField(index=["idx_action"])
-    action_data: ActionData = Field(default_factory=ActionData)
-    parent: UUID4 | None = None
-    processed: bool = False
-    lock: bool = False
-    original_path: Path
-    processed_names: list[str] = Field(default_factory=list)
-    root: Path | None = DBField(None, ignore=True)
-
-    # noinspection PyNestedDecorators
-    @model_validator(mode="before")
-    @classmethod
-    def _model_validator(cls, data: dict):
-        if isinstance(data, dict):
-            if (op := data.get("original_path")) and isinstance(op, Path):
-                data["original_path"] = op
-            elif isinstance(op, str) and op.strip():
-                data["original_path"] = Path(op)
-            else:
-                data["original_path"] = data["relative_path"]
-        return data
-
-    # noinspection PyNestedDecorators
-    @field_validator("action_data", mode="before")
-    @classmethod
-    def _validate_action_data(cls, v: None | dict) -> dict:
-        return {} if v is None else v
+    root: Path | None = None
 
     @classmethod
     def from_file(
         cls,
-        path: Path,
-        root: Path | None = None,
+        path: str | PathLike[str],
+        root: str | PathLike[str],
         siegfried: Siegfried | SiegfriedFile | None = None,
-        actions: dict[str, Action] | None = None,
-        custom_signatures: list[CustomSignature | None] | None = None,
-        *,
-        uuid: UUID4 | None = None,
-        processed: bool = False,
-    ):
+        custom_signatures: list[CustomSignature] | None = None,
+        uuid: UUID | None = None,
+    ) -> Self:
         """
-        Create a File object from a given file.
-
-        Given a Siegfried object, the file will be identified.
-
-        Given a dictionary of Actions, the file action properties will be set.
-
-        Given a list of CustomSignatures, the file identification will be refined.
+        Create a file object from a given path.
 
         :param path: The path to the file.
-        :param root: Optionally, the root to be used to compute the relative path to the file, defaults to None.
-        :param siegfried: A Siegfried or SiegfriedFile object to identify the file, defaults to None.
-        :param actions: A dictionary with PUID keys and Action values to assign an action, defaults to None.
-        :param custom_signatures: A list of CustomSignature objects to refine the identification, defaults to None.
-        :param uuid: Optionally, a specific UUID to use for the file, defaults to None.
-        :param processed: Optionally, the value to be used for the processed property, defaults to False.
-        :return: A File object.
+        :param root: The folder to use as root for the file.
+        :param siegfried: Optionally, an insteance of ``Siegfried`` or ``SiegfriedFile`` to identify the file with.
+        :param custom_signatures: Optionally, a list of ``CustomSignature`` to identify the file if ``siegfried`` is
+            not provided or fails to find a match.
+        :param uuid: Optionally, the UUID of the file.
+        :return: A ``BaseFile`` object.
         """
-        file = cls(
+        path = Path(path)
+        root = Path(root)
+        file = BaseFile(
+            root=root,
+            relative_path=path.relative_to(root) if root else path,
             uuid=uuid or uuid4(),
             checksum=file_checksum(path),
-            puid=None,
-            relative_path=path.relative_to(root) if root else path,
             is_binary=is_binary(path),
             size=path.stat().st_size,
+            puid=None,
             signature=None,
             warning=None,
-            action=None,
-            root=root,
-            processed=processed,
         )
-        file_classes: list[TSiegfriedFileClass] = []
-        action: Action | None = None
 
         if siegfried:
-            siegfried_match = file.identify(siegfried, set_match=True).best_match()
-            file_classes.extend(siegfried_match.match_class if siegfried_match else [])
+            file.identify(siegfried, set_match=True)
 
         if custom_signatures and not file.puid:
             file.identify_custom(custom_signatures, set_match=True)
 
-        if actions:
-            action = file.get_action(actions, file_classes)
-
-        if action and action.reidentify and custom_signatures:
-            custom_match = file.identify_custom(custom_signatures, chunk_size=action.reidentify.chunk_size)
-            if custom_match:
-                file.puid = custom_match.puid
-                file.signature = custom_match.signature
-                file.warning = []
-                if custom_match.extension and file.suffix != custom_match.extension:
-                    file.warning.append("extension mismatch")
-                file.warning = file.warning or None
-                action = file.get_action(actions, file_classes)
-            elif file.action_data.reidentify and (on_fail := file.action_data.reidentify.on_fail):
-                file.action = None if on_fail == "null" else file.action
-            else:
-                action = None
-                file.action = "manual"
-                file.action_data = ActionData(manual=ManualAction(reason="Re-identify failure", process=""))
-                file.puid = file.signature = file.warning = None
-        elif action and action.reidentify:
-            raise ValueError(f"Cannot run re-identify for PUID {file.puid} without custom signatures")
-
-        if action and action.ignore_if:
-            file = ignore_if(file, action.ignore_if)
-
-        if file.action != "ignore" and actions and "*" in actions and actions["*"].ignore_if:
-            file = ignore_if(file, actions["*"].ignore_if)
-
-        if action and file.warning:
-            file.warning = [w for w in file.warning if w.lower() not in [aw.lower() for aw in action.ignore_warnings]]
-            file.warning = file.warning or None
-
         return file
 
-    def identify(self, sf: Siegfried | SiegfriedFile | None, *, set_match: bool = False) -> SiegfriedFile:
+    def identify(self, sf: Siegfried | SiegfriedFile, *, set_match: bool = False) -> SiegfriedFile:
         """
         Identify the file using `siegfried`.
 
-        :param sf: A Siegfried class object.
-        :param set_match: Set results of Siegfried match if True, defaults to False.
-        :return: A dataclass object containing the results from the identification.
+        :param sf: A ``Siegfried`` or ``SiegfriedFile`` object.
+        :param set_match: Set results of Siegfried match if ``True``, defaults to ``False``.
+        :return: The ``SiegfriedFile`` result.
         """
         result: SiegfriedFile = sf.identify(self.get_absolute_path()).files[0] if isinstance(sf, Siegfried) else sf
 
@@ -228,97 +176,32 @@ class File(BaseModel):
         set_match: bool = False,
     ) -> CustomSignature | None:
         """
-        Uses the BOF and EOF to try to determine a ACAUID for the file.
+        Uses the BOF and EOF to try to determine a PUID for the file.
 
-        The custom_sigs list should be found on the `reference_files` repo. If no match can be found, the method does
-        nothing.
-
-        :param custom_signatures: A list of the custom_signatures that the file should be checked against.
+        :param custom_signatures: A list of ``CustomSignature`` that the file should be checked against.
         :param chunk_size: Optionally, the chunk size to use to search for custom signatures. Defaults to 1024.
-        :param set_match: Set results of match if True, defaults to False.
+        :param set_match: Set results of match if ``True``, defaults to ``False``.
+        :return: The matched ``CustomSignature`` object, if any, otherwise ``None``.
         """
         bof = get_bof(self.get_absolute_path(self.root), chunk_size or 1024).hex()
         eof = get_eof(self.get_absolute_path(self.root), chunk_size or 1024).hex()
         signature: CustomSignature | None = None
         signature_length: int = 0
 
-        # We have to go through all the signatures in order to check their BOF en EOF with the file.
         for sig in custom_signatures:
-            if sig.bof and sig.eof:
-                bof_pattern, eof_pattern = re_compile(sig.bof), re_compile(sig.eof)
-                match_bof = bof_pattern.search(bof)
-                match_eof = eof_pattern.search(eof)
-                match_length = (match_bof.end() - match_bof.start()) if match_bof else 0
-                match_length += (match_eof.end() - match_eof.start()) if match_eof else 0
-                if sig.operator == "OR":
-                    signature = sig if (match_bof or match_eof) and match_length > signature_length else signature
-                elif sig.operator == "AND":
-                    signature = sig if match_bof and match_eof and match_length > signature_length else signature
-            elif sig.bof:
-                match_bof = re_compile(sig.bof).search(bof)
-                match_length = (match_bof.end() - match_bof.start()) if match_bof else 0
-                signature = sig if match_bof and match_length > signature_length else signature
-            elif sig.eof:
-                match_eof = re_compile(sig.eof).search(eof)
-                match_length = (match_eof.end() - match_eof.start()) if match_eof else 0
-                signature = sig if match_eof and match_length > signature_length else signature
+            if (match_length := sig.match(bof, eof)) > signature_length:
+                signature = sig
+                signature_length = match_length
 
-        if set_match:
-            self.puid = signature.puid if signature else None
-            self.signature = signature.signature if signature else None
-            self.warning = None
+        if set_match and signature:
+            self.puid = signature.puid
+            self.signature = signature.signature
+            if signature.extension and self.suffix != signature.extension:
+                self.warning = ["extension mismatch"]
+            else:
+                self.warning = None
 
         return signature
-
-    def get_action(
-        self,
-        actions: dict[str, Action],
-        file_classes: list[TSiegfriedFileClass | None] | None = None,
-        *,
-        set_match: bool = True,
-    ) -> Action | None:
-        """
-        Returns the Action matching the file.
-
-        :param actions: A dictionary containing the available actions.
-        :param file_classes: A list of file classes or None.
-        :param set_match: Set the matched action if True, defaults to False.
-        :return: An instance of Action or None if no action is found.
-        """
-        identifiers: list[str] = [
-            f"!name={self.relative_path.name}",
-            f"!iname={self.relative_path.name.lower()}",
-        ]
-
-        if not self.size:
-            identifiers.insert(0, "!empty")
-        if self.puid:
-            identifiers.append(self.puid)
-        if self.suffix:
-            identifiers.append(f"!ext={''.join(self.relative_path.suffixes)}")
-        if file_classes:
-            identifiers.extend(f"!{c}" for c in file_classes)
-        if self.is_binary:
-            identifiers.append("!binary")
-
-        action: Action | None = reduce(lambda acc, cur: acc or actions.get(cur), identifiers, None)
-
-        if action and action.alternatives and (new_puid := action.alternatives.get(self.suffixes.lower(), None)):
-            puid: str | None = self.puid
-            self.puid = new_puid
-            if new_action := self.get_action(actions, file_classes):
-                action = new_action
-                self.signature = action.name
-            else:
-                self.puid = puid
-
-        if set_match:
-            self.action, self.action_data = (
-                action.action if action else None,
-                action.action_data if action else ActionData(),
-            )
-
-        return action
 
     def get_absolute_path(self, root: Path | None = None) -> Path:
         """
@@ -370,11 +253,11 @@ class File(BaseModel):
 
         :return: File stem.
         """
-        return self.relative_path.stem
+        return self.relative_path.name.removesuffix(self.suffixes)
 
     @stem.setter
     def stem(self, new_stem: str):
-        self.relative_path = self.relative_path.with_stem(new_stem)
+        self.relative_path = self.relative_path.with_name(new_stem).with_suffix(self.suffixes)
 
     @property
     def suffix(self) -> str:
@@ -383,7 +266,7 @@ class File(BaseModel):
 
         :return: File extension.
         """
-        return self.relative_path.suffix.lower()
+        return self.relative_path.suffix
 
     @suffix.setter
     def suffix(self, new_suffix: str):
@@ -407,3 +290,341 @@ class File(BaseModel):
     @suffixes.setter
     def suffixes(self, new_suffixes: str):
         self.relative_path = self.relative_path.with_name(self.name.removesuffix(self.suffixes) + new_suffixes)
+
+
+class OriginalFile(BaseFile):
+    """
+    File model containing all information used by the rest of the archival suite of tools.
+
+    :ivar action: The name of the main action for the file's PUID, if one exists.
+    :ivar action_data: The data for the action for the file's PUID, if one exists.
+    :ivar processed: True if the file has been processed, false otherwise.
+    :ivar lock: True if the file is locked for edits, false otherwise.
+    :ivar original_path: The original relative path of the file.
+    """
+
+    action: TActionType | None = None
+    action_data: ActionData = Field(default_factory=ActionData)
+    parent: UUID4 | None = None
+    processed: bool = False
+    lock: bool = False
+    original_path: Path
+
+    # noinspection PyNestedDecorators
+    @model_validator(mode="before")
+    @classmethod
+    def _model_validator(cls, data: dict):
+        if isinstance(data, dict):
+            data["original_path"] = data.get("original_path", "") or data["relative_path"]
+        return data
+
+    @classmethod
+    def from_file(
+        cls,
+        path: str | PathLike[str],
+        root: str | PathLike[str],
+        siegfried: Siegfried | SiegfriedFile | None = None,
+        custom_signatures: list[CustomSignature] | None = None,
+        actions: dict[str, Action] | None = None,
+        uuid: UUID | None = None,
+        parent: UUID | None = None,
+        processed: bool = False,
+        lock: bool = False,
+    ) -> Self:
+        """
+        Create a file object from a given path.
+
+        :param path: The path to the file.
+        :param root: The folder to use as root for the file.
+        :param siegfried: Optionally, an insteance of ``Siegfried`` or ``SiegfriedFile`` to identify the file with.
+        :param custom_signatures: Optionally, a list of ``CustomSignature`` to identify the file if ``siegfried`` is
+            not provided or fails to find a match.
+        :param actions: Optionally, a dictionary of ``Action`` objects to assign an action to the file.
+        :param uuid: Optionally, the UUID of the file.
+        :param parent: Optional, the UUID of the parent file.
+        :param processed: Optionally, a boolean indicating if the file was processed.
+        :param lock: Optionally, a boolean indicating if the file was processed.
+        :return: An ``OriginalFile`` object.
+        """
+        file_base = super().from_file(path, root, None, uuid=uuid)
+        file = OriginalFile(
+            uuid=file_base.uuid,
+            root=file_base.root,
+            relative_path=file_base.relative_path,
+            checksum=file_base.checksum,
+            is_binary=file_base.is_binary,
+            size=file_base.size,
+            puid=None,
+            signature=None,
+            warning=None,
+            parent=parent,
+            processed=processed or False,
+            lock=lock or False,
+            original_path=file_base.relative_path,
+        )
+
+        file.identify(siegfried, custom_signatures, actions)
+
+        return file
+
+    def identify(
+        self,
+        siegfried: Siegfried | SiegfriedFile | None = None,
+        custom_signatures: list[CustomSignature] | None = None,
+        actions: dict[str, Action] | None = None,
+    ):
+        """
+        Identify the file using `siegfried` or custom signatures and assign actions.
+
+        If neither ``siegfried`` nor ``custom_signatures`` are provided, then no changes are made.
+
+        If ``actions`` is provided and no action can be found with the new identity, the file's action fields are reset.
+
+        :param siegfried: A ``Siegfried`` or ``SiegfriedFile`` object.
+        :param custom_signatures: A list of ``CustomSignature`` objects.
+        :param actions: A dictionary containing the available actions as ``Action`` objects.
+        """
+        if not siegfried and not custom_signatures:
+            return
+
+        from_custom_signatures: bool = False
+        file_classes: list[TSiegfriedFileClass] = []
+        action: Action | None = None
+
+        if siegfried:
+            siegfried_match = super().identify(siegfried, set_match=True).best_match()
+            file_classes = siegfried_match.match_class if siegfried_match else []
+
+        if custom_signatures and not self.puid:
+            self.identify_custom(custom_signatures, set_match=True)
+            from_custom_signatures = True
+
+        if actions:
+            action = self.get_action(actions, file_classes)
+
+        if action:
+            if action.reidentify and custom_signatures and not from_custom_signatures:
+                if self.identify_custom(custom_signatures, chunk_size=action.reidentify.chunk_size, set_match=True):
+                    if new_action := self.get_action(actions, file_classes):
+                        action = new_action
+                    else:
+                        action = Action(
+                            name="",
+                            action="manual",
+                            manual=ManualAction(reason="No action available for custom PUID", process=""),
+                        )
+                elif action.reidentify.on_fail == "action":
+                    pass
+                elif action.reidentify.on_fail == "null":
+                    action.action = None
+
+            self.action = action.action
+            self.action_data = action.action_data
+
+            if action.ignore_if:
+                self.action, self.action_data = ignore_if(self, action.ignore_if)
+
+            if self.action != "ignore" and actions and "*" in actions and actions["*"].ignore_if:
+                self.action, self.action_data = ignore_if(self, actions["*"].ignore_if)
+
+            if action.ignore_warnings and self.warning is not None:
+                ignore_warnings: list[str] = [iw.lower() for iw in action.ignore_warnings]
+                self.warning = [w for w in self.warning if w.lower() not in ignore_warnings]
+                self.warning = self.warning or None
+        elif actions:
+            self.action = None
+            self.action_data = ActionData()
+
+    def get_action(
+        self,
+        actions: dict[str, Action],
+        file_classes: list[TSiegfriedFileClass] | None = None,
+        *,
+        set_match: bool = False,
+    ) -> Action | None:
+        """
+        Returns the ``Action`` matching the file's PUID.
+
+        :param actions: A dictionary containing the available actions.
+        :param file_classes: A list of file classes or ``None``.
+        :param set_match: Set the matched action if ``True``, defaults to ``False``.
+        :return: The matched ``Action`` object, if any, otherwise ``None``.
+        """
+        action: Action | None = get_identifier(self, file_classes, actions)
+        from_alternative: bool = False
+
+        if action and action.alternatives and (new_puid := action.alternatives.get(self.suffixes.lower(), None)):
+            puid: str | None = self.puid
+            self.puid = new_puid
+            if new_action := self.get_action(actions, file_classes):
+                action = new_action
+                from_alternative = True
+            else:
+                self.puid = puid
+
+        if set_match and action:
+            self.signature = action.name
+            self.action = action.action
+            self.action_data = action.action_data
+            if from_alternative and self.warning:
+                self.warning = [w for w in self.warning if w.lower() != "extension mismatch"]
+        elif set_match:
+            self.signature = self.signature if self.puid else None
+            self.action = None
+            self.action_data = ActionData()
+
+        return action
+
+
+class ConvertedFile(BaseFile):
+    original_uuid: UUID4 | None = None
+
+    @classmethod
+    def from_file(
+        cls,
+        path: str | PathLike[str],
+        root: str | PathLike[str],
+        original_uuid: UUID | None = None,
+        siegfried: Siegfried | SiegfriedFile | None = None,
+        custom_signatures: list[CustomSignature] | None = None,
+        uuid: UUID | None = None,
+    ) -> Self:
+        """
+        Create a file object from a given path.
+
+        :param path: The path to the file.
+        :param root: The folder to use as root for the file.
+        :param original_uuid: The UUID of the parent file.
+        :param siegfried: Optionally, an insteance of ``Siegfried`` or ``SiegfriedFile`` to identify the file with.
+        :param custom_signatures: Optionally, a list of ``CustomSignature`` to identify the file if ``siegfried`` is
+            not provided or fails to find a match.
+        :param uuid: Optionally, the UUID of the file.
+        :return: A ``ConvertedFile`` object.
+        """
+        file_base = super().from_file(path, root, siegfried, custom_signatures, uuid)
+        return ConvertedFile(
+            uuid=file_base.uuid,
+            checksum=file_base.checksum,
+            relative_path=file_base.relative_path,
+            root=file_base.root,
+            is_binary=file_base.is_binary,
+            size=file_base.size,
+            puid=file_base.puid,
+            signature=file_base.signature,
+            warning=file_base.warning,
+            original_uuid=original_uuid,
+        )
+
+
+class MasterFile(ConvertedFile):
+    convert_access: ConvertAction | None = None
+    convert_statutory: ConvertAction | None = None
+    processed: bool = False
+
+    @classmethod
+    def from_file(
+        cls,
+        path: str | PathLike[str],
+        root: str | PathLike[str],
+        original_uuid: UUID | None = None,
+        siegfried: Siegfried | SiegfriedFile | None = None,
+        custom_signatures: list[CustomSignature] | None = None,
+        actions: dict[str, MasterConvertAction] | None = None,
+        uuid: UUID | None = None,
+        processed: bool = False,
+    ) -> Self:
+        """
+        Create a file object from a given path.
+
+        :param path: The path to the file.
+        :param root: The folder to use as root for the file.
+        :param original_uuid: The UUID of the parent file.
+        :param siegfried: Optionally, an insteance of ``Siegfried`` or ``SiegfriedFile`` to identify the file with.
+        :param custom_signatures: Optionally, a list of ``CustomSignature`` to identify the file if ``siegfried`` is
+            not provided or fails to find a match.
+        :param actions: Optionally, a dictionary of ``MasterConvertAction`` objects to assign an action to the file.
+        :param uuid: Optionally, the UUID of the file.
+        :param processed: Optionally, a boolean indicating if the file was processed.
+        :return: A ``MasterFile`` object.
+        """
+        file_base = super().from_file(path, root, original_uuid, siegfried, custom_signatures, uuid)
+        file = MasterFile(
+            uuid=file_base.uuid,
+            checksum=file_base.checksum,
+            relative_path=file_base.relative_path,
+            root=file_base.root,
+            is_binary=file_base.is_binary,
+            size=file_base.size,
+            puid=file_base.puid,
+            signature=file_base.signature,
+            warning=file_base.warning,
+            original_uuid=file_base.original_uuid,
+            processed=processed,
+        )
+
+        file.identify(siegfried, custom_signatures, actions)
+
+        return file
+
+    def identify(
+        self,
+        siegfried: Siegfried | SiegfriedFile | None = None,
+        custom_signatures: list[CustomSignature] | None = None,
+        actions: dict[str, MasterConvertAction] | None = None,
+    ):
+        """
+        Identify the file using `siegfried` or custom signatures and assign actions.
+
+        If neither ``siegfried`` nor ``custom_signatures`` are provided, then no changes are made.
+
+        If ``actions`` is provided and no action can be found with the new identity, the file's action fields are reset.
+
+        :param siegfried: A ``Siegfried`` or ``SiegfriedFile`` object.
+        :param custom_signatures: A list of ``CustomSignature`` objects.
+        :param actions: A dictionary containing the available actions as ``MasterConvertAction`` objects.
+        """
+        if not siegfried and not custom_signatures:
+            return
+
+        file_classes: list[TSiegfriedFileClass] = []
+
+        if siegfried and (match := super().identify(siegfried, set_match=True).best_match()):
+            file_classes = match.match_class
+        elif custom_signatures:
+            self.identify_custom(custom_signatures, set_match=True)
+
+        if actions:
+            self.get_action("access", actions, file_classes, set_match=True)
+            self.get_action("statutory", actions, file_classes, set_match=True)
+
+    def get_action(
+        self,
+        target: Literal["access", "statutory", "all"],
+        actions: dict[str, MasterConvertAction],
+        file_classes: list[TSiegfriedFileClass] | None = None,
+        *,
+        set_match: bool = False,
+    ) -> MasterConvertAction | None:
+        """
+        Returns the access ``Action`` matching the file's PUID.
+
+        :param target: Which action to set, use "all" for both.
+        :param actions: A dictionary containing the available access actions.
+        :param file_classes: A list of file classes or ``None``.
+        :param set_match: Set the matched action if ``True``, defaults to ``False``.
+        :return: The matched ``Action`` object, if any, otherwise ``None``.
+        """
+        action: MasterConvertAction | None = get_identifier(self, file_classes, actions)
+
+        if set_match and action:
+            if target in ("access", "all"):
+                self.convert_access = action.access
+            if target in ("statutory", "all"):
+                self.convert_statutory = action.statutory
+        elif set_match:
+            if target in ("access", "all"):
+                self.convert_access = None
+            if target in ("statutory", "all"):
+                self.convert_statutory = None
+
+        return action

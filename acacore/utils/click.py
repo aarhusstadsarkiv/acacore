@@ -15,7 +15,7 @@ from click import Command
 from click import Context
 from click import Parameter
 
-from acacore.models.history import HistoryEntry
+from acacore.models.event import Event
 from acacore.utils.helpers import ExceptionManager
 from acacore.utils.log import setup_logger
 
@@ -84,10 +84,10 @@ def check_database_version(ctx: Context, param: Parameter, path: Path):
     if not path.is_file():
         return
 
-    from acacore.database import FileDB
+    from acacore.database import FilesDB
     from acacore.database.upgrade import is_latest
 
-    with FileDB(path, check_version=False) as db:
+    with FilesDB(path) as db:
         try:
             is_latest(db, raise_on_difference=True)
         except DatabaseError as err:
@@ -96,15 +96,15 @@ def check_database_version(ctx: Context, param: Parameter, path: Path):
 
 def start_program(
     ctx: Context,
-    database: "FileDB",  # noqa: F821
+    database: "FilesDB",  # noqa: F821
     version: str,
     time: datetime | None = None,
     log_file: bool = True,
     log_stdout: bool = True,
     dry_run: bool = False,
-) -> tuple[Logger | None, Logger | None, HistoryEntry]:
+) -> tuple[Logger | None, Logger | None, Event]:
     """
-    Create loggers and ``HistoryEntry`` for the start of a click program.
+    Create loggers and ``Event`` for the start of a click program.
 
     If ``log_file`` is ``False``, the file logger return value is ``None``. If ``log_stdout`` is ``False``, the
     standard output logger return value is ``None``.
@@ -114,19 +114,19 @@ def start_program(
     :param ctx: The context of the command that should be logged.
     :param database: The database instance.
     :param version: The version of the command/program.
-    :param time: Optionally, the time to use for the ``HistoryEntry`` event. Defaults to now.
+    :param time: Optionally, the time to use for the ``Event`` object. Defaults to now.
     :param log_file: Whether a file log should be opened and returned. Defaults to ``False``.
     :param log_stdout: Whether a standard output log should be opened and returned. Defaults to ``False``.
     :param dry_run: Whether the command is run in dry-run mode.
     :return: A tuple containing the file logger (if set with ``log_file`` otherwise ``None``), the standard output
-        logger (if set with ``log_stdout`` otherwise ``None``), and the ``HistoryEntry`` start event.
+        logger (if set with ``log_stdout`` otherwise ``None``), and the ``Event`` object for the start of the program.
     """
     prog: str = ctx.find_root().command.name
-    log_file: Logger | None = (
+    logger_file: Logger | None = (
         setup_logger(f"{prog}_file", files=[database.path.parent / f"{prog}.log"]) if log_file else None
     )
-    log_stdout: Logger | None = setup_logger(f"{prog}_stdout", streams=[stdout]) if log_stdout else None
-    program_start: HistoryEntry = HistoryEntry.command_history(
+    logger_stdout: Logger | None = setup_logger(f"{prog}_stdout", streams=[stdout]) if log_stdout else None
+    program_start: Event = Event.from_command(
         ctx,
         "start",
         data={"version": version},
@@ -135,25 +135,25 @@ def start_program(
     )
 
     if not dry_run:
-        database.history.insert(program_start)
+        database.log.insert(program_start)
 
     if log_file:
-        program_start.log(INFO, log_file)
+        program_start.log(INFO, logger_file)
     if log_stdout:
-        program_start.log(INFO, log_stdout, show_args=False)
+        program_start.log(INFO, logger_stdout, show_args=False)
 
-    return log_file, log_stdout, program_start
+    return logger_file, logger_stdout, program_start
 
 
 def end_program(
     ctx: Context,
-    database: "FileDB",  # noqa: F821
+    database: "FilesDB",  # noqa: F821
     exception: ExceptionManager,
     dry_run: bool = False,
     *loggers: Logger | None,
 ):
     """
-    Create ``HistoryEntry`` event for the end of a click program.
+    Create ``Event`` event for the end of a click program.
 
     If ``dry_run`` is ``True``, the end event is not added to the database, and the database changes are not committed.
 
@@ -163,7 +163,7 @@ def end_program(
     :param dry_run: Whether the command was run in dry-run mode.
     :param loggers: A list of loggers to which to save the end event.
     """
-    program_end: HistoryEntry = HistoryEntry.command_history(
+    program_end: Event = Event.from_command(
         ctx,
         "end",
         data=repr(exception.exception) if exception.exception else None,
@@ -175,5 +175,5 @@ def end_program(
             program_end.log(ERROR if exception.exception else INFO, logger)
 
     if not dry_run:
-        database.history.insert(program_end)
+        database.log.insert(program_end)
         database.commit()
