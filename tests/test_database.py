@@ -1,4 +1,5 @@
 from pathlib import Path
+from shutil import copy2
 from sqlite3 import DatabaseError
 from uuid import uuid4
 
@@ -172,3 +173,22 @@ def test_database_update_delete(database_file: Path):
         db.original_files.delete(file1)
         assert db.original_files[file1] is None
         assert len(db.original_files) == 0
+
+
+def test_database_upgrade(test_folder: Path, temp_folder: Path):
+    database_file: Path = test_folder / "databases" / "v4_0_0.db"
+    database_file_copy: Path = temp_folder / database_file.name
+    database_file_copy.unlink(missing_ok=True)
+    database_file_copy.parent.mkdir(parents=True, exist_ok=True)
+
+    copy2(database_file, database_file_copy)
+
+    with FilesDB(database_file_copy, check_version=False) as db:
+        assert db.version() < Version(__version__)
+
+        db.upgrade()
+
+        assert db.version() == Version(__version__)
+
+        assert db.original_files.select(limit=1).fetchone()
+        assert db.master_files.select(limit=1).fetchone()
