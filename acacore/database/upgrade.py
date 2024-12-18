@@ -30,9 +30,56 @@ def set_db_version(conn: Connection, version: Version) -> Version:
     return version
 
 
+# noinspection SqlResolve
+def upgrade_4to4_1(con: Connection) -> Version:
+    con.execute("""
+    create table files_master_tmp
+    (
+        uuid              text    not null,
+        checksum          text    not null,
+        relative_path     text    not null,
+        is_binary         boolean not null,
+        size              integer not null,
+        puid              text,
+        signature         text,
+        warning           text,
+        original_uuid     text,
+        convert_access    text,
+        convert_statutory text,
+        processed         integer not null,
+        primary key (relative_path)
+    )
+    """)
+
+    con.execute("insert or ignore into files_master_tmp select * from files_master")
+    con.execute("update files_master_tmp set processed = 4 where processed != 0")
+
+    con.executemany(
+        "update files_master_tmp set processed = processed + 1 where uuid = ? and processed != 0",
+        ([uuid] for [uuid] in con.execute("select original_uuid from files_access")),
+    )
+
+    con.executemany(
+        "update files_master_tmp set processed = processed + 2 where uuid = ? and processed != 0",
+        ([uuid] for [uuid] in con.execute("select original_uuid from files_statutory")),
+    )
+
+    con.execute("update files_master_tmp set processed = processed - 4 where processed != 0")
+
+    con.execute("drop table files_master")
+    con.execute("alter table files_master_tmp rename to files_master")
+    con.execute("vacuum")
+
+    con.commit()
+
+    return set_db_version(con, Version("4.1.0"))
+
+
 def get_upgrade_function(current_version: Version, latest_version: Version) -> Callable[[Connection], Version]:
     if current_version < latest_version:
         return lambda c: set_db_version(c, Version(__version__))
+    elif current_version < Version("4.1.0"):
+        return upgrade_4to4_1
     else:
         return lambda _: latest_version
 
