@@ -477,6 +477,12 @@ class OriginalFile(BaseFile):
 
 
 class ConvertedFile(BaseFile):
+    """
+    File model for output of file conversion.
+
+    :ivar original_uuid: UUID of the parent file that was converted.
+    """
+
     original_uuid: UUID4 | None = None
 
     @classmethod
@@ -517,9 +523,17 @@ class ConvertedFile(BaseFile):
 
 
 class MasterFile(ConvertedFile):
+    """
+    File model for MasterDocuments files converted from OriginalDocuments.
+
+    :ivar convert_access: Convert action to generate access file.
+    :ivar convert_statutory: Convert action to generate statutory file.
+    :ivar processed: Processed status as a bit flag: 0 none, 1 access, 2 statutory.
+    """
+
     convert_access: ConvertAction | None = None
     convert_statutory: ConvertAction | None = None
-    processed: int = Field(0, ge=0, le=3)  # bit flag: 0 none, 1 access, 2 statutory
+    processed: int = Field(0, ge=0, le=3)
 
     @classmethod
     def from_file(
