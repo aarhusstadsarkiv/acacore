@@ -77,10 +77,10 @@ def upgrade_4to4_1(con: Connection) -> Version:
 
 
 def get_upgrade_function(current_version: Version, latest_version: Version) -> Callable[[Connection], Version]:
-    if current_version < latest_version:
-        return lambda c: set_db_version(c, Version(__version__))
-    elif current_version < Version("4.1.0"):
+    if current_version < Version("4.1.0"):
         return upgrade_4to4_1
+    elif current_version < latest_version:
+        return lambda c: set_db_version(c, Version(__version__))
     else:
         return lambda _: latest_version
 
