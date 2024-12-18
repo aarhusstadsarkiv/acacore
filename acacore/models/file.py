@@ -519,7 +519,7 @@ class ConvertedFile(BaseFile):
 class MasterFile(ConvertedFile):
     convert_access: ConvertAction | None = None
     convert_statutory: ConvertAction | None = None
-    processed: bool = False
+    processed: int = Field(0, ge=0, le=3)  # bit flag: 0 none, 1 access, 2 statutory
 
     @classmethod
     def from_file(
