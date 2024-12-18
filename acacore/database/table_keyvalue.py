@@ -32,7 +32,7 @@ class KeysTable(Generic[_M]):
         :param model: The Pydantic model to create the table for.
         :param name: The name of the table.
         """  # noqa: D205
-        self.table: Table[KeysTableModel] = Table(database, KeysTableModel, name)
+        self.table: Table[KeysTableModel] = Table(database, KeysTableModel, name, ["key"])
         self.model: Type[_M] = model
 
     @property
