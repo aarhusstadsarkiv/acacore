@@ -115,10 +115,12 @@ def upgrade_4to4_1(con: Connection) -> Version:
     """)
     con.execute("""
     create view log_paths as
-    select coalesce(fo.relative_path, fm.relative_path) as file_relative_path, l.*
+    select coalesce(fo.relative_path, fm.relative_path, fa.relative_path, fs.relative_path) as file_relative_path, l.*
     from log l
-             left join files_original fo on l.file_type = 'original' and fo.uuid = l.file_uuid
-             left join files_master fm on l.file_type = 'master' and fm.uuid = l.file_uuid
+        left join files_original  fo on l.file_type = 'original'  and fo.uuid = l.file_uuid
+        left join files_master    fm on l.file_type = 'master'    and fm.uuid = l.file_uuid
+        left join files_access    fa on l.file_type = 'access'    and fa.uuid = l.file_uuid
+        left join files_statutory fs on l.file_type = 'statutory' and fs.uuid = l.file_uuid
     """)
     con.commit()
 
