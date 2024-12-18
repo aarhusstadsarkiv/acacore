@@ -132,6 +132,7 @@ def upgrade_4to4_1(con: Connection) -> Version:
 def upgrade_4_1to4_1_1(con: Connection) -> Version:
     con.execute("drop table metadata")
     con.execute("create table metadata (key text not null, value text, primary key (key))")
+    con.commit()
     return set_db_version(con, Version("4.1.1"))
 
 
