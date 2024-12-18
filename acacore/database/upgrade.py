@@ -67,11 +67,62 @@ def upgrade_4to4_1(con: Connection) -> Version:
 
     con.execute("update files_master_tmp set processed = processed - 4 where processed != 0")
 
+    con.execute("drop view files_all")
+    con.execute("drop view log_paths")
     con.execute("drop table files_master")
-    con.execute("alter table files_master_tmp rename to files_master")
-    con.execute("vacuum")
-
+    con.execute("alter table files_master_tmp rename to 'files_master'")
+    con.execute("""
+    create view files_all as
+    select uuid,
+       checksum,
+       relative_path,
+       is_binary,
+       size,
+       puid,
+       signature,
+       warning
+    from files_original
+    union
+    select uuid,
+           checksum,
+           relative_path,
+           is_binary,
+           size,
+           puid,
+           signature,
+           warning
+    from files_master
+    union
+    select uuid,
+           checksum,
+           relative_path,
+           is_binary,
+           size,
+           puid,
+           signature,
+           warning
+    from files_access
+    union
+    select uuid,
+           checksum,
+           relative_path,
+           is_binary,
+           size,
+           puid,
+           signature,
+           warning
+    from files_statutory
+    """)
+    con.execute("""
+    create view log_paths as
+    select coalesce(fo.relative_path, fm.relative_path) as file_relative_path, l.*
+    from log l
+             left join files_original fo on l.file_type = 'original' and fo.uuid = l.file_uuid
+             left join files_master fm on l.file_type = 'master' and fm.uuid = l.file_uuid
+    """)
     con.commit()
+
+    con.execute("vacuum")
 
     return set_db_version(con, Version("4.1.0"))
 
