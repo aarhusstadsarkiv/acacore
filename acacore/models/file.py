@@ -84,7 +84,7 @@ def get_identifier(file: "BaseFile", file_classes: list[TSiegfriedFileClass], ac
 
 class BaseFile(BaseModel):
     """
-    File model containing all information used by the rest of the archival suite of tools.
+    Base model for file identification.
 
     :ivar uuid: The UUID of the file.
     :ivar checksum: The checksum of the file.
@@ -294,7 +294,7 @@ class BaseFile(BaseModel):
 
 class OriginalFile(BaseFile):
     """
-    File model containing all information used by the rest of the archival suite of tools.
+    File model for OriginalDocuments files.
 
     :ivar action: The name of the main action for the file's PUID, if one exists.
     :ivar action_data: The data for the action for the file's PUID, if one exists.
