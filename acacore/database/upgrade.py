@@ -1,3 +1,4 @@
+from json import dumps
 from json import loads
 from sqlite3 import Connection
 from sqlite3 import DatabaseError
@@ -25,7 +26,7 @@ def get_db_version(conn: Connection) -> Version | None:
 
 
 def set_db_version(conn: Connection, version: Version) -> Version:
-    conn.execute("insert or replace into Metadata (KEY, VALUE) values (?, ?)", ("version", str(version)))
+    conn.execute("insert or replace into Metadata (KEY, VALUE) values (?, ?)", ("version", dumps(str(version))))
     conn.commit()
     return version
 
