@@ -129,9 +129,18 @@ def upgrade_4to4_1(con: Connection) -> Version:
     return set_db_version(con, Version("4.1.0"))
 
 
+def upgrade_4_1to4_1_1(con: Connection) -> Version:
+    con.execute("drop table metadata")
+    con.execute("create table metadata (key text not null, value text, primary key (key))")
+    con.commit()
+    return set_db_version(con, Version("4.1.1"))
+
+
 def get_upgrade_function(current_version: Version, latest_version: Version) -> Callable[[Connection], Version]:
     if current_version < Version("4.1.0"):
         return upgrade_4to4_1
+    elif current_version < Version("4.1.1"):
+        return upgrade_4_1to4_1_1
     elif current_version < latest_version:
         return lambda c: set_db_version(c, Version(__version__))
     else:
