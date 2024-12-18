@@ -545,7 +545,7 @@ class MasterFile(ConvertedFile):
         custom_signatures: list[CustomSignature] | None = None,
         actions: dict[str, MasterConvertAction] | None = None,
         uuid: UUID | None = None,
-        processed: bool = False,
+        processed: int = 0,
     ) -> Self:
         """
         Create a file object from a given path.
@@ -558,7 +558,7 @@ class MasterFile(ConvertedFile):
             not provided or fails to find a match.
         :param actions: Optionally, a dictionary of ``MasterConvertAction`` objects to assign an action to the file.
         :param uuid: Optionally, the UUID of the file.
-        :param processed: Optionally, a boolean indicating if the file was processed.
+        :param processed: Optionally, a bit flag indicating if the file was processed: 0 none, 1 access, 2 statutory.
         :return: A ``MasterFile`` object.
         """
         file_base = super().from_file(path, root, original_uuid, siegfried, custom_signatures, uuid)
