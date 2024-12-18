@@ -84,7 +84,7 @@ def get_identifier(file: "BaseFile", file_classes: list[TSiegfriedFileClass], ac
 
 class BaseFile(BaseModel):
     """
-    File model containing all information used by the rest of the archival suite of tools.
+    Base model for file identification.
 
     :ivar uuid: The UUID of the file.
     :ivar checksum: The checksum of the file.
@@ -294,7 +294,7 @@ class BaseFile(BaseModel):
 
 class OriginalFile(BaseFile):
     """
-    File model containing all information used by the rest of the archival suite of tools.
+    File model for OriginalDocuments files.
 
     :ivar action: The name of the main action for the file's PUID, if one exists.
     :ivar action_data: The data for the action for the file's PUID, if one exists.
@@ -477,6 +477,12 @@ class OriginalFile(BaseFile):
 
 
 class ConvertedFile(BaseFile):
+    """
+    File model for output of file conversion.
+
+    :ivar original_uuid: UUID of the parent file that was converted.
+    """
+
     original_uuid: UUID4 | None = None
 
     @classmethod
@@ -517,9 +523,17 @@ class ConvertedFile(BaseFile):
 
 
 class MasterFile(ConvertedFile):
+    """
+    File model for MasterDocuments files converted from OriginalDocuments.
+
+    :ivar convert_access: Convert action to generate access file.
+    :ivar convert_statutory: Convert action to generate statutory file.
+    :ivar processed: Processed status as a bit flag: 0 none, 1 access, 2 statutory.
+    """
+
     convert_access: ConvertAction | None = None
     convert_statutory: ConvertAction | None = None
-    processed: bool = False
+    processed: int = Field(0, ge=0, le=3)
 
     @classmethod
     def from_file(
@@ -531,7 +545,7 @@ class MasterFile(ConvertedFile):
         custom_signatures: list[CustomSignature] | None = None,
         actions: dict[str, MasterConvertAction] | None = None,
         uuid: UUID | None = None,
-        processed: bool = False,
+        processed: int = 0,
     ) -> Self:
         """
         Create a file object from a given path.
@@ -544,7 +558,7 @@ class MasterFile(ConvertedFile):
             not provided or fails to find a match.
         :param actions: Optionally, a dictionary of ``MasterConvertAction`` objects to assign an action to the file.
         :param uuid: Optionally, the UUID of the file.
-        :param processed: Optionally, a boolean indicating if the file was processed.
+        :param processed: Optionally, a bit flag indicating if the file was processed: 0 none, 1 access, 2 statutory.
         :return: A ``MasterFile`` object.
         """
         file_base = super().from_file(path, root, original_uuid, siegfried, custom_signatures, uuid)

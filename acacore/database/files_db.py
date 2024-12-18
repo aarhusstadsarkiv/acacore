@@ -156,9 +156,11 @@ class FilesDB(Database):
             EventPath,
             "log_paths",
             f"""
-            select coalesce(fo.relative_path, fm.relative_path) as file_relative_path, l.* from {self.log.name} l
-                left join {self.original_files.name} fo on l.file_type = 'original' and fo.uuid = l.file_uuid
-                left join {self.master_files.name} fm on l.file_type = 'master' and fm.uuid = l.file_uuid
+            select coalesce(fo.relative_path, fm.relative_path, fa.relative_path, fs.relative_path) as file_relative_path, l.* from {self.log.name} l
+                left join {self.original_files.name}  fo on l.file_type = 'original'  and fo.uuid = l.file_uuid
+                left join {self.master_files.name}    fm on l.file_type = 'master'    and fm.uuid = l.file_uuid
+                left join {self.access_files.name}    fa on l.file_type = 'access'    and fa.uuid = l.file_uuid
+                left join {self.statutory_files.name} fs on l.file_type = 'statutory' and fs.uuid = l.file_uuid
             """,
         )
 

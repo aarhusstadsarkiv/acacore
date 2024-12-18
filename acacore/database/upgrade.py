@@ -1,3 +1,4 @@
+from json import dumps
 from json import loads
 from sqlite3 import Connection
 from sqlite3 import DatabaseError
@@ -25,13 +26,113 @@ def get_db_version(conn: Connection) -> Version | None:
 
 
 def set_db_version(conn: Connection, version: Version) -> Version:
-    conn.execute("insert or replace into Metadata (KEY, VALUE) values (?, ?)", ("version", str(version)))
+    conn.execute("insert or replace into Metadata (KEY, VALUE) values (?, ?)", ("version", dumps(str(version))))
     conn.commit()
     return version
 
 
+# noinspection SqlResolve
+def upgrade_4to4_1(con: Connection) -> Version:
+    con.execute("""
+    create table files_master_tmp
+    (
+        uuid              text    not null,
+        checksum          text    not null,
+        relative_path     text    not null,
+        is_binary         boolean not null,
+        size              integer not null,
+        puid              text,
+        signature         text,
+        warning           text,
+        original_uuid     text,
+        convert_access    text,
+        convert_statutory text,
+        processed         integer not null,
+        primary key (relative_path)
+    )
+    """)
+
+    con.execute("insert or ignore into files_master_tmp select * from files_master")
+    con.execute("update files_master_tmp set processed = 4 where processed != 0")
+
+    con.executemany(
+        "update files_master_tmp set processed = processed + 1 where uuid = ? and processed != 0",
+        ([uuid] for [uuid] in con.execute("select original_uuid from files_access")),
+    )
+
+    con.executemany(
+        "update files_master_tmp set processed = processed + 2 where uuid = ? and processed != 0",
+        ([uuid] for [uuid] in con.execute("select original_uuid from files_statutory")),
+    )
+
+    con.execute("update files_master_tmp set processed = processed - 4 where processed != 0")
+
+    con.execute("drop view files_all")
+    con.execute("drop view log_paths")
+    con.execute("drop table files_master")
+    con.execute("alter table files_master_tmp rename to 'files_master'")
+    con.execute("""
+    create view files_all as
+    select uuid,
+       checksum,
+       relative_path,
+       is_binary,
+       size,
+       puid,
+       signature,
+       warning
+    from files_original
+    union
+    select uuid,
+           checksum,
+           relative_path,
+           is_binary,
+           size,
+           puid,
+           signature,
+           warning
+    from files_master
+    union
+    select uuid,
+           checksum,
+           relative_path,
+           is_binary,
+           size,
+           puid,
+           signature,
+           warning
+    from files_access
+    union
+    select uuid,
+           checksum,
+           relative_path,
+           is_binary,
+           size,
+           puid,
+           signature,
+           warning
+    from files_statutory
+    """)
+    con.execute("""
+    create view log_paths as
+    select coalesce(fo.relative_path, fm.relative_path, fa.relative_path, fs.relative_path) as file_relative_path, l.*
+    from log l
+        left join files_original  fo on l.file_type = 'original'  and fo.uuid = l.file_uuid
+        left join files_master    fm on l.file_type = 'master'    and fm.uuid = l.file_uuid
+        left join files_access    fa on l.file_type = 'access'    and fa.uuid = l.file_uuid
+        left join files_statutory fs on l.file_type = 'statutory' and fs.uuid = l.file_uuid
+    """)
+    con.commit()
+
+    con.execute("vacuum")
+
+    return set_db_version(con, Version("4.1.0"))
+
+
 def get_upgrade_function(current_version: Version, latest_version: Version) -> Callable[[Connection], Version]:
-    if current_version < latest_version:
+    if current_version < Version("4.1.0"):
+        return upgrade_4to4_1
+    elif current_version < latest_version:
         return lambda c: set_db_version(c, Version(__version__))
     else:
         return lambda _: latest_version
