@@ -225,6 +225,38 @@ class Table(Generic[_M]):
 
         return Cursor(self.database.execute(" ".join(sql), params), self.model, list(self.columns.values()))
 
+    def count(
+        self,
+        where: _W | _M | None = None,
+        params: list[SQLValue] | None = None,
+        limit: int | None = None,
+        offset: int | None = None,
+    ) -> int:
+        """
+        Count entries from the table.
+
+        :param where: The where statement to use. This can be a string, a dictionary containing column names and
+            values, or an instance of the model used by the table if primary keys have been defined.
+        :param params: The parameters to use for the query, they are ignored if the ``where`` argument is anything but
+            a string.
+        :param limit: The maximum number of results to return.
+        :param offset: The offset to start the results from.
+        :return: A ``Cursor`` instance.
+        """
+        where, params = _where_to_sql(where, params, self.primary_keys)
+
+        sql: list[str] = [f"select count(*) from {self.name}"]
+
+        if where:
+            sql.append(f"where {where}")
+
+        if limit is not None:
+            sql.append(f"limit {limit}")
+        if offset is not None:
+            sql.append(f"offset {offset}")
+
+        return self.database.execute(" ".join(sql), params).fetchone()[0]
+
     def insert(self, *rows: _M, on_exists: Literal["ignore", "replace", "error"] = "error") -> int:
         """
         Insert entries into the table.
