@@ -91,3 +91,22 @@ class View(Generic[_M]):
         :return: A ``Cursor`` instance.
         """
         return self._table.select(where, params, order_by, limit, offset)
+
+    def count(
+        self,
+        where: _W | None = None,
+        params: list[SQLValue] | None = None,
+        limit: int | None = None,
+        offset: int | None = None,
+    ) -> int:
+        """
+        Count entries from the view.
+
+        :param where: The where statement to use. This can be a string or a dictionary containing column names and values.
+        :param params: The parameters to use for the query, they are ignored if the ``where`` argument is anything but
+            a string.
+        :param limit: The maximum number of results to return.
+        :param offset: The offset to start the results from.
+        :return: A ``Cursor`` instance.
+        """
+        return self._table.count(where, params, limit, offset)
