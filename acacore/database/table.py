@@ -136,7 +136,7 @@ class Table(Generic[_M]):
         yield from self.select()
 
     def __len__(self) -> int:
-        return self.database.execute(f"select count(*) from {self.name}").fetchone()[0]
+        return self.count()
 
     def __getitem__(self, where: _W | _M) -> _M | None:
         return self.select(where, limit=1).fetchone()
