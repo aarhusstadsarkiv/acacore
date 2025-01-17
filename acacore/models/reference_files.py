@@ -234,10 +234,10 @@ class Action(ActionData):
 
     name: str
     description: str | None = None
-    alternatives: dict[str, str] = Field(default_factory=dict)
+    alternatives: dict[str, str] = Field(default_factory=lambda: dict)
     action: TActionType | None
     ignore_warnings: list[str] = Field(
-        default_factory=list,
+        default_factory=lambda: list,
         validation_alias=AliasChoices("ignore_warnings", "ignore-warnings"),
     )
     ignore_if: IgnoreIfAction | None = None
