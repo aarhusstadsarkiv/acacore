@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "acacore"
-version = "4.1.1"
+version = "4.1.2"
 description = ""
 authors = ["Matteo Campinoti <matteo.campinoti94@gmail.com>"]
 license = "GPL-3.0"
