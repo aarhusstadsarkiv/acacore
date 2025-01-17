@@ -148,7 +148,7 @@ class ExtractAction(NoDefaultsModel):
 
     tool: str
     extension: str | None = None
-    on_success: Literal["convert", "template", "manual", "ignore"] | None = None
+    on_success: Literal["convert", "manual", "ignore"] | None = None
 
 
 class ManualAction(NoDefaultsModel):
