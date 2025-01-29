@@ -1,10 +1,15 @@
+from collections.abc import Iterable
+from collections.abc import Mapping
 from collections.abc import Sequence
 from os import PathLike
 from pathlib import Path
-from sqlite3 import Connection, ProgrammingError
+from sqlite3 import Connection
 from sqlite3 import Cursor as SQLiteCursor
+from sqlite3 import ProgrammingError
 from types import TracebackType
-from typing import Iterable, Mapping, Self, Type, TypeVar, overload
+from typing import overload
+from typing import Self
+from typing import TypeVar
 
 from pydantic import BaseModel
 
@@ -64,7 +69,7 @@ class Database:
 
     def __exit__(
         self,
-        _exc_type: Type[BaseException],
+        _exc_type: type[BaseException],
         _exc_val: BaseException,
         _exc_tb: TracebackType,
     ) -> None:
@@ -122,25 +127,15 @@ class Database:
 
     def tables(self) -> list[str]:
         """Return a list of table names in the database."""
-        return [
-            t
-            for [t] in self.connection.execute(
-                "select name from sqlite_master where type = 'table'"
-            )
-        ]
+        return [t for [t] in self.connection.execute("select name from sqlite_master where type = 'table'")]
 
     def views(self) -> list[str]:
         """Return a list of view names in the database."""
-        return [
-            v
-            for [v] in self.connection.execute(
-                "select name from sqlite_master where type = 'view'"
-            )
-        ]
+        return [v for [v] in self.connection.execute("select name from sqlite_master where type = 'view'")]
 
     def create_table(
         self,
-        model: Type[_M],
+        model: type[_M],
         name: str,
         primary_keys: list[str] | None = None,
         indices: dict[str, list[str]] | None = None,
@@ -159,13 +154,11 @@ class Database:
         :param exist_ok: Whether to ignore any existing table with the same name.
         :return: A ``Table`` instance.
         """
-        return Table(
-            self.connection, model, name, primary_keys, indices, ignore
-        ).create(exist_ok=exist_ok)
+        return Table(self.connection, model, name, primary_keys, indices, ignore).create(exist_ok=exist_ok)
 
     def create_view(
         self,
-        model: Type[_M],
+        model: type[_M],
         name: str,
         select: str,
         ignore: list[str] | None = None,
@@ -182,13 +175,9 @@ class Database:
         :param exist_ok: Whether to ignore any existing view with the same name.
         :return: A ``View`` instance.
         """
-        return View(self.connection, model, name, select, ignore).create(
-            exist_ok=exist_ok
-        )
+        return View(self.connection, model, name, select, ignore).create(exist_ok=exist_ok)
 
-    def create_keys_table(
-        self, model: Type[_M], name: str, *, exist_ok: bool = True
-    ) -> KeysTable[_M]:
+    def create_keys_table(self, model: type[_M], name: str, *, exist_ok: bool = True) -> KeysTable[_M]:
         """
         Create a key-value store table in the database based on a model.
 

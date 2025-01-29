@@ -1,7 +1,9 @@
+from collections.abc import Callable
+from collections.abc import Generator
 from hashlib import sha256
 from pathlib import Path
 from re import match
-from typing import Callable, Generator, TypeVar
+from typing import TypeVar
 
 from imagesize import get as get_image_size
 from PIL import Image
@@ -11,9 +13,7 @@ from acacore.exceptions.files import ImageIdentificationError
 T = TypeVar("T")
 R = TypeVar("R")
 
-_text_bytes: bytes = bytes(
-    [7, 8, 9, 10, 12, 13, 27, *range(0x20, 0x7F), *range(0x80, 0x100)]
-)
+_text_bytes: bytes = bytes([7, 8, 9, 10, 12, 13, 27, *range(0x20, 0x7F), *range(0x80, 0x100)])
 
 
 def or_none(func: Callable[[T], R]) -> Callable[[T], R | None]:
@@ -44,9 +44,7 @@ def rm_tree(path: Path):
     path.rmdir()
 
 
-def find_files(
-    path: Path, exclude: list[Path] | None = None
-) -> Generator[Path, None, None]:
+def find_files(path: Path, exclude: list[Path] | None = None) -> Generator[Path, None, None]:
     """
     Find files in the specified root directories, excluding any files or directories included in the `exclude` list.
 
@@ -64,9 +62,7 @@ def find_files(
     if path.is_file():
         yield path
     elif path.is_dir():
-        yield from (
-            f for i in sorted(path.iterdir()) for f in find_files(i, exclude=exclude)
-        )
+        yield from (f for i in sorted(path.iterdir()) for f in find_files(i, exclude=exclude))
 
 
 def file_checksum(path: Path) -> str:

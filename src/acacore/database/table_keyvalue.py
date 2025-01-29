@@ -1,9 +1,13 @@
+from collections.abc import Generator
 from sqlite3 import Connection
-from typing import Any, Generator, Generic, Type, overload
+from typing import Any
+from typing import Generic
+from typing import overload
 
 from pydantic import BaseModel
 
-from .table import _M, Table
+from .table import _M
+from .table import Table
 
 
 class KeysTableModel(BaseModel):
@@ -21,16 +25,14 @@ class KeysTable(Generic[_M]):
     :ivar model: The model the table is based on.
     """
 
-    def __init__(self, database: Connection, model: Type[_M], name: str) -> None:
+    def __init__(self, database: Connection, model: type[_M], name: str) -> None:
         """
         :param database: The connection to the database.
         :param model: The Pydantic model to create the table for.
         :param name: The name of the table.
         """  # noqa: D205
-        self.table: Table[KeysTableModel] = Table(
-            database, KeysTableModel, name, ["key"]
-        )
-        self.model: Type[_M] = model
+        self.table: Table[KeysTableModel] = Table(database, KeysTableModel, name, ["key"])
+        self.model: type[_M] = model
 
     @property
     def name(self) -> str:
@@ -52,9 +54,7 @@ class KeysTable(Generic[_M]):
 
     def __setitem__(self, key: str, value: object | None) -> None:
         if key not in self.model.model_fields:
-            raise AttributeError(
-                f"{self.model.__name__!r} object has no attribute {key!r}"
-            )
+            raise AttributeError(f"{self.model.__name__!r} object has no attribute {key!r}")
 
         self.table.insert(KeysTableModel(key=key, value=value), on_exists="replace")
 
@@ -96,9 +96,7 @@ class KeysTable(Generic[_M]):
         :return: The object stored in the table.
         """
         if key is not None and key not in self.model.model_fields:
-            raise AttributeError(
-                f"{self.model.__name__!r} object has no attribute {key!r}"
-            )
+            raise AttributeError(f"{self.model.__name__!r} object has no attribute {key!r}")
 
         items = self.table.select().fetchall()
         if not items:

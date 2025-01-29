@@ -2,23 +2,24 @@ from datetime import datetime
 from os import PathLike
 from pathlib import Path
 from re import compile as re_compile
-from subprocess import CompletedProcess, run
-from typing import Literal
+from subprocess import CompletedProcess
+from subprocess import run
 from typing import get_args as get_type_args
+from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
-from pydantic.networks import AnyUrl, HttpUrl
+from pydantic import BaseModel
+from pydantic import ConfigDict
+from pydantic import Field
+from pydantic import model_validator
+from pydantic.networks import AnyUrl
+from pydantic.networks import HttpUrl
 
 from acacore.exceptions.files import IdentificationError
 
 _byte_match_regexp_single = re_compile(r"^byte match at (\d+), *(\d+)( *\([^)]*\))?$")
-_byte_match_regexp_multi = re_compile(
-    r"^byte match at \[\[(\d+) +(\d+)]( \[\d+ +\d+])*]( \([^)]*\))?$"
-)
+_byte_match_regexp_multi = re_compile(r"^byte match at \[\[(\d+) +(\d+)]( \[\d+ +\d+])*]( \([^)]*\))?$")
 _extension_match = re_compile(r"^extension match (.+)$")
-TSignaturesProvider = Literal[
-    "pronom", "loc", "tika", "freedesktop", "pronom-tika-loc", "deluxe", "archivematica"
-]
+TSignaturesProvider = Literal["pronom", "loc", "tika", "freedesktop", "pronom-tika-loc", "deluxe", "archivematica"]
 TSiegfriedFileClass = Literal[
     "aggregate",
     "audio",
@@ -48,11 +49,7 @@ def _check_process(process: CompletedProcess) -> CompletedProcess:
     :raises IdentificationError: If the process ends with a return code other than 0.
     """
     if process.returncode != 0:
-        raise IdentificationError(
-            process.stderr
-            or process.stdout
-            or f"Unknown error code {process.returncode}"
-        )
+        raise IdentificationError(process.stderr or process.stdout or f"Unknown error code {process.returncode}")
 
     return process
 
@@ -103,9 +100,7 @@ class SiegfriedMatch(BaseModel):
         :return: The length of the byte match or None, if the match was not on the basis of bytes.
         """
         for basis in self.basis:
-            match = _byte_match_regexp_single.match(
-                basis
-            ) or _byte_match_regexp_multi.match(basis)
+            match = _byte_match_regexp_single.match(basis) or _byte_match_regexp_multi.match(basis)
             if match:
                 return (int(match.group(2)) - int(match.group(1))) if match else None
         return None
@@ -161,18 +156,10 @@ class SiegfriedMatch(BaseModel):
         if isinstance(data, dict):
             return {
                 **data,
-                "id": None
-                if data["id"].lower().strip() == "unknown"
-                else data["id"].strip() or None,
+                "id": None if data["id"].lower().strip() == "unknown" else data["id"].strip() or None,
                 "basis": filter(bool, map(str.strip, data["basis"].strip().split(";"))),
-                "warning": filter(
-                    bool, map(str.strip, data["warning"].strip().split(";"))
-                ),
-                "class": [
-                    c
-                    for c in map(str.strip, data.get("class", "").lower().split(","))
-                    if c
-                ],
+                "warning": filter(bool, map(str.strip, data["warning"].strip().split(";"))),
+                "class": [c for c in map(str.strip, data.get("class", "").lower().split(",")) if c],
             }
         return data
 
@@ -279,9 +266,7 @@ class Siegfried:
         """
         if self.home:
             args = ("-home", str(self.home), *args)
-        return _check_process(
-            run([self.binary, *args], capture_output=True, encoding="utf-8")
-        )  # noqa: PLW1510
+        return _check_process(run([self.binary, *args], capture_output=True, encoding="utf-8"))  # noqa: PLW1510
 
     def update(
         self,
@@ -298,13 +283,9 @@ class Siegfried:
             to True.
         :raises IdentificationError: If Siegfried exits with a non-zero status code.
         """
-        if signature is not None and signature not in get_type_args(
-            TSignaturesProvider
-        ):
+        if signature is not None and signature not in get_type_args(TSignaturesProvider):
             raise IdentificationError(f"Unknown signature provider {signature!r}")
-        signature = (
-            signature.lower() if signature else self.signature.removesuffix(".sig")
-        )
+        signature = signature.lower() if signature else self.signature.removesuffix(".sig")
         signature_file = f"{signature}.sig" if signature else self.signature
 
         self.run("-sig", signature_file, "-update", signature)
@@ -320,9 +301,7 @@ class Siegfried:
         :raises IdentificationError: If there is an error calling Siegfried or processing its results.
         :return: A SiegfriedResult object
         """
-        process: CompletedProcess = self.run(
-            "-sig", self.signature, "-json", "-multi", "1024", *map(str, path)
-        )
+        process: CompletedProcess = self.run("-sig", self.signature, "-json", "-multi", "1024", *map(str, path))
         try:
             return SiegfriedResult.model_validate_json(process.stdout)
         except ValueError as err:

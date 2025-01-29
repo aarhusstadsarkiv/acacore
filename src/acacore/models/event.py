@@ -1,10 +1,16 @@
+from collections.abc import Sequence
 from datetime import datetime
 from logging import Logger
-from typing import Any, Literal, Self, Sequence
+from typing import Any
+from typing import Literal
+from typing import Self
 from uuid import UUID
 
 from click import Context
-from pydantic import UUID4, BaseModel, Field, model_validator
+from pydantic import BaseModel
+from pydantic import Field
+from pydantic import model_validator
+from pydantic import UUID4
 
 from acacore.__version__ import __version__
 
@@ -20,9 +26,7 @@ class Event(BaseModel):
     @classmethod
     @model_validator(mode="after")
     def _model_validator(cls, data: Self):
-        if (data.file_uuid and not data.file_type) or (
-            not data.file_uuid and data.file_type
-        ):
+        if (data.file_uuid and not data.file_type) or (not data.file_uuid and data.file_type):
             raise ValueError("uuid and file type must be set together")
         return data
 
@@ -31,8 +35,7 @@ class Event(BaseModel):
         cls,
         ctx: Context | str,
         operation: str,
-        file: tuple[UUID, Literal["original", "master", "access", "statutory"]]
-        | None = None,
+        file: tuple[UUID, Literal["original", "master", "access", "statutory"]] | None = None,
         data: object | None = None,
         reason: str | None = None,
         time: datetime | None = None,
@@ -66,9 +69,7 @@ class Event(BaseModel):
         operation = f"{command.strip(':.')}:{operation.strip(':')}"
 
         if add_params_to_data and not isinstance(ctx, Context):
-            raise TypeError(
-                f"add_params_to_data is not compatible with ctx of type {type(ctx)}"
-            )
+            raise TypeError(f"add_params_to_data is not compatible with ctx of type {type(ctx)}")
 
         if add_params_to_data and data is None:
             data = {"acacore": __version__, "params": ctx.params}
@@ -77,9 +78,7 @@ class Event(BaseModel):
         elif add_params_to_data and isinstance(data, list):
             data.append({"acacore": __version__, "params": ctx.params})
         elif add_params_to_data:
-            raise TypeError(
-                f"Data type {type(data)} is not compatible with add_params_to_data"
-            )
+            raise TypeError(f"Data type {type(data)} is not compatible with add_params_to_data")
 
         return cls(
             file_uuid=file[0] if file else None,
@@ -111,9 +110,7 @@ class Event(BaseModel):
             argument names to show only specific ones. Default is True.
         :param extra: Additional arguments to be shown in the log message.
         """
-        uuid_msg: str | None = (
-            f"{self.file_type}:{self.file_uuid}" if self.file_uuid else None
-        )
+        uuid_msg: str | None = f"{self.file_type}:{self.file_uuid}" if self.file_uuid else None
 
         if not show_args:
             msg: str = self.operation

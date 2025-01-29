@@ -1,10 +1,13 @@
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Self, Type
+from typing import Any
+from typing import Self
 from uuid import UUID
 
-from orjson import dumps, loads
+from orjson import dumps
+from orjson import loads
 from pydantic import BaseModel
 
 from acacore.utils.functions import or_none
@@ -56,7 +59,7 @@ def _dump_object(obj: list | tuple | dict | BaseModel) -> list | dict:
         return {k: _dump_object(v) for k, v in obj.items()}
     elif issubclass(type(obj), BaseModel):
         return obj.model_dump(mode="json")
-    elif isinstance(obj, (list, tuple)):
+    elif isinstance(obj, list | tuple):
         return list(map(_dump_object, obj))
     else:
         return obj
@@ -89,14 +92,10 @@ class ColumnSpec:
 
         :return: An SQLIte statement.
         """
-        return (
-            f"{self.name} {self.type} {'not null' if not self.nullable else ''}".strip()
-        )
+        return f"{self.name} {self.type} {'not null' if not self.nullable else ''}".strip()
 
     @classmethod
-    def from_schema(
-        cls, name: str, schema: dict, defs: dict[str, dict] | None = None
-    ) -> Self:
+    def from_schema(cls, name: str, schema: dict, defs: dict[str, dict] | None = None) -> Self:
         """
         Generate a column from a JSON schema.
 
@@ -123,9 +122,7 @@ class ColumnSpec:
             if schema_type in ("object", "array"):
                 sql_type, to_sql, from_sql = (
                     "text",
-                    lambda x: None
-                    if x is None
-                    else dumps(_dump_object(x), default=str).decode("utf-8"),
+                    lambda x: None if x is None else dumps(_dump_object(x), default=str).decode("utf-8"),
                     lambda x: None if x is None else loads(x),
                 )
             elif type_name in _sql_schema_type_converters:
@@ -137,9 +134,7 @@ class ColumnSpec:
             if not schema_any_of[0] or len(schema_any_of) > 2:
                 sql_type, to_sql, from_sql = (
                     "text",
-                    lambda x: None
-                    if x is None
-                    else dumps(_dump_object(x), default=str).decode("utf-8"),
+                    lambda x: None if x is None else dumps(_dump_object(x), default=str).decode("utf-8"),
                     lambda x: None if x is None else loads(x),
                 )
             else:
@@ -156,10 +151,9 @@ class ColumnSpec:
             nullable=nullable,
         )
 
+    # noinspection PyUnboundLocalVariable
     @classmethod
-    def from_model(
-        cls, model: Type[BaseModel], ignore: list[str] | None = None
-    ) -> list[Self]:
+    def from_model(cls, model: type[BaseModel], ignore: list[str] | None = None) -> list[Self]:  # noqa: A003
         """
         Generate a list of columns from a Pydantic model.
 
@@ -170,8 +164,4 @@ class ColumnSpec:
         schema: dict = model.model_json_schema()
         ignore = ignore or []
 
-        return [
-            cls.from_schema(p, s, schema.get("$defs"))
-            for p, s in schema["properties"].items()
-            if p not in ignore
-        ]
+        return [cls.from_schema(p, s, schema.get("$defs")) for p, s in schema["properties"].items() if p not in ignore]

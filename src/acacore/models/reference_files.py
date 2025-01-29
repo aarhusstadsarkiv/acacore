@@ -1,8 +1,14 @@
+from re import Match
 from re import search
-from typing import Literal, Match, Self
 from typing import get_args as get_type_args
+from typing import Literal
+from typing import Self
 
-from pydantic import AliasChoices, BaseModel, Field, field_validator, model_validator
+from pydantic import AliasChoices
+from pydantic import BaseModel
+from pydantic import Field
+from pydantic import field_validator
+from pydantic import model_validator
 
 from .base import NoDefaultsModel
 
@@ -69,9 +75,7 @@ class CustomSignature(BaseModel):
             match_eof: Match[str] | None = search(self.eof, eof or "")
 
             if match_bof and match_eof:
-                return (match_bof.end() - match_bof.start()) + (
-                    match_eof.end() - match_eof.start()
-                )
+                return (match_bof.end() - match_bof.start()) + (match_eof.end() - match_eof.start())
             elif self.operator == "OR" and match_bof:
                 return match_bof.end() - match_bof.start()
             elif self.operator == "OR" and match_eof:
@@ -260,7 +264,5 @@ class Action(ActionData):
     @model_validator(mode="after")
     def _validate_model(self) -> Self:
         if self.action is not None and getattr(self, self.action, None) is None:
-            raise ValueError(
-                f"missing {self.action!r}. If action is set, the action field must be set as well. "
-            )
+            raise ValueError(f"missing {self.action!r}. If action is set, the action field must be set as well. ")
         return self

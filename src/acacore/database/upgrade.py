@@ -1,23 +1,25 @@
-from json import dumps, loads
-from sqlite3 import Connection, DatabaseError, OperationalError
-from typing import Callable
+from collections.abc import Callable
+from json import dumps
+from json import loads
+from sqlite3 import Connection
+from sqlite3 import DatabaseError
+from sqlite3 import OperationalError
 
-from packaging.version import InvalidVersion, Version
+from packaging.version import InvalidVersion
+from packaging.version import Version
 
 from acacore.__version__ import __version__
 
 __all__ = [
-    "upgrade",
     "is_latest",
+    "upgrade",
 ]
 
 
 # noinspection SqlResolve
 def get_db_version(conn: Connection) -> Version | None:
     try:
-        cur = conn.execute(
-            "select VALUE from Metadata where KEY like 'version'"
-        ).fetchone()
+        cur = conn.execute("select VALUE from Metadata where KEY like 'version'").fetchone()
         return Version(loads(cur[0])) if cur else None
     except (OperationalError, ValueError, InvalidVersion):
         return None
@@ -66,9 +68,7 @@ def upgrade_4to4_1(con: Connection) -> Version:
         ([uuid] for [uuid] in con.execute("select original_uuid from files_statutory")),
     )
 
-    con.execute(
-        "update files_master_tmp set processed = processed - 4 where processed != 0"
-    )
+    con.execute("update files_master_tmp set processed = processed - 4 where processed != 0")
 
     con.execute("drop view files_all")
     con.execute("drop view log_paths")
@@ -134,16 +134,12 @@ def upgrade_4to4_1(con: Connection) -> Version:
 
 def upgrade_4_1to4_1_1(con: Connection) -> Version:
     con.execute("drop table metadata")
-    con.execute(
-        "create table metadata (key text not null, value text, primary key (key))"
-    )
+    con.execute("create table metadata (key text not null, value text, primary key (key))")
     con.commit()
     return set_db_version(con, Version("4.1.1"))
 
 
-def get_upgrade_function(
-    current_version: Version, latest_version: Version
-) -> Callable[[Connection], Version]:
+def get_upgrade_function(current_version: Version, latest_version: Version) -> Callable[[Connection], Version]:
     if current_version < Version("4.1.0"):
         return upgrade_4to4_1
     elif current_version < Version("4.1.1"):
@@ -172,13 +168,9 @@ def is_latest(connection: Connection, *, raise_on_difference: bool = False) -> b
     if not current_version:
         raise DatabaseError("Database does not contain version information")
     if current_version > latest_version:
-        raise DatabaseError(
-            f"Database version is greater than latest version: {current_version} > {latest_version}"
-        )
+        raise DatabaseError(f"Database version is greater than latest version: {current_version} > {latest_version}")
     if current_version < latest_version and raise_on_difference:
-        raise DatabaseError(
-            f"Database version is lower than latest version: {current_version} < {latest_version}"
-        )
+        raise DatabaseError(f"Database version is lower than latest version: {current_version} < {latest_version}")
 
     return current_version == latest_version
 

@@ -1,39 +1,41 @@
 from functools import reduce
 from os import PathLike
 from pathlib import Path
-from typing import Literal, Self, TypeVar
-from uuid import UUID, uuid4
+from typing import Literal
+from typing import Self
+from typing import TypeVar
+from uuid import UUID
+from uuid import uuid4
 
-from pydantic import UUID4, BaseModel, Field, model_validator
+from pydantic import BaseModel
+from pydantic import Field
+from pydantic import model_validator
+from pydantic import UUID4
 
-from acacore.siegfried.siegfried import Siegfried, SiegfriedFile, TSiegfriedFileClass
-from acacore.utils.functions import (
-    file_checksum,
-    get_bof,
-    get_eof,
-    image_size,
-    is_binary,
-    is_valid_suffix,
-)
+from acacore.siegfried.siegfried import Siegfried
+from acacore.siegfried.siegfried import SiegfriedFile
+from acacore.siegfried.siegfried import TSiegfriedFileClass
+from acacore.utils.functions import file_checksum
+from acacore.utils.functions import get_bof
+from acacore.utils.functions import get_eof
+from acacore.utils.functions import image_size
+from acacore.utils.functions import is_binary
+from acacore.utils.functions import is_valid_suffix
 
-from .reference_files import (
-    Action,
-    ActionData,
-    ConvertAction,
-    CustomSignature,
-    IgnoreAction,
-    IgnoreIfAction,
-    ManualAction,
-    MasterConvertAction,
-    TActionType,
-)
+from .reference_files import Action
+from .reference_files import ActionData
+from .reference_files import ConvertAction
+from .reference_files import CustomSignature
+from .reference_files import IgnoreAction
+from .reference_files import IgnoreIfAction
+from .reference_files import ManualAction
+from .reference_files import MasterConvertAction
+from .reference_files import TActionType
 
 _A = TypeVar("_A")
 
 
-def ignore_if(
-    file: "OriginalFile", rules: IgnoreIfAction
-) -> tuple[TActionType | None, ActionData]:
+def ignore_if(file: "OriginalFile", rules: IgnoreIfAction) -> tuple[TActionType | None, ActionData]:
     action: TActionType | None = None
     ignore_action: IgnoreAction = IgnoreAction(template="not-preservable")
 
@@ -41,14 +43,10 @@ def ignore_if(
         width, height = image_size(file.get_absolute_path())
         if rules.image_width_min and width < rules.image_width_min:
             action = "ignore"
-            ignore_action.reason = (
-                f"Image width is too small ({width}px < {rules.image_width_min})"
-            )
+            ignore_action.reason = f"Image width is too small ({width}px < {rules.image_width_min})"
         elif rules.image_height_min and height < rules.image_height_min:
             action = "ignore"
-            ignore_action.reason = (
-                f"Image height is too small  ({height}px < {rules.image_height_min})"
-            )
+            ignore_action.reason = f"Image height is too small  ({height}px < {rules.image_height_min})"
         elif rules.image_pixels_min and (width * height) < rules.image_pixels_min:
             action = "ignore"
             ignore_action.reason = f"Image resolution is too small  ({width * height}px < {rules.image_pixels_min})"
@@ -64,9 +62,7 @@ def ignore_if(
     return file.action, file.action_data
 
 
-def get_identifier(
-    file: "BaseFile", file_classes: list[TSiegfriedFileClass], actions: dict[str, _A]
-) -> _A | None:
+def get_identifier(file: "BaseFile", file_classes: list[TSiegfriedFileClass], actions: dict[str, _A]) -> _A | None:
     identifiers: list[str] = [
         f"!name={file.relative_path.name}",
         f"!iname={file.relative_path.name.lower()}",
@@ -153,9 +149,7 @@ class BaseFile(BaseModel):
 
         return file
 
-    def identify(
-        self, sf: Siegfried | SiegfriedFile, *, set_match: bool = False
-    ) -> SiegfriedFile:
+    def identify(self, sf: Siegfried | SiegfriedFile, *, set_match: bool = False) -> SiegfriedFile:
         """
         Identify the file using `siegfried`.
 
@@ -163,11 +157,7 @@ class BaseFile(BaseModel):
         :param set_match: Set results of Siegfried match if ``True``, defaults to ``False``.
         :return: The ``SiegfriedFile`` result.
         """
-        result: SiegfriedFile = (
-            sf.identify(self.get_absolute_path()).files[0]
-            if isinstance(sf, Siegfried)
-            else sf
-        )
+        result: SiegfriedFile = sf.identify(self.get_absolute_path()).files[0] if isinstance(sf, Siegfried) else sf
 
         if set_match and (match := result.best_match()):
             self.puid = match.id
@@ -223,9 +213,7 @@ class BaseFile(BaseModel):
         :return: The absolute path.
         """
         root = root or self.root
-        return (
-            root.joinpath(self.relative_path) if root else self.relative_path.resolve()
-        )
+        return root.joinpath(self.relative_path) if root else self.relative_path.resolve()
 
     def get_checksum(self) -> str:
         """
@@ -269,9 +257,7 @@ class BaseFile(BaseModel):
 
     @stem.setter
     def stem(self, new_stem: str):
-        self.relative_path = self.relative_path.with_name(new_stem).with_suffix(
-            self.suffixes
-        )
+        self.relative_path = self.relative_path.with_name(new_stem).with_suffix(self.suffixes)
 
     @property
     def suffix(self) -> str:
@@ -303,9 +289,7 @@ class BaseFile(BaseModel):
 
     @suffixes.setter
     def suffixes(self, new_suffixes: str):
-        self.relative_path = self.relative_path.with_name(
-            self.name.removesuffix(self.suffixes) + new_suffixes
-        )
+        self.relative_path = self.relative_path.with_name(self.name.removesuffix(self.suffixes) + new_suffixes)
 
 
 class OriginalFile(BaseFile):
@@ -331,9 +315,7 @@ class OriginalFile(BaseFile):
     @classmethod
     def _model_validator(cls, data: dict):
         if isinstance(data, dict):
-            data["original_path"] = (
-                data.get("original_path", "") or data["relative_path"]
-            )
+            data["original_path"] = data.get("original_path", "") or data["relative_path"]
         return data
 
     @classmethod
@@ -433,9 +415,7 @@ class OriginalFile(BaseFile):
                         action = Action(
                             name="",
                             action="manual",
-                            manual=ManualAction(
-                                reason="No action available for custom PUID", process=""
-                            ),
+                            manual=ManualAction(reason="No action available for custom PUID", process=""),
                         )
                 elif action.reidentify.on_fail == "action":
                     pass
@@ -448,21 +428,12 @@ class OriginalFile(BaseFile):
             if action.ignore_if:
                 self.action, self.action_data = ignore_if(self, action.ignore_if)
 
-            if (
-                self.action != "ignore"
-                and actions
-                and "*" in actions
-                and actions["*"].ignore_if
-            ):
+            if self.action != "ignore" and actions and "*" in actions and actions["*"].ignore_if:
                 self.action, self.action_data = ignore_if(self, actions["*"].ignore_if)
 
             if action.ignore_warnings and self.warning is not None:
-                ignore_warnings: list[str] = [
-                    iw.lower() for iw in action.ignore_warnings
-                ]
-                self.warning = [
-                    w for w in self.warning if w.lower() not in ignore_warnings
-                ]
+                ignore_warnings: list[str] = [iw.lower() for iw in action.ignore_warnings]
+                self.warning = [w for w in self.warning if w.lower() not in ignore_warnings]
                 self.warning = self.warning or None
         elif actions:
             self.action = None
@@ -486,11 +457,7 @@ class OriginalFile(BaseFile):
         action: Action | None = get_identifier(self, file_classes, actions)
         from_alternative: bool = False
 
-        if (
-            action
-            and action.alternatives
-            and (new_puid := action.alternatives.get(self.suffixes.lower(), None))
-        ):
+        if action and action.alternatives and (new_puid := action.alternatives.get(self.suffixes.lower(), None)):
             puid: str | None = self.puid
             self.puid = new_puid
             if new_action := self.get_action(actions, file_classes):
@@ -504,9 +471,7 @@ class OriginalFile(BaseFile):
             self.action = action.action
             self.action_data = action.action_data
             if from_alternative and self.warning:
-                self.warning = [
-                    w for w in self.warning if w.lower() != "extension mismatch"
-                ]
+                self.warning = [w for w in self.warning if w.lower() != "extension mismatch"]
         elif set_match:
             self.signature = self.signature if self.puid else None
             self.action = None
@@ -600,9 +565,7 @@ class MasterFile(ConvertedFile):
         :param processed: Optionally, a bit flag indicating if the file was processed: 0 none, 1 access, 2 statutory.
         :return: A ``MasterFile`` object.
         """
-        file_base = super().from_file(
-            path, root, original_uuid, siegfried, custom_signatures, uuid
-        )
+        file_base = super().from_file(path, root, original_uuid, siegfried, custom_signatures, uuid)
         file = MasterFile(
             uuid=file_base.uuid,
             checksum=file_base.checksum,
@@ -643,9 +606,7 @@ class MasterFile(ConvertedFile):
 
         file_classes: list[TSiegfriedFileClass] = []
 
-        if siegfried and (
-            match := super().identify(siegfried, set_match=True).best_match()
-        ):
+        if siegfried and (match := super().identify(siegfried, set_match=True).best_match()):
             file_classes = match.match_class
         elif custom_signatures:
             self.identify_custom(custom_signatures, set_match=True)

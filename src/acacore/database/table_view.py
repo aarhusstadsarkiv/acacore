@@ -1,9 +1,13 @@
+from collections.abc import Generator
 from sqlite3 import Connection
-from typing import Generator, Generic, Self, Type
+from typing import Generic
+from typing import Self
 
 from .column import SQLValue
 from .cursor import Cursor
-from .table import _M, _W, Table
+from .table import _M
+from .table import _W
+from .table import Table
 
 
 class View(Generic[_M]):
@@ -19,7 +23,7 @@ class View(Generic[_M]):
     def __init__(
         self,
         database: Connection,
-        model: Type[_M],
+        model: type[_M],
         name: str,
         select: str,
         ignore: list[str] | None = None,
@@ -32,12 +36,10 @@ class View(Generic[_M]):
         :param ignore: A list of field names to ignore from the model.
         """  # noqa: D205
         self.database: Connection = database
-        self.model: Type[_M] = model
+        self.model: type[_M] = model
         self.name: str = name
         self.select_stmt: str = select
-        self._table: Table[_M] = Table(
-            self.database, self.model, self.name, ignore=ignore
-        )
+        self._table: Table[_M] = Table(self.database, self.model, self.name, ignore=ignore)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.name!r}, {self.model.__name__})"

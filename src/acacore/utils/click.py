@@ -1,14 +1,19 @@
+from collections.abc import Callable
 from datetime import datetime
-from logging import ERROR, INFO, Logger
+from logging import ERROR
+from logging import INFO
+from logging import Logger
 from pathlib import Path
-from re import Pattern
 from re import compile as re_compile
+from re import Pattern
 from sqlite3 import DatabaseError
 from sys import stdout
 from traceback import format_tb
-from typing import Callable
 
-from click import BadParameter, Command, Context, Parameter
+from click import BadParameter
+from click import Command
+from click import Context
+from click import Parameter
 
 from acacore.models.event import Event
 from acacore.utils.helpers import ExceptionManager
@@ -28,9 +33,7 @@ def ctx_params(ctx: Context) -> dict[str, Parameter]:
 def param_callback_regex(
     pattern: str,
     flags: int = 0,
-) -> Callable[
-    [Context, Parameter, str | tuple[str, ...] | None], str | tuple[str, ...] | None
-]:
+) -> Callable[[Context, Parameter, str | tuple[str, ...] | None], str | tuple[str, ...] | None]:
     """
     Create a ``click.Parameter`` callback that matches the argument against a given regex pattern.
 
@@ -43,16 +46,12 @@ def param_callback_regex(
     """
     compiled_pattern: Pattern = re_compile(pattern, flags)
 
-    def callback(
-        ctx: Context, param: Parameter, value: str | tuple[str, ...] | None
-    ) -> str | tuple[str, ...] | None:
+    def callback(ctx: Context, param: Parameter, value: str | tuple[str, ...] | None) -> str | tuple[str, ...] | None:
         if value is None:
             return value
         elif isinstance(value, str) and not compiled_pattern.match(value):  # noqa: SIM114
             raise BadParameter(f"does not match {pattern!r}", ctx, param)
-        elif isinstance(value, tuple) and any(
-            not compiled_pattern.match(v) for v in value
-        ):
+        elif isinstance(value, tuple) and any(not compiled_pattern.match(v) for v in value):
             raise BadParameter(f"does not match {pattern!r}", ctx, param)
         return value
 
@@ -124,13 +123,9 @@ def start_program(
     """
     prog: str = ctx.find_root().command.name
     logger_file: Logger | None = (
-        setup_logger(f"{prog}_file", files=[database.path.parent / f"{prog}.log"])
-        if log_file
-        else None
+        setup_logger(f"{prog}_file", files=[database.path.parent / f"{prog}.log"]) if log_file else None
     )
-    logger_stdout: Logger | None = (
-        setup_logger(f"{prog}_stdout", streams=[stdout]) if log_stdout else None
-    )
+    logger_stdout: Logger | None = setup_logger(f"{prog}_stdout", streams=[stdout]) if log_stdout else None
     program_start: Event = Event.from_command(
         ctx,
         "start",

@@ -1,10 +1,16 @@
+from collections.abc import Generator
 from re import sub
-from sqlite3 import Connection, ProgrammingError
-from typing import Generator, Generic, Literal, Self, Type, TypeVar
+from sqlite3 import Connection
+from sqlite3 import ProgrammingError
+from typing import Generic
+from typing import Literal
+from typing import Self
+from typing import TypeVar
 
 from pydantic import BaseModel
 
-from .column import ColumnSpec, SQLValue
+from .column import ColumnSpec
+from .column import SQLValue
 from .cursor import Cursor
 
 _M = TypeVar("_M", bound=BaseModel)
@@ -65,9 +71,7 @@ def _where_to_sql(
     if where is None:
         where = ""
     elif isinstance(where, BaseModel):
-        where, params = _where_dict_to_sql(
-            {pk.name: pk.to_sql(getattr(where, pk.name)) for pk in primary_keys}
-        )
+        where, params = _where_dict_to_sql({pk.name: pk.to_sql(getattr(where, pk.name)) for pk in primary_keys})
     elif isinstance(where, str):
         where = sub(r"^where\s+", "", where) if where.strip() else ""
     elif isinstance(where, dict):
@@ -91,7 +95,7 @@ class Table(Generic[_M]):
     def __init__(
         self,
         database: Connection,
-        model: Type[_M],
+        model: type[_M],
         name: str,
         primary_keys: list[str] | None = None,
         indices: dict[str, list[str]] | None = None,
@@ -106,33 +110,25 @@ class Table(Generic[_M]):
         :param ignore: A list of field names to ignore from the model.
         """  # noqa: D205
         self.database: Connection = database
-        self.model: Type[_M] = model
+        self.model: type[_M] = model
         self.name: str = name
-        self.columns: dict[str, ColumnSpec] = {
-            c.name: c for c in ColumnSpec.from_model(self.model, ignore)
-        }
+        self.columns: dict[str, ColumnSpec] = {c.name: c for c in ColumnSpec.from_model(self.model, ignore)}
 
         _primary_keys: set[str] = set(primary_keys or [])
-        _indices: dict[str, set[str]] = {
-            _i: set(cs) for i, cs in (indices or {}).items() if (_i := i.strip())
-        }
+        _indices: dict[str, set[str]] = {_i: set(cs) for i, cs in (indices or {}).items() if (_i := i.strip())}
 
         if missing_keys := [pk for pk in _primary_keys if pk not in self.columns]:
             raise ValueError(
                 f"Primary keys {', '.join(map(repr, missing_keys))} do not exist in model {self.model.__name__!r}"
             )
 
-        if missing_keys := [
-            c for cs in _indices.values() for c in cs if c not in self.columns
-        ]:
+        if missing_keys := [c for cs in _indices.values() for c in cs if c not in self.columns]:
             raise ValueError(
                 f"Index keys {', '.join(map(repr, missing_keys))} do not exist in model {self.model.__name__!r}"
             )
 
         self.primary_keys: list[ColumnSpec] = [self.columns[pk] for pk in _primary_keys]
-        self.indices: dict[str, list[ColumnSpec]] = {
-            i: [self.columns[c] for c in cs] for i, cs in _indices.items()
-        }
+        self.indices: dict[str, list[ColumnSpec]] = {i: [self.columns[c] for c in cs] for i, cs in _indices.items()}
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.name!r}, {self.model.__name__})"
@@ -169,9 +165,7 @@ class Table(Generic[_M]):
 
         sql_cols = [c.spec_sql() for c in self.columns.values()]
         if self.primary_keys:
-            sql_cols.append(
-                f"primary key ({','.join(pk.name for pk in self.primary_keys)})"
-            )
+            sql_cols.append(f"primary key ({','.join(pk.name for pk in self.primary_keys)})")
 
         sql.append(f"({','.join(sql_cols)})")
 
@@ -268,9 +262,7 @@ class Table(Generic[_M]):
 
         return self.database.execute(" ".join(sql), params).fetchone()[0]
 
-    def insert(
-        self, *rows: _M, on_exists: Literal["ignore", "replace", "error"] = "error"
-    ) -> int:
+    def insert(self, *rows: _M, on_exists: Literal["ignore", "replace", "error"] = "error") -> int:
         """
         Insert entries into the table.
 
@@ -287,9 +279,7 @@ class Table(Generic[_M]):
 
         sql.append(f"into {self.name}")
 
-        sql.append(
-            f"({','.join(c.name for c in cols)}) values ({','.join('?' * len(cols))})"
-        )
+        sql.append(f"({','.join(c.name for c in cols)}) values ({','.join('?' * len(cols))})")
 
         return self.database.executemany(
             " ".join(sql),
@@ -305,9 +295,7 @@ class Table(Generic[_M]):
         """
         return self.insert(*rows, on_exists="replace")
 
-    def update(
-        self, row: _M, where: _W | _M = None, params: list[SQLValue] | None = None
-    ) -> int:
+    def update(self, row: _M, where: _W | _M = None, params: list[SQLValue] | None = None) -> int:
         """
         Update a single entry in the table.
 
@@ -342,6 +330,4 @@ class Table(Generic[_M]):
         if not where:
             raise ProgrammingError("Delete without where")
 
-        return self.database.execute(
-            f"delete from {self.name} where {where}", params
-        ).rowcount
+        return self.database.execute(f"delete from {self.name} where {where}", params).rowcount

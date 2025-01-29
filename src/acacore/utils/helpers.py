@@ -1,5 +1,5 @@
+from collections.abc import Sequence
 from types import TracebackType
-from typing import Sequence, Type
 
 
 class ExceptionManager:
@@ -15,12 +15,12 @@ class ExceptionManager:
     :ivar allow: Tuple of exceptions that should be allowed to rise.
     """
 
-    __slots__ = ("exception", "traceback", "catch", "allow")
+    __slots__ = ("allow", "catch", "exception", "traceback")
 
     def __init__(
         self,
-        *catch: Type[BaseException],
-        allow: Sequence[Type[BaseException]] | None = None,
+        *catch: type[BaseException],
+        allow: Sequence[type[BaseException]] | None = None,
     ) -> None:
         """
         :param allow: Defaults to None.
@@ -28,15 +28,15 @@ class ExceptionManager:
         """  # noqa: D205
         self.exception: BaseException | None = None
         self.traceback: TracebackType | None = None
-        self.catch: tuple[Type[BaseException], ...] = catch
-        self.allow: tuple[Type[BaseException], ...] = tuple(allow or [])
+        self.catch: tuple[type[BaseException], ...] = catch
+        self.allow: tuple[type[BaseException], ...] = tuple(allow or [])
 
     def __enter__(self) -> "ExceptionManager":
         return self
 
     def __exit__(
         self,
-        exc_type: Type[BaseException] | None,
+        exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> bool:
@@ -47,6 +47,5 @@ class ExceptionManager:
             return False
 
         return any(issubclass(exc_type, e) for e in self.catch) and (
-            exc_type in self.catch
-            or not any(issubclass(exc_type, e) for e in self.allow)
+            exc_type in self.catch or not any(issubclass(exc_type, e) for e in self.allow)
         )

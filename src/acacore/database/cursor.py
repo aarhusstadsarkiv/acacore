@@ -1,11 +1,16 @@
+from collections.abc import Callable
+from collections.abc import Generator
 from itertools import islice
 from sqlite3 import Cursor as SQLiteCursor
 from sqlite3 import Row
-from typing import Any, Callable, Generator, Generic, Type, TypeVar
+from typing import Any
+from typing import Generic
+from typing import TypeVar
 
 from pydantic import BaseModel
 
-from .column import ColumnSpec, SQLValue
+from .column import ColumnSpec
+from .column import SQLValue
 
 _M = TypeVar("_M", bound=BaseModel)
 
@@ -19,9 +24,7 @@ class Cursor(Generic[_M]):
     :ivar columns: A list of ``ColumnSpec`` instances that describe the columns in the cursor.
     """
 
-    def __init__(
-        self, cursor: SQLiteCursor, model: Type[_M], columns: list[ColumnSpec]
-    ) -> None:
+    def __init__(self, cursor: SQLiteCursor, model: type[_M], columns: list[ColumnSpec]) -> None:
         """
         :param cursor: The SQLite cursor
         :param model: The model to return data as.
@@ -29,11 +32,9 @@ class Cursor(Generic[_M]):
         """  # noqa: D205
         self.cursor: SQLiteCursor[Row] = cursor
         self.cursor.row_factory = Row
-        self.model: Type[_M] = model
+        self.model: type[_M] = model
         self.columns: list[ColumnSpec] = columns
-        self._cols: dict[str, Callable[[SQLValue], Any]] = {
-            c.name: c.from_sql for c in columns
-        }
+        self._cols: dict[str, Callable[[SQLValue], Any]] = {c.name: c.from_sql for c in columns}
         self._row: Callable[[Row], _M] = lambda r: self.model.model_validate(
             {k: f(r[k]) for k, f in self._cols.items()}
         )

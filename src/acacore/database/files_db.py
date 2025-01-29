@@ -1,18 +1,26 @@
 from os import PathLike
 from pathlib import Path
 from sqlite3 import DatabaseError
-from typing import Union, overload
+from typing import overload
+from typing import Union
 
 from packaging.version import Version
 from pydantic import BaseModel
 
 from acacore.models.event import Event
-from acacore.models.file import BaseFile, ConvertedFile, MasterFile, OriginalFile
+from acacore.models.file import BaseFile
+from acacore.models.file import ConvertedFile
+from acacore.models.file import MasterFile
+from acacore.models.file import OriginalFile
 from acacore.models.metadata import Metadata
 from acacore.models.reference_files import TActionType
 
-from .database import Database, KeysTable, Table, View
-from .upgrade import is_latest, upgrade
+from .database import Database
+from .database import KeysTable
+from .database import Table
+from .database import View
+from .upgrade import is_latest
+from .upgrade import upgrade
 
 
 class EventPath(Event):
@@ -201,9 +209,7 @@ class FilesDB(Database):
             f"select checksum, count(*) as count from {self.original_files.name} group by checksum order by count desc",
         )
 
-        self.metadata: KeysTable[Metadata] = KeysTable(
-            self.connection, Metadata, "metadata"
-        )
+        self.metadata: KeysTable[Metadata] = KeysTable(self.connection, Metadata, "metadata")
 
         if check_initialisation and not self.is_initialised():
             raise DatabaseError("Database is not initialized")

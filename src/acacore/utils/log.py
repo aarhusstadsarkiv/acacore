@@ -1,23 +1,23 @@
-from logging import INFO, FileHandler, Formatter, Logger, StreamHandler, getLogger
+from logging import FileHandler
+from logging import Formatter
+from logging import getLogger
+from logging import INFO
+from logging import Logger
+from logging import StreamHandler
 from pathlib import Path
-from typing import IO, overload
+from typing import IO
+from typing import overload
 
 
 @overload
-def setup_logger(
-    log_name: str, *, files: list[Path], streams: list[IO] | None = None
-) -> Logger: ...
+def setup_logger(log_name: str, *, files: list[Path], streams: list[IO] | None = None) -> Logger: ...
 
 
 @overload
-def setup_logger(
-    log_name: str, *, files: list[Path] | None = None, streams: list[IO]
-) -> Logger: ...
+def setup_logger(log_name: str, *, files: list[Path] | None = None, streams: list[IO]) -> Logger: ...
 
 
-def setup_logger(
-    log_name: str, *, files: list[Path] | None = None, streams: list[IO] | None = None
-) -> Logger:
+def setup_logger(log_name: str, *, files: list[Path] | None = None, streams: list[IO] | None = None) -> Logger:
     """
     Set up a logger that prints to files and/or streams.
 

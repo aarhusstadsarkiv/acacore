@@ -1,4 +1,5 @@
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 
 def docstring_format(**kwargs: Any) -> Callable[[Callable], Callable]:  # noqa: ANN401
