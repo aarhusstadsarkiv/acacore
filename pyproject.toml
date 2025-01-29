@@ -73,10 +73,9 @@ select = [
 ]
 ignore = [
     "E501",    # line to long, to many false positives, gets handled by black
+    "A005",    # Module `io` shadows a Python standard-library module
     "ANN002",  # missing type anottation for *args
     "ANN003",  # missing type anotation for **kwargs
-    "ANN101",  # missing type for self
-    "ANN102",  # missing type for cls
     "ANN201",  # missing return type
     "ANN202",  # missing return type
     "ANN206",  # missing return type
