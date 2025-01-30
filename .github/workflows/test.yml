@@ -25,10 +25,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: |
-          version_project="$(grep --color=never 'version *= *".*"' pyproject.toml)"
+          version_project="$(grep --color=never '^version *= *".*"' pyproject.toml)"
           version_project="${version_project%\"}"
           version_project="${version_project#*\"}"
-          project_name="$(grep --color=never 'name *= *".*"' pyproject.toml)"
+          project_name="$(grep --color=never '^name *= *".*"' pyproject.toml)"
           project_name="${project_name%\"}"
           project_name="${project_name#*\"}"
           version_package="$(grep --color=never '__version__ *= *".*"' "src/$project_name/__version__.py")"
