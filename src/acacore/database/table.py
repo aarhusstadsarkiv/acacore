@@ -2,10 +2,8 @@ from collections.abc import Generator
 from re import sub
 from sqlite3 import Connection
 from sqlite3 import ProgrammingError
-from typing import Generic
 from typing import Literal
 from typing import Self
-from typing import TypeVar
 
 from pydantic import BaseModel
 
@@ -13,13 +11,10 @@ from .column import ColumnSpec
 from .column import SQLValue
 from .cursor import Cursor
 
-_M = TypeVar("_M", bound=BaseModel)
-_W = str | dict[str, SQLValue | list[SQLValue]]
+WhereDict = dict[str, SQLValue | list[SQLValue]]
 
 
-def _where_dict_to_sql(
-    where: dict[str, SQLValue | list[SQLValue]],
-) -> tuple[str, list[SQLValue]]:
+def _where_dict_to_sql(where: WhereDict) -> tuple[str, list[SQLValue]]:
     """
     Convert a where statement in dict format into an SQL string and parameters list.
 
@@ -51,7 +46,7 @@ def _where_dict_to_sql(
 
 
 def _where_to_sql(
-    where: _W | BaseModel,
+    where: str | WhereDict | BaseModel,
     params: list[SQLValue] | None,
     primary_keys: list[ColumnSpec],
 ) -> tuple[str, list[SQLValue]]:
@@ -82,7 +77,7 @@ def _where_to_sql(
     return where.strip(), params if where else []
 
 
-class Table(Generic[_M]):
+class Table[M: BaseModel]:
     """
     A class that represents a table in an SQLite database and allows accessing rows as Pydantic models.
 
@@ -95,7 +90,7 @@ class Table(Generic[_M]):
     def __init__(
         self,
         database: Connection,
-        model: type[_M],
+        model: type[M],
         name: str,
         primary_keys: list[str] | None = None,
         indices: dict[str, list[str]] | None = None,
@@ -110,7 +105,7 @@ class Table(Generic[_M]):
         :param ignore: A list of field names to ignore from the model.
         """  # noqa: D205
         self.database: Connection = database
-        self.model: type[_M] = model
+        self.model: type[M] = model
         self.name: str = name
         self.columns: dict[str, ColumnSpec] = {c.name: c for c in ColumnSpec.from_model(self.model, ignore)}
 
@@ -133,25 +128,25 @@ class Table(Generic[_M]):
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.name!r}, {self.model.__name__})"
 
-    def __iter__(self) -> Generator[_M, None, None]:
+    def __iter__(self) -> Generator[M, None, None]:
         yield from self.select()
 
     def __len__(self) -> int:
         return self.count()
 
-    def __getitem__(self, where: _W | _M) -> _M | None:
+    def __getitem__(self, where: str | WhereDict | M) -> M | None:
         return self.select(where, limit=1).fetchone()
 
-    def __setitem__(self, where: _W | _M | slice, row: _M) -> None:
+    def __setitem__(self, where: str | WhereDict | M | slice, row: M) -> None:
         if isinstance(where, slice):
             self.insert(row)
         else:
             self.update(row, where)
 
-    def __delitem__(self, where: _W | _M) -> None:
+    def __delitem__(self, where: str | WhereDict | M) -> None:
         self.delete(where)
 
-    def __contains__(self, where: _M) -> bool:
+    def __contains__(self, where: M) -> bool:
         return self.select(where, limit=1).cursor.fetchone() is not None
 
     def create_sql(self, *, exist_ok: bool = False) -> str:
@@ -191,12 +186,12 @@ class Table(Generic[_M]):
 
     def select(
         self,
-        where: _W | _M | None = None,
+        where: str | WhereDict | M | None = None,
         params: list[SQLValue] | None = None,
         order_by: list[tuple[str, str]] | None = None,
         limit: int | None = None,
         offset: int | None = None,
-    ) -> Cursor[_M]:
+    ) -> Cursor[M]:
         """
         Select entries from the table.
 
@@ -232,7 +227,7 @@ class Table(Generic[_M]):
 
     def count(
         self,
-        where: _W | _M | None = None,
+        where: str | WhereDict | M | None = None,
         params: list[SQLValue] | None = None,
         limit: int | None = None,
         offset: int | None = None,
@@ -262,7 +257,7 @@ class Table(Generic[_M]):
 
         return self.database.execute(" ".join(sql), params).fetchone()[0]
 
-    def insert(self, *rows: _M, on_exists: Literal["ignore", "replace", "error"] = "error") -> int:
+    def insert(self, *rows: M, on_exists: Literal["ignore", "replace", "error"] = "error") -> int:
         """
         Insert entries into the table.
 
@@ -286,7 +281,7 @@ class Table(Generic[_M]):
             (tuple(c.to_sql(getattr(row, c.name)) for c in cols) for row in rows),
         ).rowcount
 
-    def upsert(self, *rows: _M) -> int:
+    def upsert(self, *rows: M) -> int:
         """
         Insert entries into the table or update existing entries.
 
@@ -295,7 +290,7 @@ class Table(Generic[_M]):
         """
         return self.insert(*rows, on_exists="replace")
 
-    def update(self, row: _M, where: _W | _M = None, params: list[SQLValue] | None = None) -> int:
+    def update(self, row: M, where: str | WhereDict | M = None, params: list[SQLValue] | None = None) -> int:
         """
         Update a single entry in the table.
 
@@ -316,7 +311,7 @@ class Table(Generic[_M]):
             [*[c.to_sql(getattr(row, c.name)) for c in cols], *params],
         ).rowcount
 
-    def delete(self, where: _W | _M) -> int:
+    def delete(self, where: str | WhereDict | M) -> int:
         """
         Delete rows from the table.
 

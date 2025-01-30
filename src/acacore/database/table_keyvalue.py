@@ -1,12 +1,10 @@
 from collections.abc import Generator
 from sqlite3 import Connection
 from typing import Any
-from typing import Generic
 from typing import overload
 
 from pydantic import BaseModel
 
-from .table import _M
 from .table import Table
 
 
@@ -17,7 +15,7 @@ class KeysTableModel(BaseModel):
     value: object | None
 
 
-class KeysTable(Generic[_M]):
+class KeysTable[M: BaseModel]:
     """
     A class that represents a key-value store table in an SQLite database and allows accessing the contents with a Pydantic model.
 
@@ -25,14 +23,14 @@ class KeysTable(Generic[_M]):
     :ivar model: The model the table is based on.
     """
 
-    def __init__(self, database: Connection, model: type[_M], name: str) -> None:
+    def __init__(self, database: Connection, model: type[M], name: str) -> None:
         """
         :param database: The connection to the database.
         :param model: The Pydantic model to create the table for.
         :param name: The name of the table.
         """  # noqa: D205
         self.table: Table[KeysTableModel] = Table(database, KeysTableModel, name, ["key"])
-        self.model: type[_M] = model
+        self.model: type[M] = model
 
     @property
     def name(self) -> str:
@@ -71,7 +69,7 @@ class KeysTable(Generic[_M]):
         self.table.create(exist_ok=exist_ok)
         return self
 
-    def set(self, obj: _M):
+    def set(self, obj: M):
         """
         Save an object into the table.
 
@@ -83,12 +81,12 @@ class KeysTable(Generic[_M]):
         )
 
     @overload
-    def get(self) -> _M | None: ...
+    def get(self) -> M | None: ...
 
     @overload
     def get(self, key: str) -> Any | None: ...  # noqa: ANN401
 
-    def get(self, key: str | None = None) -> _M | Any | None:
+    def get(self, key: str | None = None) -> M | Any | None:
         """
         Get the object stored in the table.
 

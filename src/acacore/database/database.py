@@ -9,7 +9,6 @@ from sqlite3 import ProgrammingError
 from types import TracebackType
 from typing import overload
 from typing import Self
-from typing import TypeVar
 
 from pydantic import BaseModel
 
@@ -18,7 +17,6 @@ from .table import Table
 from .table_keyvalue import KeysTable
 from .table_view import View
 
-_M = TypeVar("_M", bound=BaseModel)
 _P = Sequence[SQLValue] | Mapping[str, SQLValue]
 
 
@@ -133,16 +131,16 @@ class Database:
         """Return a list of view names in the database."""
         return [v for [v] in self.connection.execute("select name from sqlite_master where type = 'view'")]
 
-    def create_table(
+    def create_table[M: BaseModel](
         self,
-        model: type[_M],
+        model: type[M],
         name: str,
         primary_keys: list[str] | None = None,
         indices: dict[str, list[str]] | None = None,
         ignore: list[str] | None = None,
         *,
         exist_ok: bool = True,
-    ) -> Table[_M]:
+    ) -> Table[M]:
         """
         Create a table in the database based on a model.
 
@@ -156,15 +154,15 @@ class Database:
         """
         return Table(self.connection, model, name, primary_keys, indices, ignore).create(exist_ok=exist_ok)
 
-    def create_view(
+    def create_view[M: BaseModel](
         self,
-        model: type[_M],
+        model: type[M],
         name: str,
         select: str,
         ignore: list[str] | None = None,
         *,
         exist_ok: bool = True,
-    ) -> View[_M]:
+    ) -> View[M]:
         """
         Create a view in the database based on a model.
 
@@ -177,7 +175,7 @@ class Database:
         """
         return View(self.connection, model, name, select, ignore).create(exist_ok=exist_ok)
 
-    def create_keys_table(self, model: type[_M], name: str, *, exist_ok: bool = True) -> KeysTable[_M]:
+    def create_keys_table[M: BaseModel](self, model: type[M], name: str, *, exist_ok: bool = True) -> KeysTable[M]:
         """
         Create a key-value store table in the database based on a model.
 
