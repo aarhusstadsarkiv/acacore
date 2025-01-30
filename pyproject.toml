@@ -3,7 +3,7 @@ name = "acacore"
 version = "4.1.2"
 description = ""
 authors = [{ name = "Matteo Campinoti", email = "matteo.campinoti94@gmail.com" }]
-requires-python = "~=3.11"
+requires-python = ">=3.12"
 readme = "README.md"
 license = "GPL-3.0"
 dependencies = [
