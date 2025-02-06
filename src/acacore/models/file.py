@@ -3,7 +3,6 @@ from os import PathLike
 from pathlib import Path
 from typing import Literal
 from typing import Self
-from typing import TypeVar
 from uuid import UUID
 from uuid import uuid4
 
@@ -31,8 +30,6 @@ from .reference_files import IgnoreIfAction
 from .reference_files import ManualAction
 from .reference_files import MasterConvertAction
 from .reference_files import TActionType
-
-_A = TypeVar("_A")
 
 
 def ignore_if(file: "OriginalFile", rules: IgnoreIfAction) -> tuple[TActionType | None, ActionData]:
@@ -62,7 +59,7 @@ def ignore_if(file: "OriginalFile", rules: IgnoreIfAction) -> tuple[TActionType 
     return file.action, file.action_data
 
 
-def get_identifier(file: "BaseFile", file_classes: list[TSiegfriedFileClass], actions: dict[str, _A]) -> _A | None:
+def get_identifier[A](file: "BaseFile", file_classes: list[TSiegfriedFileClass], actions: dict[str, A]) -> A | None:
     identifiers: list[str] = [
         f"!name={file.relative_path.name}",
         f"!iname={file.relative_path.name.lower()}",
