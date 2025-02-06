@@ -3,20 +3,16 @@ from collections.abc import Generator
 from hashlib import sha256
 from pathlib import Path
 from re import match
-from typing import TypeVar
 
 from imagesize import get as get_image_size
 from PIL import Image
 
 from acacore.exceptions.files import ImageIdentificationError
 
-T = TypeVar("T")
-R = TypeVar("R")
-
 _text_bytes: bytes = bytes([7, 8, 9, 10, 12, 13, 27, *range(0x20, 0x7F), *range(0x80, 0x100)])
 
 
-def or_none(func: Callable[[T], R]) -> Callable[[T], R | None]:
+def or_none[T, R](func: Callable[[T], R]) -> Callable[[T], R | None]:
     """
     Create a lambda function of arity one that will return None if its argument is None.
 
