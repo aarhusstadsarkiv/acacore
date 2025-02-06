@@ -1,17 +1,17 @@
-from .base import ACAException
+from .base import AcacoreError
 
 
-class IdentificationError(ACAException):
+class IdentificationError(AcacoreError):
     """Implements an error to raise if identification or related functionality fails."""
 
 
-class ImageIdentificationError(ACAException):
+class ImageIdentificationError(AcacoreError):
     """Implements an error to raise if identification or related functionality fails."""
 
 
-class FileCollectionError(ACAException):
+class FileCollectionError(AcacoreError):
     """Implements an error to raise if File discovery/collection or related functionality fails."""
 
 
-class FileParseError(ACAException):
+class FileParseError(AcacoreError):
     """Implements an error to raise if file parsing fails."""
