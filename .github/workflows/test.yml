@@ -3,27 +3,21 @@ name: Linting & Test
 on:
   push
 
-env:
-  PYTHON_VERSION: 3.11.5
-  POETRY_VERSION: 1.8.2
-
 jobs:
   linting:
-    name: Check Linting & Types
+    name: Linting
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
       - uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
-      - uses: abatilo/actions-poetry@v3
-        with:
-          poetry-version: ${{ env.POETRY_VERSION }}
-      - run: poetry install
+          python-version-file: "pyproject.toml"
+      - run: uv sync --all-extras --dev
       - name: ruff check
-        run: poetry run ruff check
+        run: uv run ruff check src
       - name: ruff format
-        run: poetry run ruff format --check
+        run: uv run ruff format --check src
 
   version:
     name: Test Version
@@ -31,13 +25,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: |
-          project_name="$(grep --color=never 'name *= *".*"' pyproject.toml)"
-          project_name="${project_name%\"}"
-          project_name="${project_name#*\"}"
-          version_project="$(grep --color=never 'version *= *".*"' pyproject.toml)"
+          version_project="$(grep --color=never '^version *= *".*"' pyproject.toml)"
           version_project="${version_project%\"}"
           version_project="${version_project#*\"}"
-          version_package="$(grep --color=never '__version__ *= *".*"' "$project_name"/__version__.py)"
+          project_name="$(grep --color=never '^name *= *".*"' pyproject.toml)"
+          project_name="${project_name%\"}"
+          project_name="${project_name#*\"}"
+          version_package="$(grep --color=never '__version__ *= *".*"' "src/$project_name/__version__.py")"
           version_package="${version_package%\"}"
           version_package="${version_package#*\"}"
           test "$version_project" = "$version_package"
@@ -50,18 +44,16 @@ jobs:
       - version
     steps:
       - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
       - uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
-      - uses: abatilo/actions-poetry@v3
-        with:
-          poetry-version: ${{ env.POETRY_VERSION }}
+          python-version-file: "pyproject.toml"
       - uses: actions/setup-go@v5
-      - run: poetry install
+      - run: uv sync --all-extras --dev
       - run: go install github.com/richardlehane/siegfried/cmd/sf@latest
       - name: pytest
         env:
           GOPATH: /home/runner/go
-        run: poetry run coverage run -m pytest
+        run: uv run coverage run -m pytest
       - name: coverage
-        run: poetry run coverage report -m --fail-under=80 --skip-empty --skip-covered
+        run: uv run coverage report -m --fail-under=80 --skip-empty --skip-covered
