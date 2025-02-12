@@ -1,6 +1,7 @@
 from pathlib import Path
 from shutil import copy2
 from sqlite3 import DatabaseError
+from sqlite3 import OperationalError
 from uuid import uuid4
 
 import pytest
@@ -44,7 +45,15 @@ def test_database_base(database_file: Path):
         assert db.total_changes == db.committed_changes == 1
         assert db.uncommitted_changes == 0
 
+        view = db.create_view(OriginalFile, "_test_temp_view", "select * from files_original", temporary=True)
+        view.select().fetchone()
+
     assert not db.is_open()
+
+    with FilesDB(database_file) as db:
+        view.database = view._table.database = db.connection
+        with pytest.raises(OperationalError, match=f"no such table: {view.name}"):
+            view.select().fetchone()
 
 
 def test_database_tables(database_file: Path):
