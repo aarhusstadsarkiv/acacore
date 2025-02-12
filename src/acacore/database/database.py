@@ -161,6 +161,7 @@ class Database:
         select: str,
         ignore: list[str] | None = None,
         *,
+        temporary: bool = False,
         exist_ok: bool = True,
     ) -> View[M]:
         """
@@ -170,10 +171,11 @@ class Database:
         :param name: The name of the view.
         :param select: The select SQL expression to use to populate the view.
         :param ignore: A list of field names to ignore from the model.
+        :param temporary: Whether the view should be temporary (removed when connection closes) or not.
         :param exist_ok: Whether to ignore any existing view with the same name.
         :return: A ``View`` instance.
         """
-        return View(self.connection, model, name, select, ignore).create(exist_ok=exist_ok)
+        return View(self.connection, model, name, select, ignore).create(temporary=temporary, exist_ok=exist_ok)
 
     def create_keys_table[M: BaseModel](self, model: type[M], name: str, *, exist_ok: bool = True) -> KeysTable[M]:
         """
