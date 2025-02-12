@@ -56,17 +56,18 @@ class View[M: BaseModel]:
     def __contains__(self, where: M) -> bool:
         return self._table.select(where, limit=1).cursor.fetchone() is not None
 
-    def create_sql(self, *, exist_ok: bool = False) -> str:
+    def create_sql(self, *, temporary: bool = False, exist_ok: bool = False) -> str:
         """Generate the SQL statement to create the view."""
-        return f"create view {'if not exists' if exist_ok else ''} {self.name} as {self.select_stmt}"
+        return f"create {'temporary' if temporary else ''} view {'if not exists' if exist_ok else ''} {self.name} as {self.select_stmt}"
 
-    def create(self, *, exist_ok: bool = False) -> Self:
+    def create(self, *, temporary: bool = False, exist_ok: bool = False) -> Self:
         """
         Create the view in the connected database.
 
+        :param temporary: Whether the view should be temporary (removed when connection closes) or not.
         :param exist_ok: Whether to ignore any existing view with the same name.
         """
-        self.database.execute(self.create_sql(exist_ok=exist_ok))
+        self.database.execute(self.create_sql(temporary=temporary, exist_ok=exist_ok))
         return self
 
     def select(
