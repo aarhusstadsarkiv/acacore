@@ -56,6 +56,35 @@ def test_database_base(database_file: Path):
             view.select().fetchone()
 
 
+def test_database_temporary(database_file: Path):
+    with FilesDB(database_file) as db:
+        db.init()
+        db.commit()
+
+        view = db.create_view(OriginalFile, "_test_temp_view", "select * from files_original", temporary=True)
+        assert view.select().fetchone() is None
+
+        table = db.create_table(OriginalFile, "_test_temp_table", temporary=True)
+        assert table.select().fetchone() is None
+
+        table_keyvalue = db.create_keys_table(OriginalFile, "_test_temp_table_keyvalue", temporary=True)
+        assert table_keyvalue.get() is None
+
+    with FilesDB(database_file) as db:
+        view.database = view._table.database = db.connection
+        table.database = db.connection
+        table_keyvalue.table.database = db.connection
+
+        with pytest.raises(OperationalError, match=f"no such table: {view.name}"):
+            view.select().fetchone()
+
+        with pytest.raises(OperationalError, match=f"no such table: {table.name}"):
+            table.select().fetchone()
+
+        with pytest.raises(OperationalError, match=f"no such table: {table_keyvalue.name}"):
+            table_keyvalue.get()
+
+
 def test_database_tables(database_file: Path):
     with FilesDB(database_file) as db:
         db.init()
