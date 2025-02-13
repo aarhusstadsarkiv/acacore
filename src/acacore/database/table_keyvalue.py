@@ -75,6 +75,14 @@ class KeysTable[M: BaseModel]:
         self.table.create(temporary=temporary, exist_ok=exist_ok)
         return self
 
+    def drop(self, missing_ok: bool = True):
+        """
+        Drop the table in the connected database.
+
+        :param missing_ok: Whether to accept that the table is missing or not.
+        """
+        self.table.drop(missing_ok=missing_ok)
+
     def set(self, obj: M):
         """
         Save an object into the table.

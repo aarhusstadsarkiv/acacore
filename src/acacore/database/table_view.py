@@ -75,6 +75,14 @@ class View[M: BaseModel]:
         self.database.execute(self.create_sql(temporary=temporary, exist_ok=exist_ok))
         return self
 
+    def drop(self, missing_ok: bool = True):
+        """
+        Drop the view in the connected database.
+
+        :param missing_ok: Whether to accept that the view is missing or not.
+        """
+        self._table.drop(missing_ok=missing_ok)
+
     def select(
         self,
         where: str | WhereDict | None = None,

@@ -190,6 +190,14 @@ class Table[M: BaseModel]:
             self.database.execute(index_sql)
         return self
 
+    def drop(self, *, missing_ok: bool = True):
+        """
+        Drop the table in the connected database.
+
+        :param missing_ok: Whether to accept that the table is missing or not.
+        """
+        self.database.execute(f"drop table {'if exists' if missing_ok else ''} {self.name}")
+
     def select(
         self,
         where: str | WhereDict | M | None = None,
