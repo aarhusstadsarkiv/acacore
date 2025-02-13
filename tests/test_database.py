@@ -213,6 +213,42 @@ def test_database_update_delete(database_file: Path):
         assert len(db.original_files) == 0
 
 
+def test_database_drop(database_file: Path):
+    with FilesDB(database_file) as db:
+        db.init()
+        db.commit()
+
+        view = db.create_view(OriginalFile, "_test_view", "select * from files_original")
+        assert view.select().fetchone() is None
+        view.drop()
+
+        with pytest.raises(OperationalError, match=f"no such table: {view.name}"):
+            view.select().fetchone()
+
+        with pytest.raises(OperationalError, match=f"no such view: {view.name}"):
+            view.drop(missing_ok=False)
+
+        table = db.create_table(OriginalFile, "_test_table")
+        assert table.select().fetchone() is None
+        table.drop()
+
+        with pytest.raises(OperationalError, match=f"no such table: {table.name}"):
+            table.select().fetchone()
+
+        with pytest.raises(OperationalError, match=f"no such table: {table.name}"):
+            table.drop(missing_ok=False)
+
+        table_keyvalue = db.create_keys_table(OriginalFile, "_test_table_keyvalue")
+        assert table_keyvalue.get() is None
+        table_keyvalue.drop()
+
+        with pytest.raises(OperationalError, match=f"no such table: {table_keyvalue.name}"):
+            table_keyvalue.get()
+
+        with pytest.raises(OperationalError, match=f"no such table: {table_keyvalue.name}"):
+            table_keyvalue.drop(missing_ok=False)
+
+
 def test_database_upgrade(test_folder: Path, temp_folder: Path):
     database_file: Path = test_folder / "databases" / "v4_0_0.db"
     database_file_copy: Path = temp_folder / database_file.name
