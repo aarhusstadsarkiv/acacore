@@ -149,9 +149,14 @@ class Table[M: BaseModel]:
     def __contains__(self, where: M) -> bool:
         return self.select(where, limit=1).cursor.fetchone() is not None
 
-    def create_sql(self, *, exist_ok: bool = False) -> str:
-        """Generate the SQL statement to create the table."""
-        sql: list[str] = ["create table"]
+    def create_sql(self, *, temporary: bool = False, exist_ok: bool = False) -> str:
+        """
+        Generate the SQL statement to create the table.
+
+        :param temporary: Whether the table should be temporary (removed when connection closes) or not.
+        :param exist_ok: Whether to ignore any existing table with the same name.
+        """
+        sql: list[str] = [f"create {'temporary' if temporary else ''} table"]
 
         if exist_ok:
             sql.append("if not exists")
@@ -173,13 +178,14 @@ class Table[M: BaseModel]:
             for index, cols in self.indices.items()
         ]
 
-    def create(self, *, exist_ok: bool = False) -> Self:
+    def create(self, *, temporary: bool = False, exist_ok: bool = False) -> Self:
         """
         Create the table in the connected database.
 
+        :param temporary: Whether the table should be temporary (removed when connection closes) or not.
         :param exist_ok: Whether to ignore any existing table with the same name.
         """
-        self.database.execute(self.create_sql(exist_ok=exist_ok))
+        self.database.execute(self.create_sql(temporary=temporary, exist_ok=exist_ok))
         for index_sql in self.indices_sql(exist_ok=exist_ok):
             self.database.execute(index_sql)
         return self

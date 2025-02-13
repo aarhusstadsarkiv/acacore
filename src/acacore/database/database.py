@@ -139,6 +139,7 @@ class Database:
         indices: dict[str, list[str]] | None = None,
         ignore: list[str] | None = None,
         *,
+        temporary: bool = False,
         exist_ok: bool = True,
     ) -> Table[M]:
         """
@@ -149,10 +150,14 @@ class Database:
         :param primary_keys: The primary keys of the table.
         :param indices: The indices of the table as index in the form {index name: list of indexed columns}.
         :param ignore: A list of field names to ignore from the model.
+        :param temporary: Whether the table should be temporary (removed when connection closes) or not.
         :param exist_ok: Whether to ignore any existing table with the same name.
         :return: A ``Table`` instance.
         """
-        return Table(self.connection, model, name, primary_keys, indices, ignore).create(exist_ok=exist_ok)
+        return Table(self.connection, model, name, primary_keys, indices, ignore).create(
+            temporary=temporary,
+            exist_ok=exist_ok,
+        )
 
     def create_view[M: BaseModel](
         self,
@@ -177,13 +182,21 @@ class Database:
         """
         return View(self.connection, model, name, select, ignore).create(temporary=temporary, exist_ok=exist_ok)
 
-    def create_keys_table[M: BaseModel](self, model: type[M], name: str, *, exist_ok: bool = True) -> KeysTable[M]:
+    def create_keys_table[M: BaseModel](
+        self,
+        model: type[M],
+        name: str,
+        *,
+        temporary: bool = False,
+        exist_ok: bool = True,
+    ) -> KeysTable[M]:
         """
         Create a key-value store table in the database based on a model.
 
         :param model: The Pydantic model to create the table for.
         :param name: The name of the table.
+        :param temporary: Whether the table should be temporary (removed when connection closes) or not.
         :param exist_ok: Whether to ignore any existing table with the same name.
         :return: A ``KeysTable`` instance.
         """
-        return KeysTable(self.connection, model, name).create(exist_ok=exist_ok)
+        return KeysTable(self.connection, model, name).create(temporary=temporary, exist_ok=exist_ok)
