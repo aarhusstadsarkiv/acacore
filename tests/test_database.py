@@ -45,15 +45,36 @@ def test_database_base(database_file: Path):
         assert db.total_changes == db.committed_changes == 1
         assert db.uncommitted_changes == 0
 
-        view = db.create_view(OriginalFile, "_test_temp_view", "select * from files_original", temporary=True)
-        view.select().fetchone()
-
     assert not db.is_open()
+
+
+def test_database_temporary(database_file: Path):
+    with FilesDB(database_file) as db:
+        db.init()
+        db.commit()
+
+        view = db.create_view(OriginalFile, "_test_temp_view", "select * from files_original", temporary=True)
+        assert view.select().fetchone() is None
+
+        table = db.create_table(OriginalFile, "_test_temp_table", temporary=True)
+        assert table.select().fetchone() is None
+
+        table_keyvalue = db.create_keys_table(OriginalFile, "_test_temp_table_keyvalue", temporary=True)
+        assert table_keyvalue.get() is None
 
     with FilesDB(database_file) as db:
         view.database = view._table.database = db.connection
+        table.database = db.connection
+        table_keyvalue.table.database = db.connection
+
         with pytest.raises(OperationalError, match=f"no such table: {view.name}"):
             view.select().fetchone()
+
+        with pytest.raises(OperationalError, match=f"no such table: {table.name}"):
+            table.select().fetchone()
+
+        with pytest.raises(OperationalError, match=f"no such table: {table_keyvalue.name}"):
+            table_keyvalue.get()
 
 
 def test_database_tables(database_file: Path):
@@ -182,6 +203,42 @@ def test_database_update_delete(database_file: Path):
         db.original_files.delete(file1)
         assert db.original_files[file1] is None
         assert len(db.original_files) == 0
+
+
+def test_database_drop(database_file: Path):
+    with FilesDB(database_file) as db:
+        db.init()
+        db.commit()
+
+        view = db.create_view(OriginalFile, "_test_view", "select * from files_original")
+        assert view.select().fetchone() is None
+        view.drop()
+
+        with pytest.raises(OperationalError, match=f"no such table: {view.name}"):
+            view.select().fetchone()
+
+        with pytest.raises(OperationalError, match=f"no such view: {view.name}"):
+            view.drop(missing_ok=False)
+
+        table = db.create_table(OriginalFile, "_test_table")
+        assert table.select().fetchone() is None
+        table.drop()
+
+        with pytest.raises(OperationalError, match=f"no such table: {table.name}"):
+            table.select().fetchone()
+
+        with pytest.raises(OperationalError, match=f"no such table: {table.name}"):
+            table.drop(missing_ok=False)
+
+        table_keyvalue = db.create_keys_table(OriginalFile, "_test_table_keyvalue")
+        assert table_keyvalue.get() is None
+        table_keyvalue.drop()
+
+        with pytest.raises(OperationalError, match=f"no such table: {table_keyvalue.name}"):
+            table_keyvalue.get()
+
+        with pytest.raises(OperationalError, match=f"no such table: {table_keyvalue.name}"):
+            table_keyvalue.drop(missing_ok=False)
 
 
 def test_database_upgrade(test_folder: Path, temp_folder: Path):

@@ -56,18 +56,32 @@ class KeysTable[M: BaseModel]:
 
         self.table.insert(KeysTableModel(key=key, value=value), on_exists="replace")
 
-    def create_sql(self, *, exist_ok: bool = False) -> str:
-        """Generate the SQL statement to create the table."""
-        return self.table.create_sql(exist_ok=exist_ok)
+    def create_sql(self, *, temporary: bool = False, exist_ok: bool = False) -> str:
+        """
+        Generate the SQL statement to create the table.
 
-    def create(self, *, exist_ok: bool = False):
+        :param temporary: Whether the table should be temporary (removed when connection closes) or not.
+        :param exist_ok: Whether to ignore any existing table with the same name.
+        """
+        return self.table.create_sql(temporary=temporary, exist_ok=exist_ok)
+
+    def create(self, *, temporary: bool = False, exist_ok: bool = False):
         """
         Create the table in the connected database.
 
+        :param temporary: Whether the table should be temporary (removed when connection closes) or not.
         :param exist_ok: Whether to ignore any existing table with the same name.
         """
-        self.table.create(exist_ok=exist_ok)
+        self.table.create(temporary=temporary, exist_ok=exist_ok)
         return self
+
+    def drop(self, missing_ok: bool = True):
+        """
+        Drop the table in the connected database.
+
+        :param missing_ok: Whether to accept that the table is missing or not.
+        """
+        self.table.drop(missing_ok=missing_ok)
 
     def set(self, obj: M):
         """

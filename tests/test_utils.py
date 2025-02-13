@@ -83,12 +83,16 @@ def test_helpers_context_manager():
 
 
 def test_io_size_fmt():
-    assert size_fmt(2) == "2.0 B"
-    assert size_fmt(2**10) == "1.0 KiB"
-    assert size_fmt(2**20) == "1.0 MiB"
-    assert size_fmt(2**30) == "1.0 GiB"
-    assert size_fmt(2**40) == "1.0 TiB"
-    assert size_fmt(2**12 + 128) == "4.1 KiB"
+    assert size_fmt(2, binary=True) == "2B"
+    assert size_fmt(2**10, binary=True) == "1.0KiB"
+    assert size_fmt(2**20, binary=True) == "1.0MiB"
+    assert size_fmt(2**30 * 3.1, binary=True) == "3.1GiB"
+
+    assert size_fmt(2, unit="b") == "2b"
+    assert size_fmt(1000, unit="b") == "1.0Kb"
+    assert size_fmt(1e6, unit="b") == "1.0Mb"
+    assert size_fmt(1e9 * 2.6, unit="b") == "2.6Gb"
+    assert size_fmt(1e9 * 2.614, unit="b", decimals=3) == "2.614Gb"
 
 
 def test_log_setup_logger(temp_folder: Path):
