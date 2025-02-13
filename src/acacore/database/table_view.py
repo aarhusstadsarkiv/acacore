@@ -81,7 +81,7 @@ class View[M: BaseModel]:
 
         :param missing_ok: Whether to accept that the view is missing or not.
         """
-        self._table.drop(missing_ok=missing_ok)
+        self.database.execute(f"drop view {'if exists' if missing_ok else ''} {self.name}")
 
     def select(
         self,
