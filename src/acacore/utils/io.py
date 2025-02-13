@@ -1,15 +1,34 @@
+from math import floor
 from math import log2
+from math import log10
 
-binary_units = ["B", "KiB", "MiB", "GiB", "TiB"]
+_exponents: list[str] = ["", "K", "M", "G", "T", "P", "E", "Z", "Y"]
 
 
-def size_fmt(size: float) -> str:
+def size_fmt(size: float, *, binary: bool = False, unit: str = "B") -> str:
     """
-    Formats a file size in binary multiples to a human-readable string.
+    Formats a number in SI notation.
 
-    :param size: The file size in bytes.
-    :return: Human-readable string representing size in binary multiples.
+    :param size: The number to format.
+    :param binary: Whether to use binary (base 2) or decimal units.
+    :param unit: The unit to use for the number, defaults to "B" for bytes.
+    :return: SI-formatted number.
     """
-    unit: int = int(log2(size) // 10)
-    unit = unit if unit < len(binary_units) else len(binary_units) - 1
-    return f"{size / (2 ** (unit * 10)):.1f} {binary_units[unit]}"
+    exponent: int
+    mantissa: int
+
+    if size == 0:
+        exponent = 0
+        mantissa = 1
+    elif binary:
+        exponent = floor(log2(abs(size)) / 10)
+        mantissa = 2 ** (10 * exponent)
+    else:
+        exponent = floor(log10(abs(size)) / 3)
+        mantissa = 10 ** (exponent * 3)
+
+    if exponent == 0:
+        return f"{size}{unit}"
+    else:
+        exponent_str: str = _exponents[exponent] if exponent < len(_exponents) else _exponents[-1]
+        return f"{size / mantissa:.1f}{exponent_str}{'i' if binary else ''}{unit}"
