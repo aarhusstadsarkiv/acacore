@@ -92,6 +92,7 @@ def test_io_size_fmt():
     assert size_fmt(1000, unit="b") == "1.0Kb"
     assert size_fmt(1e6, unit="b") == "1.0Mb"
     assert size_fmt(1e9 * 2.6, unit="b") == "2.6Gb"
+    assert size_fmt(1e9 * 2.614, unit="b", decimals=3) == "2.614Gb"
 
 
 def test_log_setup_logger(temp_folder: Path):
