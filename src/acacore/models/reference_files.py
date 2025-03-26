@@ -1,5 +1,6 @@
 from re import Match
 from re import search
+from typing import Any
 from typing import get_args as get_type_args
 from typing import Literal
 from typing import Self
@@ -130,11 +131,13 @@ class ConvertAction(NoDefaultsModel):
 
     tool: str
     output: str | None = None
+    options: dict[str, Any] | None = None
 
     @model_validator(mode="after")
     def _validate_model(self) -> Self:
         if not self.tool == "copy" and not self.output:
             raise ValueError("Missing output.")
+        self.options = self.options or None
         return self
 
 
