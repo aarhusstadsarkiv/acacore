@@ -152,6 +152,12 @@ class ExtractAction(NoDefaultsModel):
     tool: str
     extension: str | None = None
     on_success: Literal["convert", "manual", "ignore"] | None = None
+    options: dict[str, Any] | None = None
+
+    @model_validator(mode="after")
+    def _validate_model(self) -> Self:
+        self.options = self.options or None
+        return self
 
 
 class ManualAction(NoDefaultsModel):
