@@ -1,7 +1,13 @@
 name: Linting & Test
 
 on:
-  push
+  push:
+    paths:
+      - src/**
+      - tests/**
+      - pyproject.toml
+      - uv.lock
+      - .github/workflows/test.yml
 
 jobs:
   linting:
