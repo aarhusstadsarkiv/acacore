@@ -139,11 +139,20 @@ def upgrade_4_1to4_1_1(con: Connection) -> Version:
     return set_db_version(con, Version("4.1.1"))
 
 
+def upgrade_5to5_1(con: Connection) -> Version:
+    con.execute("alter table files_statutory add column doc_collection int")
+    con.execute("alter table files_statutory add column doc_id int")
+    con.commit()
+    return set_db_version(con, Version("5.1.0"))
+
+
 def get_upgrade_function(current_version: Version, latest_version: Version) -> Callable[[Connection], Version]:
     if current_version < Version("4.1.0"):
         return upgrade_4to4_1
     elif current_version < Version("4.1.1"):
         return upgrade_4_1to4_1_1
+    elif current_version < Version("5.1.0"):
+        return upgrade_5to5_1
     elif current_version < latest_version:
         return lambda c: set_db_version(c, Version(__version__))
     else:
