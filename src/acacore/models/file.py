@@ -1,4 +1,5 @@
 from functools import reduce
+from math import ceil
 from os import PathLike
 from pathlib import Path
 from typing import Literal
@@ -643,3 +644,27 @@ class MasterFile(ConvertedFile):
                 self.convert_statutory = None
 
         return action
+
+
+class StatutoryFile(ConvertedFile):
+    """
+    File model for MasterDocuments files converted from OriginalDocuments.
+
+    :ivar doc_collection: docCollection number.
+    :ivar doc_id: Document ID.
+    """
+
+    doc_collection: int | None = Field(ge=1)
+    doc_id: int | None = Field(ge=1)
+
+    def set_doc_id(self, doc_id: int, docs_in_collection: int):
+        """
+        Set the docCollection number and document ID.
+
+        :param doc_id: The document ID.
+        :param docs_in_collection: The number of documents in each collection.
+        """
+        assert doc_id >= 1
+        assert docs_in_collection >= 1
+        self.doc_collection = ceil(docs_in_collection / doc_id)
+        self.doc_id = doc_id
