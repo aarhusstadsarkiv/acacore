@@ -18,6 +18,7 @@ from acacore.models.file import BaseFile
 from acacore.models.file import ConvertedFile
 from acacore.models.file import MasterFile
 from acacore.models.file import OriginalFile
+from acacore.models.file import StatutoryFile
 from acacore.utils.functions import find_files
 
 
@@ -110,7 +111,7 @@ def test_database_insert_select(database_file: Path):
         db.original_files[:] = original_file2
         db.master_files.insert(MasterFile.from_file(database_file, database_file.parent, original_file.uuid))
         db.access_files.insert(ConvertedFile.from_file(database_file, database_file.parent, original_file.uuid))
-        db.statutory_files.insert(ConvertedFile.from_file(database_file, database_file.parent, original_file.uuid))
+        db.statutory_files.insert(StatutoryFile.from_file(database_file, database_file.parent, original_file.uuid))
         db.log.insert(Event(file_uuid=original_file.uuid, file_type="original", operation="test_database_models"))
         db.commit()
 
@@ -138,7 +139,7 @@ def test_database_insert_select(database_file: Path):
 
         assert isinstance(db.master_files.select().fetchone(), MasterFile)
         assert isinstance(db.access_files.select().fetchone(), ConvertedFile)
-        assert isinstance(db.statutory_files.select().fetchone(), ConvertedFile)
+        assert isinstance(db.statutory_files.select().fetchone(), StatutoryFile)
         assert isinstance(db.all_files.select().fetchone(), BaseFile)
         assert isinstance(db.log.select().fetchone(), Event)
 
