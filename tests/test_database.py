@@ -18,6 +18,7 @@ from acacore.models.file import BaseFile
 from acacore.models.file import ConvertedFile
 from acacore.models.file import MasterFile
 from acacore.models.file import OriginalFile
+from acacore.models.file import StatutoryFile
 from acacore.utils.functions import find_files
 
 
@@ -28,7 +29,7 @@ def database_file(temp_folder: Path) -> Path:
     return path
 
 
-def test_database_base(database_file: Path):
+def test_base(database_file: Path):
     with FilesDB(database_file) as db:
         assert db.is_open()
         assert not db.is_initialised()
@@ -48,7 +49,7 @@ def test_database_base(database_file: Path):
     assert not db.is_open()
 
 
-def test_database_temporary(database_file: Path):
+def test_temporary(database_file: Path):
     with FilesDB(database_file) as db:
         db.init()
         db.commit()
@@ -77,7 +78,7 @@ def test_database_temporary(database_file: Path):
             table_keyvalue.get()
 
 
-def test_database_tables(database_file: Path):
+def test_tables(database_file: Path):
     with FilesDB(database_file) as db:
         db.init()
         db.commit()
@@ -99,7 +100,7 @@ def test_database_tables(database_file: Path):
 
 
 # noinspection DuplicatedCode
-def test_database_insert_select(database_file: Path):
+def test_insert_select(database_file: Path):
     with FilesDB(database_file) as db:
         db.init()
         db.commit()
@@ -110,7 +111,7 @@ def test_database_insert_select(database_file: Path):
         db.original_files[:] = original_file2
         db.master_files.insert(MasterFile.from_file(database_file, database_file.parent, original_file.uuid))
         db.access_files.insert(ConvertedFile.from_file(database_file, database_file.parent, original_file.uuid))
-        db.statutory_files.insert(ConvertedFile.from_file(database_file, database_file.parent, original_file.uuid))
+        db.statutory_files.insert(StatutoryFile.from_file(database_file, database_file.parent, original_file.uuid))
         db.log.insert(Event(file_uuid=original_file.uuid, file_type="original", operation="test_database_models"))
         db.commit()
 
@@ -138,7 +139,7 @@ def test_database_insert_select(database_file: Path):
 
         assert isinstance(db.master_files.select().fetchone(), MasterFile)
         assert isinstance(db.access_files.select().fetchone(), ConvertedFile)
-        assert isinstance(db.statutory_files.select().fetchone(), ConvertedFile)
+        assert isinstance(db.statutory_files.select().fetchone(), StatutoryFile)
         assert isinstance(db.all_files.select().fetchone(), BaseFile)
         assert isinstance(db.log.select().fetchone(), Event)
 
@@ -149,7 +150,7 @@ def test_database_insert_select(database_file: Path):
         assert isinstance(db.checksums_count.select().fetchone(), ChecksumCount)
 
 
-def test_database_cursor(database_file: Path, test_folder: Path):
+def test_cursor(database_file: Path, test_folder: Path):
     with FilesDB(database_file) as db:
         db.init()
         db.commit()
@@ -169,7 +170,7 @@ def test_database_cursor(database_file: Path, test_folder: Path):
             next(cursor)
 
 
-def test_database_update_delete(database_file: Path):
+def test_update_delete(database_file: Path):
     with FilesDB(database_file) as db:
         db.init()
         db.commit()
@@ -205,7 +206,7 @@ def test_database_update_delete(database_file: Path):
         assert len(db.original_files) == 0
 
 
-def test_database_drop(database_file: Path):
+def test_drop(database_file: Path):
     with FilesDB(database_file) as db:
         db.init()
         db.commit()
@@ -241,7 +242,7 @@ def test_database_drop(database_file: Path):
             table_keyvalue.drop(missing_ok=False)
 
 
-def test_database_upgrade(test_folder: Path, temp_folder: Path):
+def test_upgrade(test_folder: Path, temp_folder: Path):
     database_file: Path = test_folder / "databases" / "v4_0_0.db"
     database_file_copy: Path = temp_folder / database_file.name
     database_file_copy.unlink(missing_ok=True)

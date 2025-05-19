@@ -12,6 +12,7 @@ from acacore.models.file import BaseFile
 from acacore.models.file import ConvertedFile
 from acacore.models.file import MasterFile
 from acacore.models.file import OriginalFile
+from acacore.models.file import StatutoryFile
 from acacore.models.metadata import Metadata
 from acacore.models.reference_files import TActionType
 
@@ -129,15 +130,16 @@ class FilesDB(Database):
             },
             ["root"],
         )
-        self.statutory_files: Table[ConvertedFile] = Table(
+        self.statutory_files: Table[StatutoryFile] = Table(
             self.connection,
-            ConvertedFile,
+            StatutoryFile,
             "files_statutory",
             ["relative_path"],
             {
                 "uuid": ["uuid"],
                 "checksum": ["checksum"],
                 "original_uuid": ["original_uuid"],
+                "doc_id": ["doc_id"],
             },
             ["root"],
         )

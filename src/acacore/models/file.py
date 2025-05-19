@@ -1,4 +1,5 @@
 from functools import reduce
+from math import ceil
 from os import PathLike
 from pathlib import Path
 from typing import Literal
@@ -643,3 +644,78 @@ class MasterFile(ConvertedFile):
                 self.convert_statutory = None
 
         return action
+
+
+class StatutoryFile(ConvertedFile):
+    """
+    File model for MasterDocuments files converted from OriginalDocuments.
+
+    :ivar doc_collection: docCollection number.
+    :ivar doc_id: Document ID.
+    """
+
+    doc_collection: int | None = Field(ge=1)
+    doc_id: int | None = Field(ge=1)
+
+    @model_validator(mode="after")
+    def _model_validator(self) -> Self:
+        if self.doc_collection is None and self.doc_id is not None:
+            raise ValueError("doc_collection must be specified when doc_id is specified")
+        if self.doc_collection is not None and self.doc_id is None:
+            raise ValueError("doc_id must be specified when doc_collection is specified")
+        return self
+
+    @classmethod
+    def from_file(
+        cls,
+        path: str | PathLike[str],
+        root: str | PathLike[str],
+        original_uuid: UUID | None = None,
+        siegfried: Siegfried | SiegfriedFile | None = None,
+        custom_signatures: list[CustomSignature] | None = None,
+        uuid: UUID | None = None,
+        doc_collection: int | None = None,
+        doc_id: int | None = None,
+    ) -> Self:
+        """
+        Create a file object from a given path.
+
+        :param path: The path to the file.
+        :param root: The folder to use as root for the file.
+        :param original_uuid: The UUID of the parent file.
+        :param siegfried: Optionally, an insteance of ``Siegfried`` or ``SiegfriedFile`` to identify the file with.
+        :param custom_signatures: Optionally, a list of ``CustomSignature`` to identify the file if ``siegfried`` is
+            not provided or fails to find a match.
+        :param uuid: Optionally, the UUID of the file.
+        :param doc_collection: Optionally, the docCollection number.
+        :param doc_id: Optionally, the document ID.
+        :return: A ``StatutoryFile`` object.
+        """
+        file_base = super().from_file(path, root, original_uuid, siegfried, custom_signatures, uuid)
+
+        return StatutoryFile(
+            uuid=file_base.uuid,
+            checksum=file_base.checksum,
+            relative_path=file_base.relative_path,
+            root=file_base.root,
+            is_binary=file_base.is_binary,
+            size=file_base.size,
+            puid=file_base.puid,
+            signature=file_base.signature,
+            warning=file_base.warning,
+            original_uuid=file_base.original_uuid,
+            doc_collection=doc_collection,
+            doc_id=doc_id,
+        )
+
+    def set_doc_id(self, doc_id: int, docs_in_collection: int):
+        """
+        Set the docCollection number and document ID.
+
+        :param doc_id: The document ID.
+        :param docs_in_collection: The number of documents in each collection.
+        """
+        assert doc_id >= 1
+        assert docs_in_collection >= 1
+        self.doc_collection = ceil(docs_in_collection / doc_id)
+        self.doc_id = doc_id
