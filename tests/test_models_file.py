@@ -1,5 +1,7 @@
+from math import ceil
 from os import environ
 from pathlib import Path
+from random import randint
 from uuid import uuid4
 
 import pytest
@@ -8,6 +10,7 @@ from acacore.models.file import BaseFile
 from acacore.models.file import ConvertedFile
 from acacore.models.file import MasterFile
 from acacore.models.file import OriginalFile
+from acacore.models.file import StatutoryFile
 from acacore.models.reference_files import Action
 from acacore.models.reference_files import CustomSignature
 from acacore.models.reference_files import MasterConvertAction
@@ -154,3 +157,31 @@ def test_master_file(
             not file.convert_access and not file.convert_statutory
         )
         assert file.processed
+
+
+def test_statutory_file(
+    test_folder: Path,
+    test_files: Path,
+    test_files_data: dict[str, dict],
+    siegfried: Siegfried,
+    custom_signatures: list[CustomSignature],
+):
+    for filename in test_files_data.keys():
+        uuid = uuid4()
+        original_uuid = uuid4()
+        di = randint(1, 100000)
+        dc = randint(1000, 10000)
+        file = StatutoryFile.from_file(
+            test_files / filename,
+            test_folder,
+            original_uuid,
+            siegfried,
+            custom_signatures,
+            uuid,
+            ceil(dc / di),
+            di,
+        )
+        assert file.original_uuid == original_uuid
+        file.set_doc_id(di, dc)
+        assert file.doc_id == di
+        assert file.doc_collection == ceil(dc / di)
