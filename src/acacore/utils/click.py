@@ -11,10 +11,13 @@ from sys import stdout
 from traceback import format_tb
 
 from click import BadParameter
+from click import ClickException
 from click import Command
 from click import Context
+from click import MissingParameter
 from click import Parameter
 
+from acacore.database import query
 from acacore.models.event import Event
 from acacore.utils.helpers import ExceptionManager
 from acacore.utils.log import setup_logger
@@ -56,6 +59,34 @@ def param_callback_regex(
         return value
 
     return callback
+
+
+def param_callback_query(
+    required: bool,
+    default: str,
+    allowed_fields: list[str] | None = None,
+) -> Callable[[Context, Parameter, str], query.QueryTokens]:
+    def _callback(ctx: Context, param: Parameter, value: str | None) -> tuple[str | None, list[str]]:
+        if not (value := value or "").strip() and required:
+            raise MissingParameter(None, ctx, param)
+        if not value:
+            return None, []
+
+        try:
+            tokens = query.tokenizer(value, default, allowed_fields or [])
+            if not tokens and required:
+                raise BadParameter("no values in query.", ctx, param)
+            return query.tokens_to_where(tokens)
+        except ClickException:
+            raise
+        except FileNotFoundError as err:
+            raise BadParameter(f"{err.filename} file not found", ctx, param)
+        except ValueError as err:
+            raise BadParameter(err.args[0], ctx, param)
+        except Exception as err:
+            raise BadParameter(repr(err), ctx, param)
+
+    return _callback
 
 
 def copy_params(command: Command) -> Callable[[Command], Command]:
