@@ -21,7 +21,11 @@ def test_functions_or_none():
 
 def test_functions_file_checksum(test_files: Path, test_files_data: dict[str, dict]):
     for filename, filedata in test_files_data.items():
-        assert file_checksum(test_files / filename) == filedata["checksum"]
+        checksum, encoding = file_checksum(test_files / filename, filedata["encoding"] is not None)
+        assert checksum == filedata["checksum"]
+        assert (encoding is None and filedata["encoding"] is None) or (
+            encoding and encoding["encoding"] == filedata["encoding"]
+        )
 
 
 def test_functions_is_binary(test_files: Path, test_files_data: dict[str, dict]):
