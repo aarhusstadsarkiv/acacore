@@ -1,6 +1,6 @@
 [project]
 name = "acacore"
-version = "5.1.0"
+version = "5.2.0"
 description = ""
 authors = [{ name = "Matteo Campinoti", email = "matteo.campinoti94@gmail.com" }]
 requires-python = ">=3.12"
@@ -14,6 +14,7 @@ dependencies = [
     "packaging~=24.2",
     "pillow>=11.0.0,<12",
     "orjson>=3.10.12,<4",
+    "chardet>=5.2.0,<6",
 ]
 
 [dependency-groups]
@@ -97,6 +98,7 @@ ignore = [
     "D401",    # first line of docstring should be in imperative mood
     "DTZ005",  # datetime.datetime.now() called without a tz argument
     "E712",    # comparison to True/False, we ignore because we use sqlalchemy
+    "E741",    # Ambiguous variable name: `l`
     "FBT001",  # boolean arguement in function definition
     "N802",    # name of function should be lower case
     "PLR2004", # magic value used in comparison

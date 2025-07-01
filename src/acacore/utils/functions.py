@@ -4,6 +4,7 @@ from hashlib import sha256
 from pathlib import Path
 from re import match
 
+from chardet import UniversalDetector
 from imagesize import get as get_image_size
 from PIL import Image
 
@@ -61,20 +62,25 @@ def find_files(path: Path, exclude: list[Path] | None = None) -> Generator[Path,
         yield from (f for i in sorted(path.iterdir()) for f in find_files(i, exclude=exclude))
 
 
-def file_checksum(path: Path) -> str:
+def file_checksum(path: Path, encoding: bool = False) -> tuple[str, dict | None]:
     """
     Calculate the checksum of a file using the SHA256 hash algorithm.
 
     :param path: The path to the file.
-    :return: The SHA256 checksum of the file in hex digest form.
+    :param encoding: If ``True``, the return the text encoding of the file.
+    :return: The SHA256 checksum of the file in hex digest form and the encoding of the file if ``encoding`` is ``True``.
     """
     file_hash = sha256()
+    detector = UniversalDetector()
     with path.open("rb") as f:
         chunk = f.read(2**20)
         while chunk:
             file_hash.update(chunk)
+            if encoding:
+                detector.feed(chunk)
             chunk = f.read(2**20)
-    return file_hash.hexdigest()
+    detector.close()
+    return file_hash.hexdigest(), enc if encoding and (enc := detector.result).get("encoding") else None
 
 
 def is_valid_suffix(suffix: str) -> bool:

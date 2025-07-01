@@ -8,7 +8,6 @@ from packaging.version import Version
 from pydantic import BaseModel
 
 from acacore.models.event import Event
-from acacore.models.file import BaseFile
 from acacore.models.file import ConvertedFile
 from acacore.models.file import MasterFile
 from acacore.models.file import OriginalFile
@@ -52,7 +51,6 @@ class FilesDB(Database):
     :ivar master_files: The table containing the master archival files.
     :ivar access_files: The table containing the access files.
     :ivar statutory_files: The table containing the statutory files.
-    :ivar all_files: A view showing all files in the database.
     :ivar log: The table containing the event log.
     :ivar log_paths: A view containing the event log together with the path of the files for events that reference them.
     :ivar identification_warnings: A view containing a list of files from "original files" that have identification issues.
@@ -143,21 +141,6 @@ class FilesDB(Database):
             },
             ["root"],
         )
-        self.all_files: View[BaseFile] = View(
-            self.connection,
-            BaseFile,
-            "files_all",
-            f"""
-            select uuid, checksum, relative_path, is_binary, size, puid, signature, warning from {self.original_files.name}
-            union
-            select uuid, checksum, relative_path, is_binary, size, puid, signature, warning from {self.master_files.name}
-            union
-            select uuid, checksum, relative_path, is_binary, size, puid, signature, warning from {self.access_files.name}
-            union
-            select uuid, checksum, relative_path, is_binary, size, puid, signature, warning from {self.statutory_files.name}
-            """,
-            ignore=["root"],
-        )
 
         self.log: Table[Event] = Table(
             self.connection,
@@ -219,17 +202,18 @@ class FilesDB(Database):
         if check_version and self.is_initialised():
             is_latest(self.connection, raise_on_difference=True)
 
-    def upgrade(self):
+    def upgrade(self, files_root: str | PathLike[str]):
         """
         Upgrade the database to the latest version.
 
         :raise DatabaseError: If the database is not initialized or if there are uncommitted changes.
+        :param files_root: Root directory of the files.
         """
         if not self.is_initialised():
             raise DatabaseError("Database is not initialized")
         if self.uncommitted_changes:
             raise DatabaseError("Database has uncommitted changes")
-        upgrade(self.connection)
+        upgrade(self.connection, files_root)
 
     def is_initialised(self) -> bool:
         """
@@ -266,7 +250,6 @@ class FilesDB(Database):
         db.master_files.create(exist_ok=True)
         db.access_files.create(exist_ok=True)
         db.statutory_files.create(exist_ok=True)
-        db.all_files.create(exist_ok=True)
         db.log.create(exist_ok=True)
         db.log_paths.create(exist_ok=True)
         db.identification_warnings.create(exist_ok=True)

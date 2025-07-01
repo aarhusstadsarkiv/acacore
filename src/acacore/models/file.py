@@ -7,6 +7,7 @@ from typing import Self
 from uuid import UUID
 from uuid import uuid4
 
+from chardet import ResultDict
 from pydantic import BaseModel
 from pydantic import Field
 from pydantic import model_validator
@@ -97,6 +98,7 @@ class BaseFile(BaseModel):
 
     uuid: UUID4 = Field(default_factory=uuid4)
     checksum: str
+    encoding: ResultDict | None
     relative_path: Path
     is_binary: bool
     size: int
@@ -131,13 +133,15 @@ class BaseFile(BaseModel):
             root=root,
             relative_path=path.relative_to(root) if root else path,
             uuid=uuid or uuid4(),
-            checksum=file_checksum(path),
+            checksum="",
+            encoding=None,
             is_binary=is_binary(path),
             size=path.stat().st_size,
             puid=None,
             signature=None,
             warning=None,
         )
+        file.checksum, file.encoding = file_checksum(path, encoding=not file.is_binary)
 
         if siegfried:
             file.identify(siegfried, set_match=True)
@@ -219,8 +223,12 @@ class BaseFile(BaseModel):
 
         :return: The checksum of the file as a hex digest string.
         """
-        self.checksum = file_checksum(self.get_absolute_path(self.root))
+        self.checksum = file_checksum(self.get_absolute_path(self.root), False)[0]
         return self.checksum
+
+    def get_encoding(self) -> ResultDict | None:
+        self.encoding = file_checksum(self.get_absolute_path(self.root), True)[1]
+        return self.encoding
 
     def get_size(self) -> int:
         """
@@ -350,6 +358,7 @@ class OriginalFile(BaseFile):
             root=file_base.root,
             relative_path=file_base.relative_path,
             checksum=file_base.checksum,
+            encoding=file_base.encoding,
             is_binary=file_base.is_binary,
             size=file_base.size,
             puid=None,
@@ -513,6 +522,7 @@ class ConvertedFile(BaseFile):
         return ConvertedFile(
             uuid=file_base.uuid,
             checksum=file_base.checksum,
+            encoding=file_base.encoding,
             relative_path=file_base.relative_path,
             root=file_base.root,
             is_binary=file_base.is_binary,
@@ -567,6 +577,7 @@ class MasterFile(ConvertedFile):
         file = MasterFile(
             uuid=file_base.uuid,
             checksum=file_base.checksum,
+            encoding=file_base.encoding,
             relative_path=file_base.relative_path,
             root=file_base.root,
             is_binary=file_base.is_binary,
@@ -696,6 +707,7 @@ class StatutoryFile(ConvertedFile):
         return StatutoryFile(
             uuid=file_base.uuid,
             checksum=file_base.checksum,
+            encoding=file_base.encoding,
             relative_path=file_base.relative_path,
             root=file_base.root,
             is_binary=file_base.is_binary,

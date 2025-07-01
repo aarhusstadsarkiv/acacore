@@ -14,7 +14,6 @@ from acacore.database.files_db import ChecksumCount
 from acacore.database.files_db import EventPath
 from acacore.database.files_db import SignatureCount
 from acacore.models.event import Event
-from acacore.models.file import BaseFile
 from acacore.models.file import ConvertedFile
 from acacore.models.file import MasterFile
 from acacore.models.file import OriginalFile
@@ -91,7 +90,6 @@ def test_tables(database_file: Path):
         assert db.statutory_files.name in tables
         assert db.log.name in tables
         assert db.metadata.name in tables
-        assert db.all_files.name in views
         assert db.log_paths.name in views
         assert db.identification_warnings.name in views
         assert db.signatures_count.name in views
@@ -119,9 +117,6 @@ def test_insert_select(database_file: Path):
         assert len(db.master_files) == 1
         assert len(db.access_files) == 1
         assert len(db.statutory_files) == 1
-        assert len(db.all_files) == (
-            len(db.original_files) + len(db.master_files) + len(db.access_files) + len(db.statutory_files)
-        )
         assert len(db.log) == 1
         assert len(db.log_paths) == 1
         assert len(db.identification_warnings) == 2
@@ -140,7 +135,6 @@ def test_insert_select(database_file: Path):
         assert isinstance(db.master_files.select().fetchone(), MasterFile)
         assert isinstance(db.access_files.select().fetchone(), ConvertedFile)
         assert isinstance(db.statutory_files.select().fetchone(), StatutoryFile)
-        assert isinstance(db.all_files.select().fetchone(), BaseFile)
         assert isinstance(db.log.select().fetchone(), Event)
 
         assert isinstance(db.log_paths.select().fetchone(), EventPath)
@@ -253,23 +247,6 @@ def test_upgrade(test_folder: Path, temp_folder: Path):
     with FilesDB(database_file_copy, check_version=False) as db:
         assert db.version() < Version(__version__)
 
-        db.upgrade()
+        db.upgrade(test_folder)
 
         assert db.version() == Version(__version__)
-
-        assert db.original_files.select(limit=1).fetchone()
-        assert db.master_files.select(limit=1).fetchone()
-
-        for master_file in db.master_files:
-            if master_file.processed == 0:
-                assert db.access_files[{"original_uuid": str(master_file.uuid)}] is None
-                assert db.statutory_files[{"original_uuid": str(master_file.uuid)}] is None
-            elif master_file.processed == 1:
-                assert db.access_files[{"original_uuid": str(master_file.uuid)}] is not None
-                assert db.statutory_files[{"original_uuid": str(master_file.uuid)}] is None
-            elif master_file.processed == 2:
-                assert db.access_files[{"original_uuid": str(master_file.uuid)}] is None
-                assert db.statutory_files[{"original_uuid": str(master_file.uuid)}] is not None
-            elif master_file.processed == 3:
-                assert db.access_files[{"original_uuid": str(master_file.uuid)}] is not None
-                assert db.statutory_files[{"original_uuid": str(master_file.uuid)}] is not None

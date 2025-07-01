@@ -2,6 +2,7 @@
   "empty.empty": {
     "filesize": 0,
     "checksum": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "encoding": null,
     "binary": false,
     "errors": "",
     "matches": {
@@ -21,6 +22,7 @@
     "filesize": 531,
     "image_size": [16, 16],
     "checksum": "36072bb5c2822fd97c344fb41d5d01ddf02cd6633f0867c53de798b15611b458",
+    "encoding": null,
     "binary": true,
     "errors": "",
     "matches": {
@@ -39,6 +41,7 @@
   "json.json": {
     "filesize": 355,
     "checksum": "c334b60758bd581c1d3cffcfe55cd3532a7190fa99b1b04ef6ccad8c56d149f4",
+    "encoding": "ascii",
     "binary": false,
     "errors": "",
     "matches": {
@@ -57,6 +60,7 @@
   "lwp.lwp": {
     "filesize": 19172,
     "checksum": "f95071443311e672958ae19c6d289faa2dd87fd76320619f761e57413021a8fe",
+    "encoding": null,
     "binary": true,
     "errors": "",
     "matches": {
@@ -75,6 +79,7 @@
   "mp3.mp3": {
     "filesize": 109374,
     "checksum": "93dcfdddbdcac6f56678693501622f9935d40ca3297e2f634adf0471f0689949",
+    "encoding": null,
     "binary": true,
     "errors": "",
     "matches": {
@@ -93,6 +98,7 @@
   "mp4.mp4": {
     "filesize": 146693,
     "checksum": "8905c33ea2d727453d7f990db5316468fa5a5a4a755c010816ea04a541925a39",
+    "encoding": null,
     "binary": true,
     "errors": "",
     "matches": {
@@ -111,6 +117,7 @@
   "pdf.pdf": {
     "filesize": 38468,
     "checksum": "8306dbaddfeeafc301eefa8b72ebece3ebbd88b0c5aae9c8361d2501c7f35786",
+    "encoding": null,
     "binary": true,
     "errors": "",
     "matches": {
@@ -129,6 +136,7 @@
   "txt.txt": {
     "filesize": 2136,
     "checksum": "49f2d2950bde4442a43aabf23e9c58ee33ef0a91a559dcf33863dd34b6ba009d",
+    "encoding":  "utf-8",
     "binary": false,
     "errors": "",
     "matches": {
