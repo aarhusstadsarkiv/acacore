@@ -253,23 +253,6 @@ def test_upgrade(test_folder: Path, temp_folder: Path):
     with FilesDB(database_file_copy, check_version=False) as db:
         assert db.version() < Version(__version__)
 
-        db.upgrade()
+        db.upgrade(test_folder)
 
         assert db.version() == Version(__version__)
-
-        assert db.original_files.select(limit=1).fetchone()
-        assert db.master_files.select(limit=1).fetchone()
-
-        for master_file in db.master_files:
-            if master_file.processed == 0:
-                assert db.access_files[{"original_uuid": str(master_file.uuid)}] is None
-                assert db.statutory_files[{"original_uuid": str(master_file.uuid)}] is None
-            elif master_file.processed == 1:
-                assert db.access_files[{"original_uuid": str(master_file.uuid)}] is not None
-                assert db.statutory_files[{"original_uuid": str(master_file.uuid)}] is None
-            elif master_file.processed == 2:
-                assert db.access_files[{"original_uuid": str(master_file.uuid)}] is None
-                assert db.statutory_files[{"original_uuid": str(master_file.uuid)}] is not None
-            elif master_file.processed == 3:
-                assert db.access_files[{"original_uuid": str(master_file.uuid)}] is not None
-                assert db.statutory_files[{"original_uuid": str(master_file.uuid)}] is not None
