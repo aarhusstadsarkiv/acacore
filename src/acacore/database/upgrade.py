@@ -148,6 +148,38 @@ def upgrade_5to5_1(con: Connection, _root: Path) -> Version:
     return set_db_version(con, Version("5.1.0"))
 
 
+def upgrade_5_1to5_2(con: Connection, root: Path) -> Version:
+    from chardet import UniversalDetector
+
+    con.execute("alter table files_original add column encoding text")
+    con.execute("alter table files_master add column encoding text")
+    con.execute("alter table files_access add column encoding text")
+    con.execute("alter table files_statutory add column encoding text")
+
+    def _encoding(path: str | PathLike[str]) -> dict | None:
+        detector = UniversalDetector()
+        with open(path, "rb") as f:
+            while chunk := f.read(2**20):
+                detector.feed(chunk)
+        detector.close()
+        return enc if (enc := detector.result).get("encoding") else None
+
+    # noinspection SqlResolve
+    for table in ("files_original", "files_master", "files_access", "files_statutory"):
+        con.executemany(
+            f"update {table} set encoding = ? where uuid = ?",
+            (
+                (encoding, uuid)
+                for [uuid, path] in con.execute(f"select uuid, relative_path from {table} where is_binary is false")
+                if (encoding := _encoding(root.joinpath(path)))
+            ),
+        )
+
+    con.commit()
+
+    return set_db_version(con, Version("5.2.0"))
+
+
 def get_upgrade_function(current_version: Version, latest_version: Version) -> Callable[[Connection, Path], Version]:
     if current_version < Version("4.1.0"):
         return upgrade_4to4_1
@@ -155,6 +187,8 @@ def get_upgrade_function(current_version: Version, latest_version: Version) -> C
         return upgrade_4_1to4_1_1
     elif current_version < Version("5.1.0"):
         return upgrade_5to5_1
+    elif current_version < Version("5.2.0"):
+        return upgrade_5_1to5_2
     elif current_version < latest_version:
         return lambda c, _: set_db_version(c, Version(__version__))
     else:
