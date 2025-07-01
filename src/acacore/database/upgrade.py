@@ -151,6 +151,8 @@ def upgrade_5to5_1(con: Connection, _root: Path) -> Version:
 def upgrade_5_1to5_2(con: Connection, root: Path) -> Version:
     from chardet import UniversalDetector
 
+    con.execute("drop view if exists files_all")
+
     con.execute("alter table files_original add column encoding text")
     con.execute("alter table files_master add column encoding text")
     con.execute("alter table files_access add column encoding text")
