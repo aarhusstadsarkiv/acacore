@@ -98,6 +98,7 @@ ignore = [
     "D401",    # first line of docstring should be in imperative mood
     "DTZ005",  # datetime.datetime.now() called without a tz argument
     "E712",    # comparison to True/False, we ignore because we use sqlalchemy
+    "E741",    # Ambiguous variable name: `l`
     "FBT001",  # boolean arguement in function definition
     "N802",    # name of function should be lower case
     "PLR2004", # magic value used in comparison
