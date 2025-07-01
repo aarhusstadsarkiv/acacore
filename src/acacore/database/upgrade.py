@@ -171,7 +171,7 @@ def upgrade_5_1to5_2(con: Connection, root: Path) -> Version:
         con.executemany(
             f"update {table} set encoding = ? where uuid = ?",
             (
-                (encoding, uuid)
+                (dumps(encoding), uuid)
                 for [uuid, path] in con.execute(f"select uuid, relative_path from {table} where is_binary is false")
                 if (encoding := _encoding(root.joinpath(path)))
             ),
