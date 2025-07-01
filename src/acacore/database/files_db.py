@@ -219,17 +219,18 @@ class FilesDB(Database):
         if check_version and self.is_initialised():
             is_latest(self.connection, raise_on_difference=True)
 
-    def upgrade(self):
+    def upgrade(self, files_root: str | PathLike[str]):
         """
         Upgrade the database to the latest version.
 
         :raise DatabaseError: If the database is not initialized or if there are uncommitted changes.
+        :param files_root: Root directory of the files.
         """
         if not self.is_initialised():
             raise DatabaseError("Database is not initialized")
         if self.uncommitted_changes:
             raise DatabaseError("Database has uncommitted changes")
-        upgrade(self.connection)
+        upgrade(self.connection, files_root)
 
     def is_initialised(self) -> bool:
         """

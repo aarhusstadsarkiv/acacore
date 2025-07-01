@@ -1,6 +1,8 @@
 from collections.abc import Callable
 from json import dumps
 from json import loads
+from os import PathLike
+from pathlib import Path
 from sqlite3 import Connection
 from sqlite3 import DatabaseError
 from sqlite3 import OperationalError
@@ -35,7 +37,7 @@ def set_db_version(conn: Connection, version: Version) -> Version:
 
 
 # noinspection SqlResolve
-def upgrade_4to4_1(con: Connection) -> Version:
+def upgrade_4to4_1(con: Connection, _root: Path) -> Version:
     con.execute("""
     create table files_master_tmp
     (
@@ -132,21 +134,21 @@ def upgrade_4to4_1(con: Connection) -> Version:
     return set_db_version(con, Version("4.1.0"))
 
 
-def upgrade_4_1to4_1_1(con: Connection) -> Version:
+def upgrade_4_1to4_1_1(con: Connection, _root: Path) -> Version:
     con.execute("drop table metadata")
     con.execute("create table metadata (key text not null, value text, primary key (key))")
     con.commit()
     return set_db_version(con, Version("4.1.1"))
 
 
-def upgrade_5to5_1(con: Connection) -> Version:
+def upgrade_5to5_1(con: Connection, _root: Path) -> Version:
     con.execute("alter table files_statutory add column doc_collection int")
     con.execute("alter table files_statutory add column doc_id int")
     con.commit()
     return set_db_version(con, Version("5.1.0"))
 
 
-def get_upgrade_function(current_version: Version, latest_version: Version) -> Callable[[Connection], Version]:
+def get_upgrade_function(current_version: Version, latest_version: Version) -> Callable[[Connection, Path], Version]:
     if current_version < Version("4.1.0"):
         return upgrade_4to4_1
     elif current_version < Version("4.1.1"):
@@ -154,9 +156,9 @@ def get_upgrade_function(current_version: Version, latest_version: Version) -> C
     elif current_version < Version("5.1.0"):
         return upgrade_5to5_1
     elif current_version < latest_version:
-        return lambda c: set_db_version(c, Version(__version__))
+        return lambda c, _: set_db_version(c, Version(__version__))
     else:
-        return lambda _: latest_version
+        return lambda _, __: latest_version
 
 
 # noinspection SqlResolve
@@ -184,11 +186,12 @@ def is_latest(connection: Connection, *, raise_on_difference: bool = False) -> b
     return current_version == latest_version
 
 
-def upgrade(connection: Connection):
+def upgrade(connection: Connection, files_root: str | PathLike[str]):
     """
     Upgrade a database to the latest version of acacore.
 
     :param connection: A ``Connection`` object to the database.
+    :param files_root: Root directory of the files.
     """
     if is_latest(connection):
         return
@@ -198,4 +201,4 @@ def upgrade(connection: Connection):
 
     while current_version < latest_version:
         update_function = get_upgrade_function(current_version, latest_version)
-        current_version = update_function(connection)
+        current_version = update_function(connection, Path(files_root))
