@@ -652,12 +652,10 @@ class StatutoryFile(ConvertedFile):
 
     :ivar doc_collection: docCollection number.
     :ivar doc_id: Document ID.
-    :ivar sequence: The sequence number of the file.
     """
 
     doc_collection: int | None = Field(ge=1)
     doc_id: int | None = Field(ge=1)
-    sequence: int = Field(1, ge=1)
 
     @model_validator(mode="after")
     def _model_validator(self) -> Self:
@@ -678,7 +676,6 @@ class StatutoryFile(ConvertedFile):
         uuid: UUID | None = None,
         doc_collection: int | None = None,
         doc_id: int | None = None,
-        sequence: int = 1,
     ) -> Self:
         """
         Create a file object from a given path.
@@ -692,7 +689,6 @@ class StatutoryFile(ConvertedFile):
         :param uuid: Optionally, the UUID of the file.
         :param doc_collection: Optionally, the docCollection number.
         :param doc_id: Optionally, the document ID.
-        :param sequence: The sequence number of the file.
         :return: A ``StatutoryFile`` object.
         """
         file_base = super().from_file(path, root, original_uuid, siegfried, custom_signatures, uuid)
@@ -710,7 +706,6 @@ class StatutoryFile(ConvertedFile):
             original_uuid=file_base.original_uuid,
             doc_collection=doc_collection,
             doc_id=doc_id,
-            sequence=sequence,
         )
 
     def set_doc_id(self, doc_id: int, docs_in_collection: int):
