@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from collections.abc import Iterable
 from itertools import batched
 from json import dumps
 from json import loads
@@ -7,7 +8,6 @@ from pathlib import Path
 from sqlite3 import Connection
 from sqlite3 import DatabaseError
 from sqlite3 import OperationalError
-from typing import Iterable
 
 from packaging.version import InvalidVersion
 from packaging.version import Version
