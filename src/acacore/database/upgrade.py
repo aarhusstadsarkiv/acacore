@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from itertools import batched
 from json import dumps
 from json import loads
 from os import PathLike
@@ -6,6 +7,7 @@ from pathlib import Path
 from sqlite3 import Connection
 from sqlite3 import DatabaseError
 from sqlite3 import OperationalError
+from typing import Iterable
 
 from packaging.version import InvalidVersion
 from packaging.version import Version
@@ -168,14 +170,13 @@ def upgrade_5_1to5_2(con: Connection, root: Path) -> Version:
 
     # noinspection SqlResolve
     for table in ("files_original", "files_master", "files_access", "files_statutory"):
-        con.executemany(
-            f"update {table} set encoding = ? where uuid = ?",
-            (
-                (dumps(encoding), uuid)
-                for [uuid, path] in con.execute(f"select uuid, relative_path from {table} where is_binary is false")
-                if (encoding := _encoding(root.joinpath(path)))
-            ),
-        )
+        batch: Iterable[tuple[str, str]]
+        for batch in batched(con.execute(f"select uuid, relative_path from {table} where is_binary is false"), 1000):
+            con.executemany(
+                f"update {table} set encoding = ? where uuid = ?",
+                ((dumps(encoding), uuid) for [uuid, path] in batch if (encoding := _encoding(root.joinpath(path)))),
+            )
+            con.commit()
 
     con.commit()
 
