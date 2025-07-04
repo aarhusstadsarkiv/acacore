@@ -159,10 +159,14 @@ def upgrade_5_1to5_2(con: Connection, root: Path) -> Version:
 
     con.execute("drop view if exists files_all")
 
-    con.execute("alter table files_original add column encoding text")
-    con.execute("alter table files_master add column encoding text")
-    con.execute("alter table files_access add column encoding text")
-    con.execute("alter table files_statutory add column encoding text")
+    if "encoding" not in table_columns(con, "files_original"):
+        con.execute("alter table files_original add column encoding text")
+    if "encoding" not in table_columns(con, "files_master"):
+        con.execute("alter table files_master add column encoding text")
+    if "encoding" not in table_columns(con, "files_access"):
+        con.execute("alter table files_access add column encoding text")
+    if "encoding" not in table_columns(con, "files_statutory"):
+        con.execute("alter table files_statutory add column encoding text")
 
     def _encoding(path: str | PathLike[str]) -> dict | None:
         detector = UniversalDetector()
