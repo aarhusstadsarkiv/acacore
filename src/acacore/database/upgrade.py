@@ -1,4 +1,6 @@
 from collections.abc import Callable
+from collections.abc import Iterable
+from itertools import batched
 from json import dumps
 from json import loads
 from os import PathLike
@@ -34,6 +36,10 @@ def set_db_version(conn: Connection, version: Version) -> Version:
     )
     conn.commit()
     return version
+
+
+def table_columns(con: Connection, table: str) -> list[str]:
+    return [p[1].lower() for p in con.execute(f'pragma table_info("{table}")')]
 
 
 # noinspection SqlResolve
@@ -153,10 +159,14 @@ def upgrade_5_1to5_2(con: Connection, root: Path) -> Version:
 
     con.execute("drop view if exists files_all")
 
-    con.execute("alter table files_original add column encoding text")
-    con.execute("alter table files_master add column encoding text")
-    con.execute("alter table files_access add column encoding text")
-    con.execute("alter table files_statutory add column encoding text")
+    if "encoding" not in table_columns(con, "files_original"):
+        con.execute("alter table files_original add column encoding text")
+    if "encoding" not in table_columns(con, "files_master"):
+        con.execute("alter table files_master add column encoding text")
+    if "encoding" not in table_columns(con, "files_access"):
+        con.execute("alter table files_access add column encoding text")
+    if "encoding" not in table_columns(con, "files_statutory"):
+        con.execute("alter table files_statutory add column encoding text")
 
     def _encoding(path: str | PathLike[str]) -> dict | None:
         detector = UniversalDetector()
@@ -168,14 +178,13 @@ def upgrade_5_1to5_2(con: Connection, root: Path) -> Version:
 
     # noinspection SqlResolve
     for table in ("files_original", "files_master", "files_access", "files_statutory"):
-        con.executemany(
-            f"update {table} set encoding = ? where uuid = ?",
-            (
-                (dumps(encoding), uuid)
-                for [uuid, path] in con.execute(f"select uuid, relative_path from {table} where is_binary is false")
-                if (encoding := _encoding(root.joinpath(path)))
-            ),
-        )
+        batch: Iterable[tuple[str, str]]
+        for batch in batched(con.execute(f"select uuid, relative_path from {table} where is_binary is false"), 1000):
+            con.executemany(
+                f"update {table} set encoding = ? where uuid = ?",
+                ((dumps(enc), uuid) for [uuid, path] in batch if (enc := _encoding(root.joinpath(path)))),
+            )
+            con.commit()
 
     con.commit()
 
