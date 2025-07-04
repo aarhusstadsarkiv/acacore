@@ -38,6 +38,10 @@ def set_db_version(conn: Connection, version: Version) -> Version:
     return version
 
 
+def table_columns(con: Connection, table: str) -> list[str]:
+    return [p[1].lower() for p in con.execute(f'pragma table_info("{table}")')]
+
+
 # noinspection SqlResolve
 def upgrade_4to4_1(con: Connection, _root: Path) -> Version:
     con.execute("""
