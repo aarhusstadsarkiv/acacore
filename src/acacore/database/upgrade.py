@@ -1,5 +1,4 @@
 from collections.abc import Callable
-from collections.abc import Iterable
 from itertools import batched
 from json import dumps
 from json import loads
@@ -8,6 +7,7 @@ from pathlib import Path
 from sqlite3 import Connection
 from sqlite3 import DatabaseError
 from sqlite3 import OperationalError
+from typing import Any
 
 from packaging.version import InvalidVersion
 from packaging.version import Version
@@ -18,6 +18,9 @@ __all__ = [
     "is_latest",
     "upgrade",
 ]
+
+
+UpgradeLogger = Callable[[Version | str, str | dict[str, Any]], None]
 
 
 # noinspection SqlResolve
@@ -43,7 +46,7 @@ def table_columns(con: Connection, table: str) -> list[str]:
 
 
 # noinspection SqlResolve
-def upgrade_4to4_1(con: Connection, _root: Path) -> Version:
+def upgrade_4to4_1(con: Connection, _root: Path, _logger: UpgradeLogger) -> Version:
     con.execute("""
     create table files_master_tmp
     (
@@ -140,21 +143,21 @@ def upgrade_4to4_1(con: Connection, _root: Path) -> Version:
     return set_db_version(con, Version("4.1.0"))
 
 
-def upgrade_4_1to4_1_1(con: Connection, _root: Path) -> Version:
+def upgrade_4_1to4_1_1(con: Connection, _root: Path, _logger: UpgradeLogger) -> Version:
     con.execute("drop table metadata")
     con.execute("create table metadata (key text not null, value text, primary key (key))")
     con.commit()
     return set_db_version(con, Version("4.1.1"))
 
 
-def upgrade_5to5_1(con: Connection, _root: Path) -> Version:
+def upgrade_5to5_1(con: Connection, _root: Path, _logger: UpgradeLogger) -> Version:
     con.execute("alter table files_statutory add column doc_collection int")
     con.execute("alter table files_statutory add column doc_id int")
     con.commit()
     return set_db_version(con, Version("5.1.0"))
 
 
-def upgrade_5_1to5_2(con: Connection, root: Path) -> Version:
+def upgrade_5_1to5_2(con: Connection, root: Path, logger: UpgradeLogger) -> Version:
     from chardet import UniversalDetector
 
     con.execute("drop view if exists files_all")
@@ -178,8 +181,10 @@ def upgrade_5_1to5_2(con: Connection, root: Path) -> Version:
 
     # noinspection SqlResolve
     for table in ("files_original", "files_master", "files_access", "files_statutory"):
-        batch: Iterable[tuple[str, str]]
+        batch: tuple[tuple[str, str], ...]
+        files: int = 0
         for batch in batched(con.execute(f"select uuid, relative_path from {table} where is_binary is false"), 1000):
+            logger("5.2.0", {"table": table, "files": (files := files + len(batch))})
             con.executemany(
                 f"update {table} set encoding = ? where uuid = ?",
                 ((dumps(enc), uuid) for [uuid, path] in batch if (enc := _encoding(root.joinpath(path)))),
@@ -191,7 +196,10 @@ def upgrade_5_1to5_2(con: Connection, root: Path) -> Version:
     return set_db_version(con, Version("5.2.0"))
 
 
-def get_upgrade_function(current_version: Version, latest_version: Version) -> Callable[[Connection, Path], Version]:
+def get_upgrade_function(
+    current_version: Version,
+    latest_version: Version,
+) -> Callable[[Connection, Path, UpgradeLogger], Version]:
     if current_version < Version("4.1.0"):
         return upgrade_4to4_1
     elif current_version < Version("4.1.1"):
@@ -201,9 +209,9 @@ def get_upgrade_function(current_version: Version, latest_version: Version) -> C
     elif current_version < Version("5.2.0"):
         return upgrade_5_1to5_2
     elif current_version < latest_version:
-        return lambda c, _: set_db_version(c, Version(__version__))
+        return lambda c, _, __: set_db_version(c, Version(__version__))
     else:
-        return lambda _, __: latest_version
+        return lambda _, __, ___: latest_version
 
 
 # noinspection SqlResolve
@@ -231,12 +239,13 @@ def is_latest(connection: Connection, *, raise_on_difference: bool = False) -> b
     return current_version == latest_version
 
 
-def upgrade(connection: Connection, files_root: str | PathLike[str]):
+def upgrade(connection: Connection, files_root: str | PathLike[str], logger: UpgradeLogger | None):
     """
     Upgrade a database to the latest version of acacore.
 
     :param connection: A ``Connection`` object to the database.
     :param files_root: Root directory of the files.
+    :param logger: A function called during upgrades to log events.
     """
     if is_latest(connection):
         return
@@ -246,4 +255,4 @@ def upgrade(connection: Connection, files_root: str | PathLike[str]):
 
     while current_version < latest_version:
         update_function = get_upgrade_function(current_version, latest_version)
-        current_version = update_function(connection, Path(files_root))
+        current_version = update_function(connection, Path(files_root), logger or (lambda *_: None))
