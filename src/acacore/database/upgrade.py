@@ -20,7 +20,7 @@ __all__ = [
 ]
 
 
-UpgradeLogger = Callable[[Version | str, str | dict[str, Any]], None]
+UpgradeLogger = Callable[[Version | str, str, str | dict[str, Any] | None], None]
 
 
 # noinspection SqlResolve
@@ -179,12 +179,11 @@ def upgrade_5_1to5_2(con: Connection, root: Path, logger: UpgradeLogger) -> Vers
         detector.close()
         return enc if (enc := detector.result).get("encoding") else None
 
-    # noinspection SqlResolve
     for table in ("files_original", "files_master", "files_access", "files_statutory"):
         batch: tuple[tuple[str, str], ...]
         files: int = 0
         for batch in batched(con.execute(f"select uuid, relative_path from {table} where is_binary is false"), 1000):
-            logger("5.2.0", {"table": table, "files": (files := files + len(batch))})
+            logger("5.2.0", "encoding", {"table": table, "files": (files := files + len(batch))})
             con.executemany(
                 f"update {table} set encoding = ? where uuid = ?",
                 ((dumps(enc), uuid) for [uuid, path] in batch if (enc := _encoding(root.joinpath(path)))),
