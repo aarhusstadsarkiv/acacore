@@ -46,7 +46,7 @@ def table_columns(con: Connection, table: str) -> list[str]:
 
 
 # noinspection SqlResolve
-def upgrade_4to4_1(con: Connection, _root: Path, _logger: UpgradeLogger) -> Version:
+def upgrade_4to4_1(con: Connection, _root: Path, logger: UpgradeLogger) -> Version:
     con.execute("""
     create table files_master_tmp
     (
@@ -66,6 +66,7 @@ def upgrade_4to4_1(con: Connection, _root: Path, _logger: UpgradeLogger) -> Vers
     )
     """)
 
+    logger("4.1.0", "processed", {"table": "files_master"})
     con.execute("insert or ignore into files_master_tmp select * from files_master")
     con.execute("update files_master_tmp set processed = 4 where processed != 0")
 
