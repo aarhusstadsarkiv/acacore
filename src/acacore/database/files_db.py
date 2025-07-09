@@ -21,6 +21,7 @@ from .database import Table
 from .database import View
 from .upgrade import is_latest
 from .upgrade import upgrade
+from .upgrade import UpgradeLogger
 
 
 class EventPath(Event):
@@ -202,18 +203,19 @@ class FilesDB(Database):
         if check_version and self.is_initialised():
             is_latest(self.connection, raise_on_difference=True)
 
-    def upgrade(self, files_root: str | PathLike[str]):
+    def upgrade(self, files_root: str | PathLike[str], logger: UpgradeLogger | None = None):
         """
         Upgrade the database to the latest version.
 
         :raise DatabaseError: If the database is not initialized or if there are uncommitted changes.
         :param files_root: Root directory of the files.
+        :param logger: A function called during upgrades to log events.
         """
         if not self.is_initialised():
             raise DatabaseError("Database is not initialized")
         if self.uncommitted_changes:
             raise DatabaseError("Database has uncommitted changes")
-        upgrade(self.connection, files_root)
+        upgrade(self.connection, files_root, logger)
 
     def is_initialised(self) -> bool:
         """
