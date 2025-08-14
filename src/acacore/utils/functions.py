@@ -62,12 +62,13 @@ def find_files(path: Path, exclude: list[Path] | None = None) -> Generator[Path,
         yield from (f for i in sorted(path.iterdir()) for f in find_files(i, exclude=exclude))
 
 
-def file_checksum(path: Path, encoding: bool = False) -> tuple[str, dict | None]:
+def file_checksum(path: Path, encoding: bool | str = False) -> tuple[str, dict | None]:
     """
     Calculate the checksum of a file using the SHA256 hash algorithm.
 
     :param path: The path to the file.
-    :param encoding: If ``True``, the return the text encoding of the file.
+    :param encoding: If ``True``, return the text encoding of the file. If a ``str``, return the value as text
+        encoding, if ``False`` do not compute encoding.
     :return: The SHA256 checksum of the file in hex digest form and the encoding of the file if ``encoding`` is ``True``.
     """
     file_hash = sha256()
@@ -76,11 +77,20 @@ def file_checksum(path: Path, encoding: bool = False) -> tuple[str, dict | None]
         chunk = f.read(2**20)
         while chunk:
             file_hash.update(chunk)
-            if encoding:
+            if encoding is True:
                 detector.feed(chunk)
             chunk = f.read(2**20)
     detector.close()
-    return file_hash.hexdigest(), enc if encoding and (enc := detector.result).get("encoding") else None
+    encoding_str: str | None = (
+        None
+        if encoding is False
+        else encoding
+        if isinstance(encoding, str)
+        else enc
+        if (enc := detector.result).get("encoding")
+        else None
+    )
+    return file_hash.hexdigest(), encoding_str
 
 
 def is_valid_suffix(suffix: str) -> bool:
