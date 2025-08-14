@@ -148,7 +148,7 @@ class BaseFile(BaseModel):
         )
         file.checksum, file.encoding = file_checksum(
             path,
-            encoding=encoding if isinstance(encoding, (bool, str)) else not file.is_binary,
+            encoding=encoding if isinstance(encoding, bool | str) else not file.is_binary,
         )
 
         if siegfried:
