@@ -115,16 +115,21 @@ class BaseFile(BaseModel):
         siegfried: Siegfried | SiegfriedFile | None = None,
         custom_signatures: list[CustomSignature] | None = None,
         uuid: UUID | None = None,
+        *,
+        encoding: bool | str | None = None,
     ) -> Self:
         """
         Create a file object from a given path.
 
         :param path: The path to the file.
         :param root: The folder to use as root for the file.
-        :param siegfried: Optionally, an insteance of ``Siegfried`` or ``SiegfriedFile`` to identify the file with.
+        :param siegfried: Optionally, an instance of ``Siegfried`` or ``SiegfriedFile`` to identify the file with.
         :param custom_signatures: Optionally, a list of ``CustomSignature`` to identify the file if ``siegfried`` is
             not provided or fails to find a match.
         :param uuid: Optionally, the UUID of the file.
+        :param encoding: ``True`` to calculate encoding regardless of ``is_binary`` value, ``False`` to never calculate
+            encoding, a ``str`` to set the encoding manually, or ``None`` to calculate it automatically when the file
+            is detected as binary.
         :return: A ``BaseFile`` object.
         """
         path = Path(path)
@@ -141,7 +146,10 @@ class BaseFile(BaseModel):
             signature=None,
             warning=None,
         )
-        file.checksum, file.encoding = file_checksum(path, encoding=not file.is_binary)
+        file.checksum, file.encoding = file_checksum(
+            path,
+            encoding=encoding if isinstance(encoding, bool | str) else not file.is_binary,
+        )
 
         if siegfried:
             file.identify(siegfried, set_match=True)
@@ -336,6 +344,8 @@ class OriginalFile(BaseFile):
         parent: UUID | None = None,
         processed: bool = False,
         lock: bool = False,
+        *,
+        encoding: bool | str | None = None,
     ) -> Self:
         """
         Create a file object from a given path.
@@ -350,9 +360,12 @@ class OriginalFile(BaseFile):
         :param parent: Optional, the UUID of the parent file.
         :param processed: Optionally, a boolean indicating if the file was processed.
         :param lock: Optionally, a boolean indicating if the file was processed.
+        :param encoding: ``True`` to calculate encoding regardless of ``is_binary`` value, ``False`` to never calculate
+            encoding, a ``str`` to set the encoding manually, or ``None`` to calculate it automatically when the file
+            is detected as binary.
         :return: An ``OriginalFile`` object.
         """
-        file_base = super().from_file(path, root, None, uuid=uuid)
+        file_base = super().from_file(path, root, None, uuid=uuid, encoding=encoding)
         file = OriginalFile(
             uuid=file_base.uuid,
             root=file_base.root,
@@ -505,6 +518,8 @@ class ConvertedFile(BaseFile):
         siegfried: Siegfried | SiegfriedFile | None = None,
         custom_signatures: list[CustomSignature] | None = None,
         uuid: UUID | None = None,
+        *,
+        encoding: bool | str | None = None,
     ) -> Self:
         """
         Create a file object from a given path.
@@ -516,9 +531,12 @@ class ConvertedFile(BaseFile):
         :param custom_signatures: Optionally, a list of ``CustomSignature`` to identify the file if ``siegfried`` is
             not provided or fails to find a match.
         :param uuid: Optionally, the UUID of the file.
+        :param encoding: ``True`` to calculate encoding regardless of ``is_binary`` value, ``False`` to never calculate
+            encoding, a ``str`` to set the encoding manually, or ``None`` to calculate it automatically when the file
+            is detected as binary.
         :return: A ``ConvertedFile`` object.
         """
-        file_base = super().from_file(path, root, siegfried, custom_signatures, uuid)
+        file_base = super().from_file(path, root, siegfried, custom_signatures, uuid, encoding=encoding)
         return ConvertedFile(
             uuid=file_base.uuid,
             checksum=file_base.checksum,
@@ -558,6 +576,8 @@ class MasterFile(ConvertedFile):
         actions: dict[str, MasterConvertAction] | None = None,
         uuid: UUID | None = None,
         processed: int = 0,
+        *,
+        encoding: bool | str | None = None,
     ) -> Self:
         """
         Create a file object from a given path.
@@ -571,9 +591,12 @@ class MasterFile(ConvertedFile):
         :param actions: Optionally, a dictionary of ``MasterConvertAction`` objects to assign an action to the file.
         :param uuid: Optionally, the UUID of the file.
         :param processed: Optionally, a bit flag indicating if the file was processed: 0 none, 1 access, 2 statutory.
+        :param encoding: ``True`` to calculate encoding regardless of ``is_binary`` value, ``False`` to never calculate
+            encoding, a ``str`` to set the encoding manually, or ``None`` to calculate it automatically when the file
+            is detected as binary.
         :return: A ``MasterFile`` object.
         """
-        file_base = super().from_file(path, root, original_uuid, siegfried, custom_signatures, uuid)
+        file_base = super().from_file(path, root, original_uuid, siegfried, custom_signatures, uuid, encoding=encoding)
         file = MasterFile(
             uuid=file_base.uuid,
             checksum=file_base.checksum,
@@ -687,6 +710,8 @@ class StatutoryFile(ConvertedFile):
         uuid: UUID | None = None,
         doc_collection: int | None = None,
         doc_id: int | None = None,
+        *,
+        encoding: bool | str | None = None,
     ) -> Self:
         """
         Create a file object from a given path.
@@ -700,9 +725,12 @@ class StatutoryFile(ConvertedFile):
         :param uuid: Optionally, the UUID of the file.
         :param doc_collection: Optionally, the docCollection number.
         :param doc_id: Optionally, the document ID.
+        :param encoding: ``True`` to calculate encoding regardless of ``is_binary`` value, ``False`` to never calculate
+            encoding, a ``str`` to set the encoding manually, or ``None`` to calculate it automatically when the file
+            is detected as binary.
         :return: A ``StatutoryFile`` object.
         """
-        file_base = super().from_file(path, root, original_uuid, siegfried, custom_signatures, uuid)
+        file_base = super().from_file(path, root, original_uuid, siegfried, custom_signatures, uuid, encoding=encoding)
 
         return StatutoryFile(
             uuid=file_base.uuid,

@@ -100,6 +100,11 @@ def test_original_file(
         assert file.processed == processed
         assert file.lock == lock
         assert file.original_path == test_files.joinpath(filename).relative_to(test_folder)
+        if filedata["encoding"]:
+            assert file.encoding is not None
+            assert file.encoding["encoding"] == filedata["encoding"]
+        else:
+            assert file.encoding is None
 
         action = actions.get(filedata["matches"]["id"])
 
@@ -109,6 +114,13 @@ def test_original_file(
         if file.puid and (action := actions.get(file.puid)):
             assert all(d == file.action_data.model_dump()[a] for a, d in action.action_data.model_dump().items() if d)
             assert file.action == action.action or (action.ignore_if and file.action == "ignore")
+
+    encoded_filename, encoded_file_data = next((f, d) for f, d in test_files_data.items() if d["encoding"])
+
+    file = OriginalFile.from_file(
+        test_files / encoded_filename, test_folder, siegfried, custom_signatures, actions, encoding=False
+    )
+    assert file.encoding is None
 
 
 def test_converted_file(
