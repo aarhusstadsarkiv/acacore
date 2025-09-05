@@ -120,7 +120,7 @@ def check_database_version(ctx: Context, param: Parameter, path: Path):
 
     with FilesDB(path) as db:
         try:
-            is_latest(db, raise_on_difference=True)
+            is_latest(db.connection, raise_on_difference=True)
         except DatabaseError as err:
             raise BadParameter(err.args[0], ctx, param)
 
