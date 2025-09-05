@@ -13,7 +13,7 @@ from pydantic import model_validator
 from structlog.stdlib import BoundLogger
 
 from acacore.__version__ import __version__
-from acacore.models.file import ConvertedFile
+from acacore.models.file import AccessFile
 from acacore.models.file import MasterFile
 from acacore.models.file import OriginalFile
 from acacore.models.file import StatutoryFile
@@ -42,7 +42,9 @@ class Event(BaseModel):
         operation: str,
         file: tuple[UUID, Literal["original", "master", "access", "statutory"]]
         | OriginalFile
-        | ConvertedFile
+        | MasterFile
+        | AccessFile
+        | StatutoryFile
         | None = None,
         data: object | None = None,
         reason: str | None = None,
@@ -85,14 +87,8 @@ class Event(BaseModel):
             file_uuid = file_type = None
         elif isinstance(file, tuple):
             file_uuid, file_type = file
-        elif isinstance(file, OriginalFile):
-            file_type, file_uuid = "original", file.uuid
-        elif isinstance(file, MasterFile):
-            file_type, file_uuid = "master", file.uuid
-        elif isinstance(file, StatutoryFile):
-            file_type, file_uuid = "statutory", file.uuid
-        elif isinstance(file, ConvertedFile):
-            file_type, file_uuid = "access", file.uuid
+        elif isinstance(file, OriginalFile | MasterFile | AccessFile | StatutoryFile):
+            file_type, file_uuid = file.file_type, file.uuid
 
         return cls(
             file_uuid=file_uuid,
