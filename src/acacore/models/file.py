@@ -324,6 +324,10 @@ class OriginalFile(BaseFile):
     lock: bool = False
     original_path: Path
 
+    @property
+    def file_type(self) -> Literal["original"]:
+        return "original"
+
     # noinspection PyNestedDecorators
     @model_validator(mode="before")
     @classmethod
@@ -565,6 +569,10 @@ class MasterFile(ConvertedFile):
     convert_statutory: ConvertAction | None = None
     processed: int = Field(0, ge=0, le=3)
 
+    @property
+    def file_type(self) -> Literal["master"]:
+        return "master"
+
     @classmethod
     def from_file(
         cls,
@@ -680,6 +688,14 @@ class MasterFile(ConvertedFile):
         return action
 
 
+class AccessFile(ConvertedFile):
+    """File model for AccessDocuments files converted from OriginalDocuments."""
+
+    @property
+    def file_type(self) -> Literal["access"]:
+        return "access"
+
+
 class StatutoryFile(ConvertedFile):
     """
     File model for MasterDocuments files converted from OriginalDocuments.
@@ -690,6 +706,10 @@ class StatutoryFile(ConvertedFile):
 
     doc_collection: int | None = Field(ge=1)
     doc_id: int | None = Field(ge=1)
+
+    @property
+    def file_type(self) -> Literal["statutory"]:
+        return "statutory"
 
     @model_validator(mode="after")
     def _model_validator(self) -> Self:
