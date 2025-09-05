@@ -8,7 +8,7 @@ from packaging.version import Version
 from pydantic import BaseModel
 
 from acacore.models.event import Event
-from acacore.models.file import ConvertedFile
+from acacore.models.file import AccessFile
 from acacore.models.file import MasterFile
 from acacore.models.file import OriginalFile
 from acacore.models.file import StatutoryFile
@@ -117,9 +117,9 @@ class FilesDB(Database):
             },
             ["root"],
         )
-        self.access_files: Table[ConvertedFile] = Table(
+        self.access_files: Table[AccessFile] = Table(
             self.connection,
-            ConvertedFile,
+            AccessFile,
             "files_access",
             ["relative_path"],
             {
