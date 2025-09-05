@@ -13,6 +13,10 @@ from pydantic import model_validator
 from structlog.stdlib import BoundLogger
 
 from acacore.__version__ import __version__
+from acacore.models.file import ConvertedFile
+from acacore.models.file import MasterFile
+from acacore.models.file import OriginalFile
+from acacore.models.file import StatutoryFile
 from acacore.utils.click import context_commands
 
 
@@ -36,7 +40,10 @@ class Event(BaseModel):
         cls,
         ctx: Context | str,
         operation: str,
-        file: tuple[UUID, Literal["original", "master", "access", "statutory"]] | None = None,
+        file: tuple[UUID, Literal["original", "master", "access", "statutory"]]
+        | OriginalFile
+        | ConvertedFile
+        | None = None,
         data: object | None = None,
         reason: str | None = None,
         time: datetime | None = None,
@@ -71,9 +78,25 @@ class Event(BaseModel):
         elif add_params_to_data:
             raise TypeError(f"Data type {type(data)} is not compatible with add_params_to_data")
 
+        file_type: Literal["original", "master", "access", "statutory"] | None = None
+        file_uuid: UUID | None = None
+
+        if file is None:
+            file_uuid = file_type = None
+        elif isinstance(file, tuple):
+            file_uuid, file_type = file
+        elif isinstance(file, OriginalFile):
+            file_type, file_uuid = "original", file.uuid
+        elif isinstance(file, MasterFile):
+            file_type, file_uuid = "master", file.uuid
+        elif isinstance(file, StatutoryFile):
+            file_type, file_uuid = "statutory", file.uuid
+        elif isinstance(file, ConvertedFile):
+            file_type, file_uuid = "access", file.uuid
+
         return cls(
-            file_uuid=file[0] if file else None,
-            file_type=file[1] if file else None,
+            file_uuid=file_uuid,
+            file_type=file_type,
             time=time or datetime.now(),
             operation=operation,
             data=data,
