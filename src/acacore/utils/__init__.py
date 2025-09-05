@@ -3,7 +3,6 @@ from . import decorators
 from . import functions
 from . import helpers
 from . import io
-from . import log
 
 __all__ = [
     "click",
@@ -11,5 +10,4 @@ __all__ = [
     "functions",
     "helpers",
     "io",
-    "log",
 ]

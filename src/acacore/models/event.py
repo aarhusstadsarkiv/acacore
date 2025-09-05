@@ -11,8 +11,13 @@ from pydantic import BaseModel
 from pydantic import Field
 from pydantic import model_validator
 from pydantic import UUID4
+from structlog.stdlib import BoundLogger
 
 from acacore.__version__ import __version__
+from acacore.models.file import AccessFile
+from acacore.models.file import MasterFile
+from acacore.models.file import OriginalFile
+from acacore.models.file import StatutoryFile
 
 
 class Event(BaseModel):
@@ -35,7 +40,12 @@ class Event(BaseModel):
         cls,
         ctx: Context | str,
         operation: str,
-        file: tuple[UUID, Literal["original", "master", "access", "statutory"]] | None = None,
+        file: tuple[UUID, Literal["original", "master", "access", "statutory"]]
+        | OriginalFile
+        | MasterFile
+        | AccessFile
+        | StatutoryFile
+        | None = None,
         data: object | None = None,
         reason: str | None = None,
         time: datetime | None = None,
@@ -54,17 +64,9 @@ class Event(BaseModel):
         :param add_params_to_data: If true, add context parameters to data, defaults to False.
         :return: An `Event` instance representing the command history entry.
         """
-        command: str
+        from acacore.utils.click import context_commands
 
-        if isinstance(ctx, Context):
-            current: Context = ctx
-            command_parts: list[str] = [current.command.name]
-            while current.parent is not None:
-                current = current.parent
-                command_parts.insert(0, current.command.name)
-            command = ".".join(command_parts)
-        else:
-            command = ctx
+        command: str = ".".join(context_commands(ctx)) if isinstance(ctx, Context) else ctx
 
         operation = f"{command.strip(':.')}:{operation.strip(':')}"
 
@@ -80,9 +82,19 @@ class Event(BaseModel):
         elif add_params_to_data:
             raise TypeError(f"Data type {type(data)} is not compatible with add_params_to_data")
 
+        file_type: Literal["original", "master", "access", "statutory"] | None = None
+        file_uuid: UUID | None = None
+
+        if file is None:
+            file_uuid = file_type = None
+        elif isinstance(file, tuple):
+            file_uuid, file_type = file
+        elif isinstance(file, OriginalFile | MasterFile | AccessFile | StatutoryFile):
+            file_type, file_uuid = file.file_type, file.uuid
+
         return cls(
-            file_uuid=file[0] if file else None,
-            file_type=file[1] if file else None,
+            file_uuid=file_uuid,
+            file_type=file_type,
             time=time or datetime.now(),
             operation=operation,
             data=data,
@@ -92,9 +104,10 @@ class Event(BaseModel):
     def log(
         self,
         level: int,
-        *logger: Logger,
+        *logger: Logger | BoundLogger,
         show_null: bool = False,
         show_args: bool | Sequence[str] = True,
+        extra_as_msg: bool = False,
         **extra: Any,  # noqa: ANN401
     ):
         """
@@ -108,6 +121,8 @@ class Event(BaseModel):
         :param show_null: Flag indicating whether to include null values in the log message. Default is False.
         :param show_args: Set to true to show all arguments (uuid, data, reason) in the log message, or a list of
             argument names to show only specific ones. Default is True.
+        :param extra_as_msg: Flag indicating whether to include ``extra`` keyword arguments in the log message or to
+            pass them to logger.log.
         :param extra: Additional arguments to be shown in the log message.
         """
         uuid_msg: str | None = f"{self.file_type}:{self.file_uuid}" if self.file_uuid else None
@@ -131,8 +146,9 @@ class Event(BaseModel):
                 + (f" reason={self.reason.strip()}" if "reason" in show_args else "")
             )
 
-        for keyword, value in extra.items():
-            msg += f" {keyword.strip()}={value}"
+        if extra_as_msg:
+            for keyword, value in extra.items():
+                msg += f" {keyword.strip()}={value}"
 
         for logger in logger:
-            logger.log(level, msg)
+            logger.log(level, msg.strip(), **(extra if not extra_as_msg else {}))

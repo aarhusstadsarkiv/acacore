@@ -14,7 +14,7 @@ from acacore.database.files_db import ChecksumCount
 from acacore.database.files_db import EventPath
 from acacore.database.files_db import SignatureCount
 from acacore.models.event import Event
-from acacore.models.file import ConvertedFile
+from acacore.models.file import AccessFile
 from acacore.models.file import MasterFile
 from acacore.models.file import OriginalFile
 from acacore.models.file import StatutoryFile
@@ -108,7 +108,7 @@ def test_insert_select(database_file: Path):
         db.original_files.insert(original_file)
         db.original_files[:] = original_file2
         db.master_files.insert(MasterFile.from_file(database_file, database_file.parent, original_file.uuid))
-        db.access_files.insert(ConvertedFile.from_file(database_file, database_file.parent, original_file.uuid))
+        db.access_files.insert(AccessFile.from_file(database_file, database_file.parent, original_file.uuid))
         db.statutory_files.insert(StatutoryFile.from_file(database_file, database_file.parent, original_file.uuid))
         db.log.insert(Event(file_uuid=original_file.uuid, file_type="original", operation="test_database_models"))
         db.commit()
@@ -133,7 +133,7 @@ def test_insert_select(database_file: Path):
         assert inserted_file in db.original_files
 
         assert isinstance(db.master_files.select().fetchone(), MasterFile)
-        assert isinstance(db.access_files.select().fetchone(), ConvertedFile)
+        assert isinstance(db.access_files.select().fetchone(), AccessFile)
         assert isinstance(db.statutory_files.select().fetchone(), StatutoryFile)
         assert isinstance(db.log.select().fetchone(), Event)
 

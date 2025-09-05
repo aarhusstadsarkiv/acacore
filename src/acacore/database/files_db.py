@@ -1,14 +1,13 @@
 from os import PathLike
 from pathlib import Path
 from sqlite3 import DatabaseError
-from typing import overload
 from typing import Union
 
 from packaging.version import Version
 from pydantic import BaseModel
 
 from acacore.models.event import Event
-from acacore.models.file import ConvertedFile
+from acacore.models.file import AccessFile
 from acacore.models.file import MasterFile
 from acacore.models.file import OriginalFile
 from acacore.models.file import StatutoryFile
@@ -117,9 +116,9 @@ class FilesDB(Database):
             },
             ["root"],
         )
-        self.access_files: Table[ConvertedFile] = Table(
+        self.access_files: Table[AccessFile] = Table(
             self.connection,
-            ConvertedFile,
+            AccessFile,
             "files_access",
             ["relative_path"],
             {
@@ -235,9 +234,6 @@ class FilesDB(Database):
         if self.is_initialised():
             return Version(self.metadata.get("version"))
         raise DatabaseError("Not initialised")
-
-    @overload
-    def init(self: str | PathLike[str]) -> "FilesDB": ...
 
     # noinspection DuplicatedCode
     def init(self: Union[str, PathLike[str], "FilesDB"]) -> "FilesDB":

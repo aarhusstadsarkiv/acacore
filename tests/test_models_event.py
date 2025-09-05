@@ -1,13 +1,10 @@
+import re
 from datetime import datetime
 from logging import CRITICAL
 from logging import DEBUG
 from logging import ERROR
-from logging import FileHandler
-from logging import Formatter
 from logging import getLevelName
-from logging import getLogger
 from logging import INFO
-from logging import Logger
 from logging import WARNING
 from pathlib import Path
 from random import random
@@ -20,13 +17,11 @@ from click import command
 from click import Context
 from click import option
 from click import pass_context
+from structlog.stdlib import BoundLogger
+from structlog.stdlib import get_logger
 
 from acacore.__version__ import __version__
 from acacore.models.event import Event
-
-
-def _get_log_output(log_file: Path) -> list[str]:
-    return [line for line in map(str.strip, log_file.read_text().splitlines()) if line]
 
 
 @pytest.fixture
@@ -35,17 +30,15 @@ def log_file(temp_folder: Path):
 
 
 @pytest.fixture
-def logger(log_file: Path) -> Logger:
-    logger: Logger = getLogger(log_file.name)
-    logger_format: Formatter = Formatter(fmt="%(levelname)s: %(message)s")
-    handler: FileHandler = FileHandler(log_file)
-    handler.setFormatter(logger_format)
-    logger.setLevel(DEBUG)
-    logger.addHandler(handler)
-    return logger
+def logger(log_file: Path) -> BoundLogger:
+    return get_logger(__name__)
 
 
-def test_event_log(log_file: Path, logger: Logger):
+def test_event_log(
+    log_file: Path,
+    logger: BoundLogger,
+    capsys,  # noqa: ANN001
+):
     uuid: UUID = uuid4()
     time: datetime = datetime.now()
     operation: str = f"{Path(__file__).name}:test_event_log"
@@ -54,20 +47,19 @@ def test_event_log(log_file: Path, logger: Logger):
     extra: tuple[str, float] = ("extra", random())
 
     event: Event = Event(file_uuid=uuid, file_type="original", time=time, operation=operation, data=data, reason=reason)
-    expected: str
 
     for level in (CRITICAL, ERROR, WARNING, INFO, DEBUG):
-        expected = f"{getLevelName(level)}: {operation} uuid=original:{uuid} data={data} reason={reason}"
         event.log(level, logger)
-        assert _get_log_output(log_file)[-1] == expected
+        out = capsys.readouterr().out
+        assert out.endswith(f"] {operation} uuid=original:{uuid} data={data} reason={reason}\n")
+        assert re.match(rf"^\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d.* \[{getLevelName(level).lower()} *]", out)
 
-    expected = f"{getLevelName(INFO)}: {operation} uuid=original:{uuid} {extra[0]}={extra[1]}"
     event.data = None
     event.log(INFO, logger, show_args=["uuid"], show_null=False, **dict([extra]))
-    assert _get_log_output(log_file)[-1] == expected
+    assert capsys.readouterr().out.endswith(f"{operation} uuid=original:{uuid} {extra[0]}={extra[1]}\n")
 
 
-def test_event_from_command(log_file: Path, logger: Logger):
+def test_event_from_command(log_file: Path):
     uuid: UUID = uuid4()
     time: datetime = datetime.now()
     operation: str = "test_event_from_command"
@@ -92,4 +84,3 @@ def test_event_from_command(log_file: Path, logger: Logger):
     assert event.operation == f"{_app.name}:{operation}"
     assert event.data == data | {"acacore": __version__, "params": {"arg": args, "value_option": value_option}}
     assert event.reason == reason
-    event.log(INFO, logger)

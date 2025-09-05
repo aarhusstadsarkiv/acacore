@@ -1,5 +1,4 @@
 from pathlib import Path
-from re import match
 
 import pytest
 
@@ -10,7 +9,6 @@ from acacore.utils.functions import or_none
 from acacore.utils.functions import rm_tree
 from acacore.utils.helpers import ExceptionManager
 from acacore.utils.io import size_fmt
-from acacore.utils.log import setup_logger
 
 
 def test_functions_or_none():
@@ -97,16 +95,3 @@ def test_io_size_fmt():
     assert size_fmt(1e6, unit="b") == "1.0Mb"
     assert size_fmt(1e9 * 2.6, unit="b") == "2.6Gb"
     assert size_fmt(1e9 * 2.614, unit="b", decimals=3) == "2.614Gb"
-
-
-def test_log_setup_logger(temp_folder: Path):
-    log_file: Path = temp_folder / "test.log"
-    logger = setup_logger("test", files=[log_file])
-    logger.info("test info message")
-    logger.warning("test warning message")
-    logger.error("test error message")
-    log_lines: list[str] = log_file.read_text().strip().splitlines()
-
-    assert match(r"\d{4}-\d\d-\d\d \d\d:\d\d:\d\d INFO: test info message", log_lines[0])
-    assert match(r"\d{4}-\d\d-\d\d \d\d:\d\d:\d\d WARNING: test warning message", log_lines[1])
-    assert match(r"\d{4}-\d\d-\d\d \d\d:\d\d:\d\d ERROR: test error message", log_lines[2])

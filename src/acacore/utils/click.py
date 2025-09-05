@@ -7,7 +7,6 @@ from pathlib import Path
 from re import compile as re_compile
 from re import Pattern
 from sqlite3 import DatabaseError
-from sys import stdout
 from traceback import format_tb
 
 from click import BadParameter
@@ -16,11 +15,11 @@ from click import Command
 from click import Context
 from click import MissingParameter
 from click import Parameter
+from structlog.stdlib import BoundLogger
+from structlog.stdlib import get_logger
 
 from acacore.database import query
-from acacore.models.event import Event
 from acacore.utils.helpers import ExceptionManager
-from acacore.utils.log import setup_logger
 
 
 def ctx_params(ctx: Context) -> dict[str, Parameter]:
@@ -120,43 +119,43 @@ def check_database_version(ctx: Context, param: Parameter, path: Path):
 
     with FilesDB(path) as db:
         try:
-            is_latest(db, raise_on_difference=True)
+            is_latest(db.connection, raise_on_difference=True)
         except DatabaseError as err:
             raise BadParameter(err.args[0], ctx, param)
+
+
+def context_commands(ctx: Context) -> list[str]:
+    current: Context = ctx
+    command_parts: list[str] = [current.command.name]
+
+    while current.parent is not None:
+        current = current.parent
+        command_parts.insert(0, current.command.name)
+
+    return command_parts
 
 
 def start_program(
     ctx: Context,
     database: "FilesDB",  # noqa: F821
     version: str,
-    time: datetime | None = None,
-    log_file: bool = True,
-    log_stdout: bool = True,
     dry_run: bool = False,
-) -> tuple[Logger | None, Logger | None, Event]:
+    time: datetime | None = None,
+) -> tuple[BoundLogger, "Event"]:  # noqa: F821
     """
-    Create loggers and ``Event`` for the start of a click program.
-
-    If ``log_file`` is ``False``, the file logger return value is ``None``. If ``log_stdout`` is ``False``, the
-    standard output logger return value is ``None``.
-
-    If ``dry_run`` is ``True``, the start event is not added to the database.
+    Setup logger and ``Event`` for the start of a click program.
 
     :param ctx: The context of the command that should be logged.
     :param database: The database instance.
     :param version: The version of the command/program.
     :param time: Optionally, the time to use for the ``Event`` object. Defaults to now.
-    :param log_file: Whether a file log should be opened and returned. Defaults to ``False``.
-    :param log_stdout: Whether a standard output log should be opened and returned. Defaults to ``False``.
     :param dry_run: Whether the command is run in dry-run mode.
-    :return: A tuple containing the file logger (if set with ``log_file`` otherwise ``None``), the standard output
-        logger (if set with ``log_stdout`` otherwise ``None``), and the ``Event`` object for the start of the program.
+    :return: A tuple containing the logger and the ``Event`` object for the start of the program.
     """
+    from acacore.models.event import Event
+
     prog: str = ctx.find_root().command.name
-    logger_file: Logger | None = (
-        setup_logger(f"{prog}_file", files=[database.path.parent / f"{prog}.log"]) if log_file else None
-    )
-    logger_stdout: Logger | None = setup_logger(f"{prog}_stdout", streams=[stdout]) if log_stdout else None
+    logger: BoundLogger = get_logger(f"{prog}_file")
     program_start: Event = Event.from_command(
         ctx,
         "start",
@@ -168,12 +167,9 @@ def start_program(
     if not dry_run:
         database.log.insert(program_start)
 
-    if log_file:
-        program_start.log(INFO, logger_file)
-    if log_stdout:
-        program_start.log(INFO, logger_stdout, show_args=False)
+    program_start.log(INFO, logger, show_args=False)
 
-    return logger_file, logger_stdout, program_start
+    return logger, program_start
 
 
 def end_program(
@@ -181,10 +177,10 @@ def end_program(
     database: "FilesDB",  # noqa: F821
     exception: ExceptionManager,
     dry_run: bool = False,
-    *loggers: Logger | None,
+    *loggers: Logger | BoundLogger | None,
 ):
     """
-    Create ``Event`` event for the end of a click program.
+    Create ``Event`` for the end of a click program.
 
     If ``dry_run`` is ``True``, the end event is not added to the database, and the database changes are not committed.
 
@@ -192,8 +188,10 @@ def end_program(
     :param database: The database instance.
     :param exception: An ``ExceptionManager`` object that wrapped the command execution.
     :param dry_run: Whether the command was run in dry-run mode.
-    :param loggers: A list of loggers to which to save the end event.
+    :param loggers: A list of loggers the end event should be logged with.
     """
+    from acacore.models.event import Event
+
     program_end: Event = Event.from_command(
         ctx,
         "end",
