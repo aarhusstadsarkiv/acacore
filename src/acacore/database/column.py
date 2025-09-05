@@ -27,7 +27,7 @@ _sql_schema_type_converters: dict[
     str,
     tuple[Callable[[Any | None], SQLValue], Callable[[SQLValue], Any | None]],
 ] = {
-    "path": (str, Path),
+    "path": (lambda p: p.as_posix(), Path),
     "date-time": (datetime.isoformat, datetime.fromisoformat),
     "uuid4": (str, UUID),
     "binary": (bytes, bytes),
