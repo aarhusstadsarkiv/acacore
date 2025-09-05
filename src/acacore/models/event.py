@@ -13,6 +13,7 @@ from pydantic import model_validator
 from pydantic import UUID4
 
 from acacore.__version__ import __version__
+from acacore.utils.click import context_commands
 
 
 class Event(BaseModel):
@@ -54,17 +55,7 @@ class Event(BaseModel):
         :param add_params_to_data: If true, add context parameters to data, defaults to False.
         :return: An `Event` instance representing the command history entry.
         """
-        command: str
-
-        if isinstance(ctx, Context):
-            current: Context = ctx
-            command_parts: list[str] = [current.command.name]
-            while current.parent is not None:
-                current = current.parent
-                command_parts.insert(0, current.command.name)
-            command = ".".join(command_parts)
-        else:
-            command = ctx
+        command: str = ".".join(context_commands(ctx)) if isinstance(ctx, Context) else ctx
 
         operation = f"{command.strip(':.')}:{operation.strip(':')}"
 
