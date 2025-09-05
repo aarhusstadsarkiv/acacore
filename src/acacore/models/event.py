@@ -17,7 +17,6 @@ from acacore.models.file import AccessFile
 from acacore.models.file import MasterFile
 from acacore.models.file import OriginalFile
 from acacore.models.file import StatutoryFile
-from acacore.utils.click import context_commands
 
 
 class Event(BaseModel):
@@ -64,6 +63,8 @@ class Event(BaseModel):
         :param add_params_to_data: If true, add context parameters to data, defaults to False.
         :return: An `Event` instance representing the command history entry.
         """
+        from acacore.utils.click import context_commands
+
         command: str = ".".join(context_commands(ctx)) if isinstance(ctx, Context) else ctx
 
         operation = f"{command.strip(':.')}:{operation.strip(':')}"
