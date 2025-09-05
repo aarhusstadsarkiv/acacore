@@ -1,7 +1,6 @@
 from os import PathLike
 from pathlib import Path
 from sqlite3 import DatabaseError
-from typing import overload
 from typing import Union
 
 from packaging.version import Version
@@ -235,9 +234,6 @@ class FilesDB(Database):
         if self.is_initialised():
             return Version(self.metadata.get("version"))
         raise DatabaseError("Not initialised")
-
-    @overload
-    def init(self: str | PathLike[str]) -> "FilesDB": ...
 
     # noinspection DuplicatedCode
     def init(self: Union[str, PathLike[str], "FilesDB"]) -> "FilesDB":
