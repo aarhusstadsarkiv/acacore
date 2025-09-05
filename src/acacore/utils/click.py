@@ -139,8 +139,8 @@ def start_program(
     ctx: Context,
     database: "FilesDB",  # noqa: F821
     version: str,
-    time: datetime | None = None,
     dry_run: bool = False,
+    time: datetime | None = None,
 ) -> tuple[BoundLogger, "Event"]:  # noqa: F821
     """
     Setup logger and ``Event`` for the start of a click program.
