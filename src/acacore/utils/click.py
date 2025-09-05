@@ -19,7 +19,6 @@ from structlog.stdlib import BoundLogger
 from structlog.stdlib import get_logger
 
 from acacore.database import query
-from acacore.models.event import Event
 from acacore.utils.helpers import ExceptionManager
 
 
@@ -142,7 +141,7 @@ def start_program(
     version: str,
     time: datetime | None = None,
     dry_run: bool = False,
-) -> tuple[BoundLogger, Event]:
+) -> tuple[BoundLogger, "Event"]:  # noqa: F821
     """
     Setup logger and ``Event`` for the start of a click program.
 
@@ -153,6 +152,8 @@ def start_program(
     :param dry_run: Whether the command is run in dry-run mode.
     :return: A tuple containing the logger and the ``Event`` object for the start of the program.
     """
+    from acacore.models.event import Event
+
     prog: str = ctx.find_root().command.name
     logger: BoundLogger = get_logger(f"{prog}_file")
     program_start: Event = Event.from_command(
@@ -189,6 +190,8 @@ def end_program(
     :param dry_run: Whether the command was run in dry-run mode.
     :param loggers: A list of loggers the end event should be logged with.
     """
+    from acacore.models.event import Event
+
     program_end: Event = Event.from_command(
         ctx,
         "end",
