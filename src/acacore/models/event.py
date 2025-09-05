@@ -10,14 +10,14 @@ from click import Context
 from pydantic import BaseModel
 from pydantic import Field
 from pydantic import model_validator
-from pydantic import UUID4
+from structlog.stdlib import BoundLogger
 
 from acacore.__version__ import __version__
 from acacore.utils.click import context_commands
 
 
 class Event(BaseModel):
-    file_uuid: UUID4 | None = None
+    file_uuid: UUID | None = None
     file_type: Literal["original", "master", "access", "statutory"] | None = None
     time: datetime = Field(default_factory=datetime.now)
     operation: str
@@ -83,9 +83,10 @@ class Event(BaseModel):
     def log(
         self,
         level: int,
-        *logger: Logger,
+        *logger: Logger | BoundLogger,
         show_null: bool = False,
         show_args: bool | Sequence[str] = True,
+        extra_as_msg: bool = False,
         **extra: Any,  # noqa: ANN401
     ):
         """
@@ -99,6 +100,8 @@ class Event(BaseModel):
         :param show_null: Flag indicating whether to include null values in the log message. Default is False.
         :param show_args: Set to true to show all arguments (uuid, data, reason) in the log message, or a list of
             argument names to show only specific ones. Default is True.
+        :param extra_as_msg: Flag indicating whether to include ``extra`` keyword arguments in the log message or to
+            pass them to logger.log.
         :param extra: Additional arguments to be shown in the log message.
         """
         uuid_msg: str | None = f"{self.file_type}:{self.file_uuid}" if self.file_uuid else None
@@ -122,8 +125,9 @@ class Event(BaseModel):
                 + (f" reason={self.reason.strip()}" if "reason" in show_args else "")
             )
 
-        for keyword, value in extra.items():
-            msg += f" {keyword.strip()}={value}"
+        if extra_as_msg:
+            for keyword, value in extra.items():
+                msg += f" {keyword.strip()}={value}"
 
         for logger in logger:
-            logger.log(level, msg)
+            logger.log(level, msg.strip(), **(extra if not extra_as_msg else {}))
