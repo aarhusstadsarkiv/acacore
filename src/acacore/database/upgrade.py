@@ -15,6 +15,7 @@ from packaging.version import Version
 from acacore.__version__ import __version__
 
 __all__ = [
+    "UpgradeLogger",
     "is_latest",
     "upgrade",
 ]
