@@ -10,6 +10,7 @@ from click import Context
 from pydantic import BaseModel
 from pydantic import Field
 from pydantic import model_validator
+from pydantic import UUID4
 from structlog.stdlib import BoundLogger
 
 from acacore.__version__ import __version__
@@ -20,7 +21,7 @@ from acacore.models.file import StatutoryFile
 
 
 class Event(BaseModel):
-    file_uuid: UUID | None = None
+    file_uuid: UUID4 | None = None
     file_type: Literal["original", "master", "access", "statutory"] | None = None
     time: datetime = Field(default_factory=datetime.now)
     operation: str
