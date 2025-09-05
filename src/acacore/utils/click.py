@@ -125,6 +125,17 @@ def check_database_version(ctx: Context, param: Parameter, path: Path):
             raise BadParameter(err.args[0], ctx, param)
 
 
+def context_commands(ctx: Context) -> list[str]:
+    current: Context = ctx
+    command_parts: list[str] = [current.command.name]
+
+    while current.parent is not None:
+        current = current.parent
+        command_parts.insert(0, current.command.name)
+
+    return command_parts
+
+
 def start_program(
     ctx: Context,
     database: "FilesDB",  # noqa: F821
