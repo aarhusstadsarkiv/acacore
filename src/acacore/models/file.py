@@ -312,6 +312,7 @@ class OriginalFile(BaseFile):
 
     :ivar action: The name of the main action for the file's PUID, if one exists.
     :ivar action_data: The data for the action for the file's PUID, if one exists.
+    :ivar parent: The UUID of the parent file, if any.
     :ivar processed: True if the file has been processed, false otherwise.
     :ivar lock: True if the file is locked for edits, false otherwise.
     :ivar original_path: The original relative path of the file.
