@@ -40,11 +40,11 @@ class Event(BaseModel):
         cls,
         ctx: Context | str,
         operation: str,
-        file: tuple[UUID, Literal["original", "master", "access", "statutory"]]
-        | OriginalFile
+        file: OriginalFile
         | MasterFile
         | AccessFile
         | StatutoryFile
+        | tuple[UUID, Literal["original", "master", "access", "statutory"]]
         | None = None,
         data: object | None = None,
         reason: str | None = None,
