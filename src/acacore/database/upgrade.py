@@ -242,7 +242,7 @@ def upgrade_5_3to5_4(con: Connection, _root: Path, logger: UpgradeLogger) -> Ver
     )
     con.execute(
         """
-        create table if not exists files_statutory
+        create table if not exists _files_statutory
         (
             uuid           text    not null,
             checksum       text    not null,
@@ -262,7 +262,11 @@ def upgrade_5_3to5_4(con: Connection, _root: Path, logger: UpgradeLogger) -> Ver
         """
     )
 
-    logger("5.4.0", "compile", "master")
+    logger("5.4.0", "drop", {"view ": "log_paths"})
+    con.execute("drop view if exists log_paths")
+    con.commit()
+
+    logger("5.4.0", "compile", {"table": "master"})
     con.execute(
         """
         insert into _files_master
@@ -287,7 +291,7 @@ def upgrade_5_3to5_4(con: Connection, _root: Path, logger: UpgradeLogger) -> Ver
     con.execute("alter table _files_master rename to files_master")
     con.commit()
 
-    logger("5.4.0", "compile", "access")
+    logger("5.4.0", "compile", {"table": "access"})
     con.execute(
         """
         insert into _files_access
@@ -309,7 +313,7 @@ def upgrade_5_3to5_4(con: Connection, _root: Path, logger: UpgradeLogger) -> Ver
     con.execute("alter table _files_access rename to files_access")
     con.commit()
 
-    logger("5.4.0", "compile", "statutory")
+    logger("5.4.0", "compile", {"table": "statutory"})
     con.execute(
         """
         insert into _files_statutory
@@ -333,8 +337,24 @@ def upgrade_5_3to5_4(con: Connection, _root: Path, logger: UpgradeLogger) -> Ver
     con.execute("alter table _files_statutory rename to files_statutory")
     con.commit()
 
+    logger("5.4.0", "create", {"view": "log_paths"})
+    con.execute(
+        """
+        create view log_paths as
+        select coalesce(fo.relative_path, fm.relative_path, fa.relative_path, fs.relative_path) as file_relative_path,
+               l.*
+        from log l
+                 left join files_original fo on l.file_type = 'original' and fo.uuid = l.file_uuid
+                 left join files_master fm on l.file_type = 'master' and fm.uuid = l.file_uuid
+                 left join files_access fa on l.file_type = 'access' and fa.uuid = l.file_uuid
+                 left join files_statutory fs on l.file_type = 'statutory' and fs.uuid = l.file_uuid
+        """
+    )
+    con.commit()
+
     logger("5.4.0", "cleanup", None)
     con.execute("vacuum")
+    con.commit()
 
     return set_db_version(con, Version("5.4.0"))
 
