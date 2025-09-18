@@ -613,7 +613,14 @@ class MasterFile(ConvertedFile):
         :return: A ``MasterFile`` object.
         """
         file_base = super().from_file(
-            path, root, original_uuid, sequence, siegfried, custom_signatures, uuid, encoding=encoding
+            path,
+            root,
+            original_uuid,
+            sequence,
+            siegfried,
+            custom_signatures,
+            uuid,
+            encoding=encoding,
         )
         file = MasterFile(
             uuid=file_base.uuid,
