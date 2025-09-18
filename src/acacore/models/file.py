@@ -7,6 +7,7 @@ from typing import Self
 from uuid import UUID
 from uuid import uuid4
 
+# noinspection PyProtectedMember
 from chardet import ResultDict
 from pydantic import BaseModel
 from pydantic import Field
@@ -357,7 +358,7 @@ class OriginalFile(BaseFile):
 
         :param path: The path to the file.
         :param root: The folder to use as root for the file.
-        :param siegfried: Optionally, an insteance of ``Siegfried`` or ``SiegfriedFile`` to identify the file with.
+        :param siegfried: Optionally, an instance of ``Siegfried`` or ``SiegfriedFile`` to identify the file with.
         :param custom_signatures: Optionally, a list of ``CustomSignature`` to identify the file if ``siegfried`` is
             not provided or fails to find a match.
         :param actions: Optionally, a dictionary of ``Action`` objects to assign an action to the file.
