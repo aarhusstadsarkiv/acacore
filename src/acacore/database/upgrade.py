@@ -199,9 +199,13 @@ def upgrade_5_1to5_2(con: Connection, root: Path, logger: UpgradeLogger) -> Vers
 
 # noinspection SqlResolve
 def upgrade_5_3to5_4(con: Connection, _root: Path, logger: UpgradeLogger) -> Version:
+    con.execute("drop table if exists _files_master")
+    con.execute("drop table if exists _files_access")
+    con.execute("drop table if exists _files_statutory")
+
     con.execute(
         """
-        create table if not exists _files_master
+        create table _files_master
         (
             uuid              text    not null,
             checksum          text    not null,
@@ -223,7 +227,7 @@ def upgrade_5_3to5_4(con: Connection, _root: Path, logger: UpgradeLogger) -> Ver
     )
     con.execute(
         """
-        create table if not exists _files_access
+        create table _files_access
         (
             uuid          text    not null,
             checksum      text    not null,
@@ -242,7 +246,7 @@ def upgrade_5_3to5_4(con: Connection, _root: Path, logger: UpgradeLogger) -> Ver
     )
     con.execute(
         """
-        create table if not exists _files_statutory
+        create table _files_statutory
         (
             uuid           text    not null,
             checksum       text    not null,
