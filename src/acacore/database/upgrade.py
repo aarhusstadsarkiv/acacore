@@ -266,7 +266,7 @@ def upgrade_5_3to5_4(con: Connection, _root: Path, logger: UpgradeLogger) -> Ver
         """
     )
 
-    logger("5.4.0", "drop", {"view ": "log_paths"})
+    logger("5.4.0", "drop", {"view": "log_paths"})
     con.execute("drop view if exists log_paths")
     con.commit()
 
