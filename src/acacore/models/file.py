@@ -3,10 +3,13 @@ from math import ceil
 from os import PathLike
 from pathlib import Path
 from typing import Literal
+from typing import NotRequired
 from typing import Self
+from typing import TypedDict
 from uuid import UUID
 from uuid import uuid4
 
+# noinspection PyProtectedMember
 from chardet import ResultDict
 from pydantic import BaseModel
 from pydantic import Field
@@ -81,6 +84,68 @@ def get_identifier[A](file: "BaseFile", file_classes: list[TSiegfriedFileClass],
     return reduce(lambda acc, cur: acc or actions.get(cur), identifiers, None)
 
 
+class OptionsBaseFile(TypedDict):
+    """
+    Options to create a ``BaseFile`` from a file.
+
+    :ivar custom_signatures: Optionally, a list of ``CustomSignature`` to identify the file if ``siegfried`` is
+        not provided or fails to find a match.
+    """
+
+    custom_signatures: NotRequired[list[CustomSignature]]
+
+
+class OptionsOriginalFile(OptionsBaseFile):
+    """
+    Options to create a ``OriginalFile`` from a file.
+
+    :ivar actions: Optionally, a dictionary of ``Action`` objects to assign an action to the file.
+    :ivar parent: Optional, the UUID of the parent file.
+    :ivar processed: Optionally, a boolean indicating if the file was processed.
+    :ivar lock: Optionally, a boolean indicating if the file was processed.
+    """
+
+    actions: NotRequired[dict[str, Action]]
+    parent: NotRequired[UUID | None]
+    processed: NotRequired[bool]
+    lock: NotRequired[bool]
+
+
+class OptionsConvertedFile(OptionsBaseFile):
+    """
+    Options to create a ``ConvertedFile`` from a file.
+
+    :ivar original_uuid: The UUID of the parent file.
+    :ivar sequence: The sequence number of the file.
+    """
+
+    original_uuid: UUID
+    sequence: int
+
+
+class OptionsMasterFile(OptionsConvertedFile):
+    """
+    Options to create a ``MasterFile`` from a file.
+
+    :ivar actions: Optionally, a dictionary of ``MasterConvertAction`` objects to assign an action to the file.
+    """
+
+    actions: NotRequired[dict[str, MasterConvertAction]]
+    processed: NotRequired[int]
+
+
+class OptionsStatutoryFile(OptionsConvertedFile):
+    """
+    Options to create a ``StatutoryFile`` from a file.
+
+    :ivar doc_collection: Optionally, the docCollection number.
+    :ivar doc_id: Optionally, the document ID.
+    """
+
+    doc_collection: NotRequired[int]
+    doc_id: NotRequired[int]
+
+
 class BaseFile(BaseModel):
     """
     Base model for file identification.
@@ -112,10 +177,9 @@ class BaseFile(BaseModel):
         cls,
         path: str | PathLike[str],
         root: str | PathLike[str],
+        options: OptionsBaseFile,
         siegfried: Siegfried | SiegfriedFile | None = None,
-        custom_signatures: list[CustomSignature] | None = None,
         uuid: UUID | None = None,
-        *,
         encoding: bool | str | None = None,
     ) -> Self:
         """
@@ -123,9 +187,8 @@ class BaseFile(BaseModel):
 
         :param path: The path to the file.
         :param root: The folder to use as root for the file.
+        :param options: Options needed to create a ``BaseFile``.
         :param siegfried: Optionally, an instance of ``Siegfried`` or ``SiegfriedFile`` to identify the file with.
-        :param custom_signatures: Optionally, a list of ``CustomSignature`` to identify the file if ``siegfried`` is
-            not provided or fails to find a match.
         :param uuid: Optionally, the UUID of the file.
         :param encoding: ``True`` to calculate encoding regardless of ``is_binary`` value, ``False`` to never calculate
             encoding, a ``str`` to set the encoding manually, or ``None`` to calculate it automatically when the file
@@ -154,8 +217,8 @@ class BaseFile(BaseModel):
         if siegfried:
             file.identify(siegfried, set_match=True)
 
-        if custom_signatures and not file.puid:
-            file.identify_custom(custom_signatures, set_match=True)
+        if (sigs := options.get("custom_signatures")) and not file.puid:
+            file.identify_custom(sigs, set_match=True)
 
         return file
 
@@ -312,6 +375,7 @@ class OriginalFile(BaseFile):
 
     :ivar action: The name of the main action for the file's PUID, if one exists.
     :ivar action_data: The data for the action for the file's PUID, if one exists.
+    :ivar parent: The UUID of the parent file, if any.
     :ivar processed: True if the file has been processed, false otherwise.
     :ivar lock: True if the file is locked for edits, false otherwise.
     :ivar original_path: The original relative path of the file.
@@ -341,14 +405,9 @@ class OriginalFile(BaseFile):
         cls,
         path: str | PathLike[str],
         root: str | PathLike[str],
+        options: OptionsOriginalFile,
         siegfried: Siegfried | SiegfriedFile | None = None,
-        custom_signatures: list[CustomSignature] | None = None,
-        actions: dict[str, Action] | None = None,
         uuid: UUID | None = None,
-        parent: UUID | None = None,
-        processed: bool = False,
-        lock: bool = False,
-        *,
         encoding: bool | str | None = None,
     ) -> Self:
         """
@@ -356,20 +415,15 @@ class OriginalFile(BaseFile):
 
         :param path: The path to the file.
         :param root: The folder to use as root for the file.
-        :param siegfried: Optionally, an insteance of ``Siegfried`` or ``SiegfriedFile`` to identify the file with.
-        :param custom_signatures: Optionally, a list of ``CustomSignature`` to identify the file if ``siegfried`` is
-            not provided or fails to find a match.
-        :param actions: Optionally, a dictionary of ``Action`` objects to assign an action to the file.
+        :param siegfried: Optionally, an instance of ``Siegfried`` or ``SiegfriedFile`` to identify the file with.
+        :param options: Options needed to create an ``OriginalFile``.
         :param uuid: Optionally, the UUID of the file.
-        :param parent: Optional, the UUID of the parent file.
-        :param processed: Optionally, a boolean indicating if the file was processed.
-        :param lock: Optionally, a boolean indicating if the file was processed.
         :param encoding: ``True`` to calculate encoding regardless of ``is_binary`` value, ``False`` to never calculate
             encoding, a ``str`` to set the encoding manually, or ``None`` to calculate it automatically when the file
             is detected as binary.
         :return: An ``OriginalFile`` object.
         """
-        file_base = super().from_file(path, root, None, uuid=uuid, encoding=encoding)
+        file_base = super().from_file(path, root, options, uuid=uuid, encoding=encoding)
         file = OriginalFile(
             uuid=file_base.uuid,
             root=file_base.root,
@@ -381,13 +435,13 @@ class OriginalFile(BaseFile):
             puid=None,
             signature=None,
             warning=None,
-            parent=parent,
-            processed=processed or False,
-            lock=lock or False,
+            parent=options.get("parent"),
+            processed=options.get("processed", False),
+            lock=options.get("lock", False),
             original_path=file_base.relative_path,
         )
 
-        file.identify(siegfried, custom_signatures, actions)
+        file.identify(siegfried, options.get("custom_signatures"), options.get("actions"))
 
         return file
 
@@ -511,18 +565,17 @@ class ConvertedFile(BaseFile):
     :ivar original_uuid: UUID of the parent file that was converted.
     """
 
-    original_uuid: UUID4 | None = None
+    original_uuid: UUID4
+    sequence: int = Field(ge=0)
 
     @classmethod
     def from_file(
         cls,
         path: str | PathLike[str],
         root: str | PathLike[str],
-        original_uuid: UUID | None = None,
+        options: OptionsConvertedFile,
         siegfried: Siegfried | SiegfriedFile | None = None,
-        custom_signatures: list[CustomSignature] | None = None,
         uuid: UUID | None = None,
-        *,
         encoding: bool | str | None = None,
     ) -> Self:
         """
@@ -530,17 +583,15 @@ class ConvertedFile(BaseFile):
 
         :param path: The path to the file.
         :param root: The folder to use as root for the file.
-        :param original_uuid: The UUID of the parent file.
-        :param siegfried: Optionally, an insteance of ``Siegfried`` or ``SiegfriedFile`` to identify the file with.
-        :param custom_signatures: Optionally, a list of ``CustomSignature`` to identify the file if ``siegfried`` is
-            not provided or fails to find a match.
+        :param options: Options needed to create a ``ConvertedFile``.
+        :param siegfried: Optionally, an instance of ``Siegfried`` or ``SiegfriedFile`` to identify the file with.
         :param uuid: Optionally, the UUID of the file.
         :param encoding: ``True`` to calculate encoding regardless of ``is_binary`` value, ``False`` to never calculate
             encoding, a ``str`` to set the encoding manually, or ``None`` to calculate it automatically when the file
             is detected as binary.
         :return: A ``ConvertedFile`` object.
         """
-        file_base = super().from_file(path, root, siegfried, custom_signatures, uuid, encoding=encoding)
+        file_base = super().from_file(path, root, options, siegfried, uuid, encoding)
         return ConvertedFile(
             uuid=file_base.uuid,
             checksum=file_base.checksum,
@@ -552,7 +603,8 @@ class ConvertedFile(BaseFile):
             puid=file_base.puid,
             signature=file_base.signature,
             warning=file_base.warning,
-            original_uuid=original_uuid,
+            original_uuid=options["original_uuid"],
+            sequence=options["sequence"],
         )
 
 
@@ -578,13 +630,9 @@ class MasterFile(ConvertedFile):
         cls,
         path: str | PathLike[str],
         root: str | PathLike[str],
-        original_uuid: UUID | None = None,
+        options: OptionsMasterFile,
         siegfried: Siegfried | SiegfriedFile | None = None,
-        custom_signatures: list[CustomSignature] | None = None,
-        actions: dict[str, MasterConvertAction] | None = None,
         uuid: UUID | None = None,
-        processed: int = 0,
-        *,
         encoding: bool | str | None = None,
     ) -> Self:
         """
@@ -592,19 +640,15 @@ class MasterFile(ConvertedFile):
 
         :param path: The path to the file.
         :param root: The folder to use as root for the file.
-        :param original_uuid: The UUID of the parent file.
-        :param siegfried: Optionally, an insteance of ``Siegfried`` or ``SiegfriedFile`` to identify the file with.
-        :param custom_signatures: Optionally, a list of ``CustomSignature`` to identify the file if ``siegfried`` is
-            not provided or fails to find a match.
-        :param actions: Optionally, a dictionary of ``MasterConvertAction`` objects to assign an action to the file.
+        :param options: Options needed to create a ``ConvertedFile``.
+        :param siegfried: Optionally, an instance of ``Siegfried`` or ``SiegfriedFile`` to identify the file with.
         :param uuid: Optionally, the UUID of the file.
-        :param processed: Optionally, a bit flag indicating if the file was processed: 0 none, 1 access, 2 statutory.
         :param encoding: ``True`` to calculate encoding regardless of ``is_binary`` value, ``False`` to never calculate
             encoding, a ``str`` to set the encoding manually, or ``None`` to calculate it automatically when the file
             is detected as binary.
         :return: A ``MasterFile`` object.
         """
-        file_base = super().from_file(path, root, original_uuid, siegfried, custom_signatures, uuid, encoding=encoding)
+        file_base = super().from_file(path, root, options, siegfried, uuid, encoding)
         file = MasterFile(
             uuid=file_base.uuid,
             checksum=file_base.checksum,
@@ -617,10 +661,11 @@ class MasterFile(ConvertedFile):
             signature=file_base.signature,
             warning=file_base.warning,
             original_uuid=file_base.original_uuid,
-            processed=processed,
+            sequence=options["sequence"],
+            processed=options.get("processed", 0),
         )
 
-        file.identify(siegfried, custom_signatures, actions)
+        file.identify(siegfried, options.get("custom_signatures"), options.get("actions"))
 
         return file
 
@@ -724,13 +769,9 @@ class StatutoryFile(ConvertedFile):
         cls,
         path: str | PathLike[str],
         root: str | PathLike[str],
-        original_uuid: UUID | None = None,
+        options: OptionsStatutoryFile,
         siegfried: Siegfried | SiegfriedFile | None = None,
-        custom_signatures: list[CustomSignature] | None = None,
         uuid: UUID | None = None,
-        doc_collection: int | None = None,
-        doc_id: int | None = None,
-        *,
         encoding: bool | str | None = None,
     ) -> Self:
         """
@@ -738,19 +779,15 @@ class StatutoryFile(ConvertedFile):
 
         :param path: The path to the file.
         :param root: The folder to use as root for the file.
-        :param original_uuid: The UUID of the parent file.
-        :param siegfried: Optionally, an insteance of ``Siegfried`` or ``SiegfriedFile`` to identify the file with.
-        :param custom_signatures: Optionally, a list of ``CustomSignature`` to identify the file if ``siegfried`` is
-            not provided or fails to find a match.
+        :param options: Options needed to create a ``StatutoryFile``.
+        :param siegfried: Optionally, an instance of ``Siegfried`` or ``SiegfriedFile`` to identify the file with.
         :param uuid: Optionally, the UUID of the file.
-        :param doc_collection: Optionally, the docCollection number.
-        :param doc_id: Optionally, the document ID.
         :param encoding: ``True`` to calculate encoding regardless of ``is_binary`` value, ``False`` to never calculate
             encoding, a ``str`` to set the encoding manually, or ``None`` to calculate it automatically when the file
             is detected as binary.
         :return: A ``StatutoryFile`` object.
         """
-        file_base = super().from_file(path, root, original_uuid, siegfried, custom_signatures, uuid, encoding=encoding)
+        file_base = super().from_file(path, root, options, siegfried, uuid, encoding)
 
         return StatutoryFile(
             uuid=file_base.uuid,
@@ -764,8 +801,9 @@ class StatutoryFile(ConvertedFile):
             signature=file_base.signature,
             warning=file_base.warning,
             original_uuid=file_base.original_uuid,
-            doc_collection=doc_collection,
-            doc_id=doc_id,
+            sequence=options["sequence"],
+            doc_collection=options.get("doc_collection"),
+            doc_id=options.get("doc_id"),
         )
 
     def set_doc_id(self, doc_id: int, docs_in_collection: int):

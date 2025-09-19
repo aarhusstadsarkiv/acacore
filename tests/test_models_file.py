@@ -53,8 +53,8 @@ def test_base_file(
         file = BaseFile.from_file(
             test_files / filename,
             test_folder,
+            {"custom_signatures": custom_signatures},
             siegfried,
-            custom_signatures,
             uuid,
         )
         assert file.relative_path == filepath.relative_to(test_folder)
@@ -88,13 +88,15 @@ def test_original_file(
         file = OriginalFile.from_file(
             test_files / filename,
             test_folder,
+            {
+                "custom_signatures": custom_signatures,
+                "actions": actions,
+                "parent": parent,
+                "processed": processed,
+                "lock": lock,
+            },
             siegfried,
-            custom_signatures,
-            actions,
             uuid,
-            parent,
-            processed,
-            lock,
         )
         assert file.parent == parent
         assert file.processed == processed
@@ -118,7 +120,14 @@ def test_original_file(
     encoded_filename, encoded_file_data = next((f, d) for f, d in test_files_data.items() if d["encoding"])
 
     file = OriginalFile.from_file(
-        test_files / encoded_filename, test_folder, siegfried, custom_signatures, actions, encoding=False
+        test_files / encoded_filename,
+        test_folder,
+        {
+            "custom_signatures": custom_signatures,
+            "actions": actions,
+        },
+        siegfried,
+        encoding=False,
     )
     assert file.encoding is None
 
@@ -136,9 +145,12 @@ def test_converted_file(
         file = ConvertedFile.from_file(
             test_files / filename,
             test_folder,
-            original_uuid,
+            {
+                "custom_signatures": custom_signatures,
+                "original_uuid": original_uuid,
+                "sequence": 0,
+            },
             siegfried,
-            custom_signatures,
             uuid,
         )
         assert file.original_uuid == original_uuid
@@ -158,12 +170,15 @@ def test_master_file(
         file = MasterFile.from_file(
             test_files / filename,
             test_folder,
-            original_uuid,
+            {
+                "custom_signatures": custom_signatures,
+                "actions": master_actions,
+                "original_uuid": original_uuid,
+                "sequence": 0,
+                "processed": 1,
+            },
             siegfried,
-            custom_signatures,
-            master_actions,
             uuid,
-            True,
         )
         assert (file.convert_access and file.convert_statutory) or (
             not file.convert_access and not file.convert_statutory
@@ -186,12 +201,15 @@ def test_statutory_file(
         file = StatutoryFile.from_file(
             test_files / filename,
             test_folder,
-            original_uuid,
+            {
+                "custom_signatures": custom_signatures,
+                "original_uuid": original_uuid,
+                "sequence": 0,
+                "doc_collection": ceil(dc / di),
+                "doc_id": di,
+            },
             siegfried,
-            custom_signatures,
             uuid,
-            ceil(dc / di),
-            di,
         )
         assert file.original_uuid == original_uuid
         file.set_doc_id(di, dc)

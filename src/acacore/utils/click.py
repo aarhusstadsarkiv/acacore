@@ -177,7 +177,7 @@ def end_program(
     database: "FilesDB",  # noqa: F821
     exception: ExceptionManager,
     dry_run: bool = False,
-    *loggers: Logger | BoundLogger | None,
+    *loggers: Logger | BoundLogger,
 ):
     """
     Create ``Event`` for the end of a click program.
@@ -200,8 +200,12 @@ def end_program(
     )
 
     for logger in loggers:
-        if logger:
-            program_end.log(ERROR if exception.exception else INFO, logger)
+        program_end.log(
+            ERROR if exception.exception else INFO,
+            logger,
+            show_args=False,
+            exc_info=exception.exception,
+        )
 
     if not dry_run:
         database.log.insert(program_end)

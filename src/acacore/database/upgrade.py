@@ -197,6 +197,172 @@ def upgrade_5_1to5_2(con: Connection, root: Path, logger: UpgradeLogger) -> Vers
     return set_db_version(con, Version("5.2.0"))
 
 
+# noinspection SqlResolve
+def upgrade_5_3to5_4(con: Connection, _root: Path, logger: UpgradeLogger) -> Version:
+    con.execute("drop table if exists _files_master")
+    con.execute("drop table if exists _files_access")
+    con.execute("drop table if exists _files_statutory")
+
+    con.execute(
+        """
+        create table _files_master
+        (
+            uuid              text    not null,
+            checksum          text    not null,
+            encoding          text,
+            relative_path     text    not null,
+            is_binary         boolean not null,
+            size              integer not null,
+            puid              text,
+            signature         text,
+            warning           text,
+            original_uuid     text not null,
+            sequence          integer not null,
+            convert_access    text,
+            convert_statutory text,
+            processed         integer not null,
+            primary key (relative_path)
+        )
+        """
+    )
+    con.execute(
+        """
+        create table _files_access
+        (
+            uuid          text    not null,
+            checksum      text    not null,
+            encoding      text,
+            relative_path text    not null,
+            is_binary     boolean not null,
+            size          integer not null,
+            puid          text,
+            signature     text,
+            warning       text,
+            original_uuid text not null,
+            sequence      integer not null,
+            primary key (relative_path)
+        )
+        """
+    )
+    con.execute(
+        """
+        create table _files_statutory
+        (
+            uuid           text    not null,
+            checksum       text    not null,
+            encoding       text,
+            relative_path  text    not null,
+            is_binary      boolean not null,
+            size           integer not null,
+            puid           text,
+            signature      text,
+            warning        text,
+            original_uuid  text not null,
+            sequence       integer not null,
+            doc_collection integer,
+            doc_id         integer,
+            primary key (relative_path)
+        )
+        """
+    )
+
+    logger("5.4.0", "drop", {"view ": "log_paths"})
+    con.execute("drop view if exists log_paths")
+    con.commit()
+
+    logger("5.4.0", "compile", {"table": "master"})
+    con.execute(
+        """
+        insert into _files_master
+        select uuid                                                                               as uuid,
+               checksum                                                                           as checksum,
+               encoding                                                                           as encoding,
+               relative_path                                                                      as relative_path,
+               is_binary                                                                          as is_binary,
+               size                                                                               as size,
+               puid                                                                               as puid,
+               signature                                                                          as signature,
+               warning                                                                            as warning,
+               original_uuid                                                                      as original_uuid,
+               (row_number() over (partition by original_uuid order by lower(relative_path))) - 1 as sequence,
+               convert_access                                                                     as convert_access,
+               convert_statutory                                                                  as convert_statutory,
+               processed                                                                          as processed
+        from files_master
+        """
+    )
+    con.execute("drop table files_master")
+    con.execute("alter table _files_master rename to files_master")
+    con.commit()
+
+    logger("5.4.0", "compile", {"table": "access"})
+    con.execute(
+        """
+        insert into _files_access
+        select uuid                                                                               as uuid,
+               checksum                                                                           as checksum,
+               encoding                                                                           as encoding,
+               relative_path                                                                      as relative_path,
+               is_binary                                                                          as is_binary,
+               size                                                                               as size,
+               puid                                                                               as puid,
+               signature                                                                          as signature,
+               warning                                                                            as warning,
+               original_uuid                                                                      as original_uuid,
+               (row_number() over (partition by original_uuid order by lower(relative_path))) - 1 as sequence
+        from files_access
+        """
+    )
+    con.execute("drop table files_access")
+    con.execute("alter table _files_access rename to files_access")
+    con.commit()
+
+    logger("5.4.0", "compile", {"table": "statutory"})
+    con.execute(
+        """
+        insert into _files_statutory
+        select uuid                                                                               as uuid,
+               checksum                                                                           as checksum,
+               encoding                                                                           as encoding,
+               relative_path                                                                      as relative_path,
+               is_binary                                                                          as is_binary,
+               size                                                                               as size,
+               puid                                                                               as puid,
+               signature                                                                          as signature,
+               warning                                                                            as warning,
+               original_uuid                                                                      as original_uuid,
+               (row_number() over (partition by original_uuid order by lower(relative_path))) - 1 as sequence,
+               doc_collection                                                                     as doc_collection,
+               doc_id                                                                             as doc_id
+        from files_statutory
+        """
+    )
+    con.execute("drop table files_statutory")
+    con.execute("alter table _files_statutory rename to files_statutory")
+    con.commit()
+
+    logger("5.4.0", "create", {"view": "log_paths"})
+    con.execute(
+        """
+        create view log_paths as
+        select coalesce(fo.relative_path, fm.relative_path, fa.relative_path, fs.relative_path) as file_relative_path,
+               l.*
+        from log l
+                 left join files_original fo on l.file_type = 'original' and fo.uuid = l.file_uuid
+                 left join files_master fm on l.file_type = 'master' and fm.uuid = l.file_uuid
+                 left join files_access fa on l.file_type = 'access' and fa.uuid = l.file_uuid
+                 left join files_statutory fs on l.file_type = 'statutory' and fs.uuid = l.file_uuid
+        """
+    )
+    con.commit()
+
+    logger("5.4.0", "cleanup", None)
+    con.execute("vacuum")
+    con.commit()
+
+    return set_db_version(con, Version("5.4.0"))
+
+
 def get_upgrade_function(
     current_version: Version,
     latest_version: Version,
@@ -209,6 +375,8 @@ def get_upgrade_function(
         return upgrade_5to5_1
     elif current_version < Version("5.2.0"):
         return upgrade_5_1to5_2
+    elif current_version < Version("5.4.0"):
+        return upgrade_5_3to5_4
     elif current_version < latest_version:
         return lambda c, _, __: set_db_version(c, Version(__version__))
     else:
