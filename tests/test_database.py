@@ -103,13 +103,31 @@ def test_insert_select(database_file: Path):
         db.init()
         db.commit()
 
-        original_file = OriginalFile.from_file(database_file, database_file.parent)
-        original_file2 = OriginalFile.from_file(__file__, Path(__file__).parent)
+        original_file = OriginalFile.from_file(database_file, database_file.parent, {})
+        original_file2 = OriginalFile.from_file(__file__, Path(__file__).parent, {})
         db.original_files.insert(original_file)
         db.original_files[:] = original_file2
-        db.master_files.insert(MasterFile.from_file(database_file, database_file.parent, original_file.uuid))
-        db.access_files.insert(AccessFile.from_file(database_file, database_file.parent, original_file.uuid))
-        db.statutory_files.insert(StatutoryFile.from_file(database_file, database_file.parent, original_file.uuid))
+        db.master_files.insert(
+            MasterFile.from_file(
+                database_file,
+                database_file.parent,
+                {"original_uuid": original_file.uuid, "sequence": 0},
+            )
+        )
+        db.access_files.insert(
+            AccessFile.from_file(
+                database_file,
+                database_file.parent,
+                {"original_uuid": original_file.uuid, "sequence": 0},
+            )
+        )
+        db.statutory_files.insert(
+            StatutoryFile.from_file(
+                database_file,
+                database_file.parent,
+                {"original_uuid": original_file.uuid, "sequence": 0},
+            )
+        )
         db.log.insert(Event(file_uuid=original_file.uuid, file_type="original", operation="test_database_models"))
         db.commit()
 
@@ -150,7 +168,7 @@ def test_cursor(database_file: Path, test_folder: Path):
         db.commit()
 
         files: list[Path] = list(find_files(test_folder))
-        db.original_files.insert(*(OriginalFile.from_file(f, test_folder) for f in files))
+        db.original_files.insert(*(OriginalFile.from_file(f, test_folder, {}) for f in files))
         db.commit()
         assert len(db.original_files) == len(files)
 
@@ -169,8 +187,8 @@ def test_update_delete(database_file: Path):
         db.init()
         db.commit()
 
-        file1 = OriginalFile.from_file(database_file, database_file.parent)
-        file2 = OriginalFile.from_file(database_file, database_file.parent)
+        file1 = OriginalFile.from_file(database_file, database_file.parent, {})
+        file2 = OriginalFile.from_file(database_file, database_file.parent, {})
         file1.root = file2.root = None
 
         db.original_files.insert(file1)
