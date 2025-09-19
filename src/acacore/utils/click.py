@@ -203,10 +203,9 @@ def end_program(
         program_end.log(
             ERROR if exception.exception else INFO,
             logger,
-            show_args=["data"] if exception.exception else False,
+            show_args=False,
+            exc_info=exception.exception,
         )
-        if exception.exception:
-            logger.exception(exception.exception.__class__.__name__, exc_info=exception.exception)
 
     if not dry_run:
         database.log.insert(program_end)
