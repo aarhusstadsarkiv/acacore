@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Callable
 from datetime import datetime
 from logging import ERROR
@@ -9,14 +10,13 @@ from re import Pattern
 from sqlite3 import DatabaseError
 from traceback import format_tb
 
+import structlog
 from click import BadParameter
 from click import ClickException
 from click import Command
 from click import Context
 from click import MissingParameter
 from click import Parameter
-from structlog.stdlib import BoundLogger
-from structlog.stdlib import get_logger
 
 from acacore.database import query
 from acacore.utils.helpers import ExceptionManager
@@ -141,7 +141,7 @@ def start_program(
     version: str,
     dry_run: bool = False,
     time: datetime | None = None,
-) -> tuple[BoundLogger, "Event"]:  # noqa: F821
+) -> tuple[structlog.stdlib.BoundLogger, "Event"]:  # noqa: F821
     """
     Setup logger and ``Event`` for the start of a click program.
 
@@ -155,7 +155,21 @@ def start_program(
     from acacore.models.event import Event
 
     prog: str = ctx.find_root().command.name
-    logger: BoundLogger = get_logger(f"{prog}_file")
+    structlog.configure(
+        processors=[
+            structlog.contextvars.merge_contextvars,
+            structlog.processors.add_log_level,
+            structlog.processors.StackInfoRenderer(),
+            structlog.dev.set_exc_info,
+            structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S", utc=False),
+            structlog.dev.ConsoleRenderer(sort_keys=False),
+        ],
+        wrapper_class=structlog.make_filtering_bound_logger(logging.NOTSET),
+        context_class=dict,
+        logger_factory=structlog.PrintLoggerFactory(),
+        cache_logger_on_first_use=False,
+    )
+    logger: structlog.stdlib.BoundLogger = structlog.get_logger(f"{prog}_file")
     program_start: Event = Event.from_command(
         ctx,
         "start",
@@ -177,7 +191,7 @@ def end_program(
     database: "FilesDB",  # noqa: F821
     exception: ExceptionManager,
     dry_run: bool = False,
-    *loggers: Logger | BoundLogger,
+    *loggers: Logger | structlog.stdlib.BoundLogger,
 ):
     """
     Create ``Event`` for the end of a click program.
