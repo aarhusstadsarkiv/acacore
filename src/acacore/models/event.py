@@ -125,30 +125,36 @@ class Event(BaseModel):
             pass them to logger.log.
         :param extra: Additional arguments to be shown in the log message.
         """
-        uuid_msg: str | None = f"{self.file_type}:{self.file_uuid}" if self.file_uuid else None
+        msg: str = self.operation
+        msg_items: dict[str, Any] = {}
+        uuid: str | None = f"{self.file_type}:{self.file_uuid}" if self.file_uuid else None
 
         if not show_args:
-            msg: str = self.operation
+            pass
         elif show_args is True and show_null:
-            msg: str = f"{self.operation} uuid={uuid_msg} data={self.data} reason={self.reason}"
+            msg_items["uuid"] = uuid
+            msg_items["data"] = self.data
+            msg_items["reason"] = self.reason
         elif show_args is True:
-            msg: str = (
-                f"{self.operation}"
-                + (f" uuid={uuid_msg}" if self.file_uuid is not None else "")
-                + (f" data={self.data}" if self.data is not None else "")
-                + (f" reason={self.reason.strip()}" if self.reason is not None else "")
-            )
+            if uuid is not None:
+                msg_items["uuid"] = uuid
+            if self.data is not None:
+                msg_items["data"] = self.data
+            if self.reason is not None:
+                msg_items["reason"] = self.reason
         else:
-            msg: str = (
-                f"{self.operation}"
-                + (f" uuid={uuid_msg}" if "uuid" in show_args else "")
-                + (f" data={self.data}" if "data" in show_args else "")
-                + (f" reason={self.reason.strip()}" if "reason" in show_args else "")
-            )
+            if "uuid" in show_args:
+                msg_items["uuid"] = uuid
+            if "data" in show_args:
+                msg_items["data"] = self.data
+            if "reason" in show_args:
+                msg_items["reason"] = self.reason
+
+        msg_items |= extra
 
         if extra_as_msg:
-            for keyword, value in extra.items():
+            for keyword, value in msg_items.items():
                 msg += f" {keyword.strip()}={value}"
 
         for logger in logger:
-            logger.log(level, msg.strip(), **(extra if not extra_as_msg else {}))
+            logger.log(level, msg.strip(), **msg_items)
