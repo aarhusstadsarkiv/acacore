@@ -167,12 +167,15 @@ def get_logger(
     return structlog.get_logger(prog)
 
 
+# noinspection PyProtectedMember
 def start_program(
     ctx: Context,
     database: "FilesDB",  # noqa: F821
     version: str,
     dry_run: bool = False,
     time: datetime | None = None,
+    logger_colors: bool = structlog.dev._has_colors,
+    logger_sort_keys: bool = False,
 ) -> tuple[structlog.stdlib.BoundLogger, "Event"]:  # noqa: F821
     """
     Setup logger and ``Event`` for the start of a click program.
@@ -182,11 +185,13 @@ def start_program(
     :param version: The version of the command/program.
     :param time: Optionally, the time to use for the ``Event`` object. Defaults to now.
     :param dry_run: Whether the command is run in dry-run mode.
+    :param logger_colors: Whether to use colors in logging messages.
+    :param logger_sort_keys: Whether to sort keys in logging messages.
     :return: A tuple containing the logger and the ``Event`` object for the start of the program.
     """
     from acacore.models.event import Event
 
-    logger = get_logger(ctx)
+    logger = get_logger(ctx, logger_colors, logger_sort_keys)
     program_start: Event = Event.from_command(
         ctx,
         "start",
