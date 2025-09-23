@@ -7,7 +7,6 @@ from typing import Self
 from uuid import UUID
 
 from click import Context
-from coverage import data
 from pydantic import BaseModel
 from pydantic import Field
 from pydantic import model_validator
