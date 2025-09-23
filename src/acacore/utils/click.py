@@ -135,6 +135,38 @@ def context_commands(ctx: Context) -> list[str]:
     return command_parts
 
 
+# noinspection PyProtectedMember
+def get_logger(
+    ctx: Context | str,
+    colors: bool = structlog.dev._has_colors,
+    sort_keys: bool = False,
+) -> structlog.stdlib.BoundLogger:
+    """
+    Configure and get a structlog BoundLogger.
+
+    :param ctx: The context of the logger used to set its name.
+    :param colors: Whether to use colors in logging messages.
+    :param sort_keys: Whether to sort keys in logging messages.
+    :return: A structlog BoundLogger.
+    """
+    prog: str = ctx if isinstance(ctx, str) else ctx.find_root().command.name
+    structlog.configure(
+        processors=[
+            structlog.contextvars.merge_contextvars,
+            structlog.processors.add_log_level,
+            structlog.processors.StackInfoRenderer(),
+            structlog.dev.set_exc_info,
+            structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S", utc=False),
+            structlog.dev.ConsoleRenderer(colors=colors, sort_keys=sort_keys),
+        ],
+        wrapper_class=structlog.make_filtering_bound_logger(logging.NOTSET),
+        context_class=dict,
+        logger_factory=structlog.PrintLoggerFactory(),
+        cache_logger_on_first_use=False,
+    )
+    return structlog.get_logger(prog)
+
+
 def start_program(
     ctx: Context,
     database: "FilesDB",  # noqa: F821
@@ -154,22 +186,7 @@ def start_program(
     """
     from acacore.models.event import Event
 
-    prog: str = ctx.find_root().command.name
-    structlog.configure(
-        processors=[
-            structlog.contextvars.merge_contextvars,
-            structlog.processors.add_log_level,
-            structlog.processors.StackInfoRenderer(),
-            structlog.dev.set_exc_info,
-            structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S", utc=False),
-            structlog.dev.ConsoleRenderer(sort_keys=False),
-        ],
-        wrapper_class=structlog.make_filtering_bound_logger(logging.NOTSET),
-        context_class=dict,
-        logger_factory=structlog.PrintLoggerFactory(),
-        cache_logger_on_first_use=False,
-    )
-    logger: structlog.stdlib.BoundLogger = structlog.get_logger(f"{prog}_file")
+    logger = get_logger(ctx)
     program_start: Event = Event.from_command(
         ctx,
         "start",
