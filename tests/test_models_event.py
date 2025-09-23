@@ -18,10 +18,10 @@ from click import Context
 from click import option
 from click import pass_context
 from structlog.stdlib import BoundLogger
-from structlog.stdlib import get_logger
 
 from acacore.__version__ import __version__
 from acacore.models.event import Event
+from acacore.utils.click import get_logger
 
 
 @pytest.fixture
@@ -31,7 +31,7 @@ def log_file(temp_folder: Path):
 
 @pytest.fixture
 def logger(log_file: Path) -> BoundLogger:
-    return get_logger(__name__)
+    return get_logger(__name__, colors=False)
 
 
 def test_event_log(
@@ -51,7 +51,10 @@ def test_event_log(
     for level in (CRITICAL, ERROR, WARNING, INFO, DEBUG):
         event.log(level, logger)
         out = capsys.readouterr().out
-        assert out.endswith(f"] {operation} uuid=original:{uuid} data={data} reason={reason}\n")
+        assert re.match(f".*] {operation} +.*", out)
+        assert re.match(f".* +uuid=original:{uuid} +", out)
+        assert re.match(f".* +data={repr(data)} +", out)
+        assert re.match(f".* +reason={reason}$", out)
         assert re.match(rf"^\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d.* \[{getLevelName(level).lower()} *]", out)
 
     event.data = None
