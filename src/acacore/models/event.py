@@ -153,7 +153,7 @@ class Event(BaseModel):
         msg_items |= extra
 
         if extra_as_msg:
-            for keyword, value in extra.items():
+            for keyword, value in msg_items.items():
                 msg += f" {keyword.strip()}={value}"
 
         for logger in logger:
