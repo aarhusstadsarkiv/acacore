@@ -1,6 +1,6 @@
 [project]
 name = "acacore"
-version = "5.4.2"
+version = "5.4.3"
 description = ""
 authors = [{ name = "Matteo Campinoti", email = "matteo.campinoti94@gmail.com" }]
 requires-python = ">=3.12"
