@@ -63,6 +63,13 @@ def test_readonly(database_file: Path):
             db.metadata.set(metadata)
 
 
+def test_check_same_thread(database_file: Path):
+    with FilesDB(database_file) as _:
+        with pytest.raises(OperationalError, match="Cannot open"):
+            with FilesDB(database_file) as _:
+                pass
+
+
 def test_temporary(database_file: Path):
     with FilesDB(database_file) as db:
         db.init()
