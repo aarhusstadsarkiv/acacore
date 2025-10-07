@@ -7,6 +7,7 @@ from logging import Logger
 from pathlib import Path
 from re import compile as re_compile
 from re import Pattern
+from shutil import get_terminal_size
 from sqlite3 import DatabaseError
 from traceback import format_tb
 
@@ -174,7 +175,7 @@ def start_program(
     version: str,
     dry_run: bool = False,
     time: datetime | None = None,
-    logger_colors: bool = structlog.dev._has_colors,
+    logger_colors: bool | None = None,
     logger_sort_keys: bool = False,
 ) -> tuple[structlog.stdlib.BoundLogger, "Event"]:  # noqa: F821
     """
@@ -185,11 +186,17 @@ def start_program(
     :param version: The version of the command/program.
     :param time: Optionally, the time to use for the ``Event`` object. Defaults to now.
     :param dry_run: Whether the command is run in dry-run mode.
-    :param logger_colors: Whether to use colors in logging messages.
+    :param logger_colors: Whether to use colors in logging messages, set to None to chose automatically based on tty
+        status.
     :param logger_sort_keys: Whether to sort keys in logging messages.
     :return: A tuple containing the logger and the ``Event`` object for the start of the program.
     """
     from acacore.models.event import Event
+
+    if logger_colors is None:
+        logger_colors = structlog.dev._has_colors if get_terminal_size((0, 0)).columns else False
+    else:
+        logger_colors = logger_colors and structlog.dev._has_colors
 
     logger = get_logger(ctx, logger_colors, logger_sort_keys)
     program_start: Event = Event.from_command(
