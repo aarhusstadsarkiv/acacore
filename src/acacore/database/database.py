@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from collections.abc import Iterable
 from collections.abc import Mapping
 from collections.abc import Sequence
@@ -5,11 +6,15 @@ from os import PathLike
 from pathlib import Path
 from sqlite3 import Connection
 from sqlite3 import Cursor as SQLiteCursor
+from sqlite3 import OperationalError
 from sqlite3 import ProgrammingError
 from types import TracebackType
 from typing import overload
 from typing import Self
 
+from psutil import AccessDenied
+from psutil import Process
+from psutil import process_iter
 from pydantic import BaseModel
 
 from .column import SQLValue
@@ -20,11 +25,26 @@ from .table_view import View
 _P = Sequence[SQLValue] | Mapping[str, SQLValue]
 
 
+def _file_processes(path: Path) -> Generator[Process, None, None]:
+    # noinspection PyUnresolvedReferences
+    process_iter.cache_clear()
+    for ps in process_iter():
+        try:
+            for f, *_ in ps.open_files():
+                if Path(f).resolve() == path.resolve():
+                    yield ps
+                    continue
+        except AccessDenied:
+            continue
+    yield from ()
+
+
 class Database:
     """
     A class that handles an SQLite connection and allows accessing rows as Pydantic models.
 
     :ivar path: The path to the database file.
+    :ivar readonly: Whether the connection is read-only.
     :ivar connection: The connection to thr SQLite database.
     """
 
@@ -37,6 +57,7 @@ class Database:
         isolation_level: str | None = "DEFERRED",
         check_same_thread: bool = True,
         cached_statements: int = 100,
+        readonly: bool = False,
     ) -> None:
         """
         :param path: The path to the database.
@@ -50,15 +71,20 @@ class Database:
             used by a thread other than the one that created it, defaults to True.
         :param cached_statements: The number of statements that sqlite3 should internally cache for this connection,
             to avoid parsing overhead, defaults to 100.
+        :param readonly: Whether to open the connection in read-only mode.
         """  # noqa: D205
-        self.path: Path = Path(path)
+        self.path: Path = Path(path).absolute()
+        self.readonly: bool = readonly
+        if check_same_thread and not self.readonly and (p := next(_file_processes(self.path), None)):
+            raise OperationalError("Cannot open read-write connection to a database used by another process", p)
         self.connection: Connection = Connection(
-            self.path,
+            f"{self.path.as_uri()}?mode=ro" if self.readonly else self.path.as_uri(),
             timeout=timeout,
             detect_types=detect_types,
             isolation_level=isolation_level,
             check_same_thread=check_same_thread,
             cached_statements=cached_statements,
+            uri=True,
         )
         self._committed_changes: int = 0
 

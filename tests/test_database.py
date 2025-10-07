@@ -48,6 +48,28 @@ def test_base(database_file: Path):
     assert not db.is_open()
 
 
+def test_readonly(database_file: Path):
+    with pytest.raises(OperationalError):
+        FilesDB(database_file, readonly=True)
+
+    with FilesDB(database_file) as db:
+        db.init()
+        db.commit()
+
+    with FilesDB(database_file, readonly=True) as db:
+        metadata = db.metadata.get()
+        metadata.version = "0.0.0"
+        with pytest.raises(OperationalError, match="readonly"):
+            db.metadata.set(metadata)
+
+
+def test_check_same_thread(database_file: Path):
+    with FilesDB(database_file) as _:
+        with pytest.raises(OperationalError, match="Cannot open"):
+            with FilesDB(database_file) as _:
+                pass
+
+
 def test_temporary(database_file: Path):
     with FilesDB(database_file) as db:
         db.init()

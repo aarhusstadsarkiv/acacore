@@ -71,6 +71,7 @@ class FilesDB(Database):
         check_initialisation: bool = False,
         check_version: bool = True,
         cached_statements: int = 100,
+        readonly: bool = False,
     ) -> None:
         """
         :param path: The path to the database.
@@ -86,6 +87,7 @@ class FilesDB(Database):
             to avoid parsing overhead, defaults to 100.
         :param check_initialisation: If set to True, ensure the databse is initialized.
         :param check_version: If set to True, check the database version and ensure it is the latest.
+        :param readonly: Whether to open the connection in read-only mode.
         """  # noqa: D205
         super().__init__(
             path,
@@ -94,6 +96,7 @@ class FilesDB(Database):
             isolation_level=isolation_level,
             check_same_thread=check_same_thread,
             cached_statements=cached_statements,
+            readonly=readonly,
         )
 
         self.original_files: Table[OriginalFile] = Table(
