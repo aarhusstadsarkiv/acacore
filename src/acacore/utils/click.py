@@ -186,8 +186,8 @@ def start_program(
     :param version: The version of the command/program.
     :param time: Optionally, the time to use for the ``Event`` object. Defaults to now.
     :param dry_run: Whether the command is run in dry-run mode.
-    :param logger_colors: Whether to use colors in logging messages, set to None to chose automatically based on tty
-        status.
+    :param logger_colors: Whether to use colors in logging messages, set to None to chose automatically based on
+        ``ctx.color`` tty status.
     :param logger_sort_keys: Whether to sort keys in logging messages.
     :return: A tuple containing the logger and the ``Event`` object for the start of the program.
     """
