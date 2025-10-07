@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from collections.abc import Iterable
 from collections.abc import Mapping
 from collections.abc import Sequence
@@ -8,7 +9,6 @@ from sqlite3 import Cursor as SQLiteCursor
 from sqlite3 import OperationalError
 from sqlite3 import ProgrammingError
 from types import TracebackType
-from typing import Generator
 from typing import overload
 from typing import Self
 
