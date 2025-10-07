@@ -193,10 +193,10 @@ def start_program(
     """
     from acacore.models.event import Event
 
+    logger_colors = ctx.color if logger_colors is None else logger_colors
+
     if logger_colors is None:
         logger_colors = structlog.dev._has_colors if get_terminal_size((0, 0)).columns else False
-    else:
-        logger_colors = logger_colors and structlog.dev._has_colors
 
     logger = get_logger(ctx, logger_colors, logger_sort_keys)
     program_start: Event = Event.from_command(
