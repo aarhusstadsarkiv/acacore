@@ -16,6 +16,7 @@ dependencies = [
     "orjson>=3.10.12,<4",
     "chardet>=5.2.0,<6",
     "structlog>=25.4.0",
+    "psutil>=7.1.0",
 ]
 
 [dependency-groups]
