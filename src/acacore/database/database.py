@@ -5,11 +5,16 @@ from os import PathLike
 from pathlib import Path
 from sqlite3 import Connection
 from sqlite3 import Cursor as SQLiteCursor
+from sqlite3 import OperationalError
 from sqlite3 import ProgrammingError
 from types import TracebackType
+from typing import Generator
 from typing import overload
 from typing import Self
 
+from psutil import AccessDenied
+from psutil import Process
+from psutil import process_iter
 from pydantic import BaseModel
 
 from .column import SQLValue
@@ -18,6 +23,20 @@ from .table_keyvalue import KeysTable
 from .table_view import View
 
 _P = Sequence[SQLValue] | Mapping[str, SQLValue]
+
+
+def _file_processes(path: Path) -> Generator[Process, None, None]:
+    # noinspection PyUnresolvedReferences
+    process_iter.cache_clear()
+    for ps in process_iter():
+        try:
+            for f, *_ in ps.open_files():
+                if Path(f).resolve() == path.resolve():
+                    yield ps
+                    continue
+        except AccessDenied:
+            continue
+    yield from ()
 
 
 class Database:
@@ -56,6 +75,8 @@ class Database:
         """  # noqa: D205
         self.path: Path = Path(path).absolute()
         self.readonly: bool = readonly
+        if check_same_thread and not self.readonly and (p := next(_file_processes(self.path), None)):
+            raise OperationalError("Cannot open read-write connection to a database used by another process", p)
         self.connection: Connection = Connection(
             f"{self.path.as_uri()}?mode=ro" if self.readonly else self.path.as_uri(),
             timeout=timeout,
