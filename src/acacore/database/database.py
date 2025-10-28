@@ -78,7 +78,7 @@ class Database:
         if check_same_thread and not self.readonly and (p := next(_file_processes(self.path), None)):
             raise OperationalError("Cannot open read-write connection to a database used by another process", p)
         self.connection: Connection = Connection(
-            f"{self.path.as_uri()}?mode=ro" if self.readonly else self.path.as_uri(),
+            f"{self.path.as_uri()}?mode=ro" if self.readonly else self.path,
             timeout=timeout,
             detect_types=detect_types,
             isolation_level=isolation_level,
