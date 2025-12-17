@@ -209,13 +209,12 @@ class BaseFile(BaseModel):
             signature=None,
             warning=None,
         )
+        file.checksum, file.encoding = file_checksum(
+            path,
+            encoding=False if file.size == 0 else encoding if isinstance(encoding, bool | str) else not file.is_binary,
+        )
 
         if file.size > 0:
-            file.checksum, file.encoding = file_checksum(
-                path,
-                encoding=encoding if isinstance(encoding, bool | str) else not file.is_binary,
-            )
-
             if siegfried:
                 file.identify(siegfried, set_match=True)
 
