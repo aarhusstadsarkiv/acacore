@@ -64,7 +64,7 @@ def test_readonly(database_file: Path):
 
 
 def test_check_same_thread(database_file: Path):
-    with FilesDB(database_file) as _:
+    with FilesDB(database_file) as _:  # noqa: SIM117
         with pytest.raises(OperationalError, match="Cannot open"):
             with FilesDB(database_file) as _:
                 pass
