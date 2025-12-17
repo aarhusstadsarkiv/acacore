@@ -211,14 +211,15 @@ class BaseFile(BaseModel):
         )
         file.checksum, file.encoding = file_checksum(
             path,
-            encoding=encoding if isinstance(encoding, bool | str) else not file.is_binary,
+            encoding=False if file.size == 0 else encoding if isinstance(encoding, bool | str) else not file.is_binary,
         )
 
-        if siegfried:
-            file.identify(siegfried, set_match=True)
+        if file.size > 0:
+            if siegfried:
+                file.identify(siegfried, set_match=True)
 
-        if (sigs := options.get("custom_signatures")) and not file.puid:
-            file.identify_custom(sigs, set_match=True)
+            if (sigs := options.get("custom_signatures")) and not file.puid:
+                file.identify_custom(sigs, set_match=True)
 
         return file
 
@@ -256,6 +257,9 @@ class BaseFile(BaseModel):
         :param set_match: Set results of match if ``True``, defaults to ``False``.
         :return: The matched ``CustomSignature`` object, if any, otherwise ``None``.
         """
+        if self.size > 0:
+            return None
+
         bof = get_bof(self.get_absolute_path(self.root), chunk_size or 1024).hex()
         eof = get_eof(self.get_absolute_path(self.root), chunk_size or 1024).hex()
         signature: CustomSignature | None = None
@@ -469,13 +473,14 @@ class OriginalFile(BaseFile):
         file_classes: list[TSiegfriedFileClass] = []
         action: Action | None = None
 
-        if siegfried:
-            siegfried_match = super().identify(siegfried, set_match=True).best_match()
-            file_classes = siegfried_match.match_class if siegfried_match else []
+        if self.size > 0:
+            if siegfried:
+                siegfried_match = super().identify(siegfried, set_match=True).best_match()
+                file_classes = siegfried_match.match_class if siegfried_match else []
 
-        if custom_signatures and not self.puid:
-            self.identify_custom(custom_signatures, set_match=True)
-            from_custom_signatures = True
+            if custom_signatures and not self.puid:
+                self.identify_custom(custom_signatures, set_match=True)
+                from_custom_signatures = True
 
         if actions:
             action = self.get_action(actions, file_classes)
@@ -686,15 +691,16 @@ class MasterFile(ConvertedFile):
         :param custom_signatures: A list of ``CustomSignature`` objects.
         :param actions: A dictionary containing the available actions as ``MasterConvertAction`` objects.
         """
-        if not siegfried and not custom_signatures:
+        if not siegfried and not custom_signatures and not actions:
             return
 
         file_classes: list[TSiegfriedFileClass] = []
 
-        if siegfried and (match := super().identify(siegfried, set_match=True).best_match()):
-            file_classes = match.match_class
-        elif custom_signatures:
-            self.identify_custom(custom_signatures, set_match=True)
+        if self.size > 0:
+            if siegfried and (match := super().identify(siegfried, set_match=True).best_match()):
+                file_classes = match.match_class
+            elif custom_signatures:
+                self.identify_custom(custom_signatures, set_match=True)
 
         if actions:
             self.get_action("access", actions, file_classes, set_match=True)
