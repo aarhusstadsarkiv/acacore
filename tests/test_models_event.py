@@ -53,7 +53,7 @@ def test_event_log(
         out = capsys.readouterr().out
         assert re.match(f".*] {operation} +.*", out)
         assert re.match(f".* +uuid=original:{uuid} +", out)
-        assert re.match(f".* +data={repr(data)} +", out)
+        assert re.match(f".* +data={data!r} +", out)
         assert re.match(f".* +reason={reason}$", out)
         assert re.match(rf"^\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d.* \[{getLevelName(level).lower()} *]", out)
 
