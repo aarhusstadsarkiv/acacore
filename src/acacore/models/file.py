@@ -1,3 +1,4 @@
+import re
 from functools import reduce
 from math import ceil
 from os import PathLike
@@ -65,23 +66,40 @@ def ignore_if(file: "OriginalFile", rules: IgnoreIfAction) -> tuple[TActionType 
 
 
 def get_identifier[A](file: "BaseFile", file_classes: list[TSiegfriedFileClass], actions: dict[str, A]) -> A | None:
-    identifiers: list[str] = [
-        f"!name={file.relative_path.name}",
-        f"!iname={file.relative_path.name.lower()}",
-    ]
-
-    if not file.size:
-        identifiers.insert(0, "!empty")
-    if file.puid:
-        identifiers.append(file.puid)
-    if file.suffix:
-        identifiers.append(f"!ext={''.join(file.relative_path.suffixes)}")
+    if not file.size and (action := actions.get("!empty")):
+        return action
+    if action := actions.get(f"!name={file.relative_path.name}"):
+        return action
+    if action := actions.get(f"!iname={file.relative_path.name.lower()}"):
+        return action
+    if regex_formats := [(p, a) for p, a in actions.items() if p.startswith(("!regex=", "!iregex="))]:  # noqa: SIM102
+        if action := reduce(
+            lambda acc, cur: acc
+            or (
+                cur[1]
+                if re.fullmatch(
+                    cur[0].removeprefix("!regex=").removeprefix("!iregex"),
+                    file.relative_path.name,
+                    re.IGNORECASE if cur[0].startswith("!iregex") else 0,
+                )
+                else None
+            ),
+            regex_formats,
+            None,
+        ):
+            return action
+    if file.puid and (action := actions.get(file.puid)):
+        return action
+    if file.suffix and (action := actions.get(f"!ext={''.join(file.relative_path.suffixes)}")):
+        return action
     if file_classes:
-        identifiers.extend(f"!{c}" for c in file_classes)
-    if file.is_binary:
-        identifiers.append("!binary")
+        for c in file_classes:
+            if action := actions.get(f"!{c}"):
+                return action
+    if file.is_binary and (action := actions.get("!binary")):
+        return action
 
-    return reduce(lambda acc, cur: acc or actions.get(cur), identifiers, None)
+    return None
 
 
 class OptionsBaseFile(TypedDict):
@@ -257,7 +275,7 @@ class BaseFile(BaseModel):
         :param set_match: Set results of match if ``True``, defaults to ``False``.
         :return: The matched ``CustomSignature`` object, if any, otherwise ``None``.
         """
-        if self.size > 0:
+        if self.size == 0:
             return None
 
         bof = get_bof(self.get_absolute_path(self.root), chunk_size or 1024).hex()
