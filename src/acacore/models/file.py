@@ -275,7 +275,7 @@ class BaseFile(BaseModel):
         :param set_match: Set results of match if ``True``, defaults to ``False``.
         :return: The matched ``CustomSignature`` object, if any, otherwise ``None``.
         """
-        if self.size > 0:
+        if self.size == 0:
             return None
 
         bof = get_bof(self.get_absolute_path(self.root), chunk_size or 1024).hex()
