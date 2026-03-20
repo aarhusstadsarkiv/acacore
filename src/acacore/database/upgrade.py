@@ -363,6 +363,30 @@ def upgrade_5_3to5_4(con: Connection, _root: Path, logger: UpgradeLogger) -> Ver
     return set_db_version(con, Version("5.4.0"))
 
 
+def upgrade_5_4to_5_4_7(con: Connection, _root: Path, logger: UpgradeLogger) -> Version:
+    logger("5.4.7", "drop", {"view": "view_signatures_count"})
+    con.execute("drop view if exists view_signatures_count")
+    con.commit()
+
+    logger("5.4.7", "create", {"view": "view_signatures_count"})
+    con.execute(
+        """
+        create view view_signatures_count as
+        select puid, signature, action, count(*) as count
+        from files_original
+        group by puid, signature, action
+        order by puid
+        """
+    )
+    con.commit()
+
+    logger("5.4.7", "cleanup", None)
+    con.execute("vacuum")
+    con.commit()
+
+    return set_db_version(con, Version("5.4.7"))
+
+
 def get_upgrade_function(
     current_version: Version,
     latest_version: Version,
@@ -377,6 +401,8 @@ def get_upgrade_function(
         return upgrade_5_1to5_2
     elif current_version < Version("5.4.0"):
         return upgrade_5_3to5_4
+    elif current_version < Version("5.4.7"):
+        return upgrade_5_4to_5_4_7
     elif current_version < latest_version:
         return lambda c, _, __: set_db_version(c, Version(__version__))
     else:
