@@ -30,6 +30,7 @@ class EventPath(Event):
 class SignatureCount(BaseModel):
     puid: str | None
     signature: str | None
+    action: TActionType | None
     count: int | None
 
 
@@ -180,7 +181,7 @@ class FilesDB(Database):
             self.connection,
             SignatureCount,
             "view_signatures_count",
-            f"select puid, signature, count(*) as count from {self.original_files.name} group by puid, signature order by count desc",
+            f"select puid, signature, action, count(*) as count from {self.original_files.name} group by puid, signature, action order by puid",
         )
 
         self.actions_count: View[ActionCount] = View(
