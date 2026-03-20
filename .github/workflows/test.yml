@@ -14,11 +14,11 @@ jobs:
     name: Linting
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
         with:
-          python-version-file: "pyproject.toml"
+          enable-cache: "false"
+          save-cache: "false"
       - run: uv sync --all-extras --dev
       - name: ruff check
         run: uv run ruff check src
@@ -29,7 +29,7 @@ jobs:
     name: Test Version
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: |
           version_project="$(grep --color=never '^version *= *".*"' pyproject.toml)"
           version_project="${version_project%\"}"
@@ -46,12 +46,12 @@ jobs:
     name: pytest
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
         with:
-          python-version-file: "pyproject.toml"
-      - uses: actions/setup-go@v5
+          enable-cache: "false"
+          save-cache: "false"
+      - uses: actions/setup-go@v6
       - run: uv sync --all-extras --dev
       - run: go install github.com/richardlehane/siegfried/cmd/sf@latest
       - name: pytest
