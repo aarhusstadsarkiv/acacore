@@ -387,12 +387,12 @@ def upgrade_5_4to_5_4_7(con: Connection, _root: Path, logger: UpgradeLogger) -> 
     return set_db_version(con, Version("5.4.7"))
 
 
-def upgrade_5_4_7to_5_4_8(con: Connection, _root: Path, logger: UpgradeLogger) -> Version:
-    logger("5.4.8", "create", {"index": "idx_files_original_parent"})
+def upgrade_5_4_7to_5_4_9(con: Connection, _root: Path, logger: UpgradeLogger) -> Version:
+    logger("5.4.9", "create", {"index": "idx_files_original_parent"})
     con.execute("create index if not exists idx_files_original_parent on files_original (parent)")
     con.commit()
 
-    return set_db_version(con, Version("5.4.8"))
+    return set_db_version(con, Version("5.4.9"))
 
 
 def get_upgrade_function(
@@ -411,6 +411,8 @@ def get_upgrade_function(
         return upgrade_5_3to5_4
     elif current_version < Version("5.4.7"):
         return upgrade_5_4to_5_4_7
+    elif current_version < Version("5.4.9"):
+        return upgrade_5_4_7to_5_4_9
     elif current_version < latest_version:
         return lambda c, _, __: set_db_version(c, Version(__version__))
     else:
