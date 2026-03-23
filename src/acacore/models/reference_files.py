@@ -54,7 +54,12 @@ class CustomSignature(BaseModel):
     bof: str | None = None
     eof: str | None = None
     operator: Literal["AND", "OR"] | None = None
-    extension: str | None = None
+    extension: list[str] | None = None
+
+    @field_validator("extension", mode="before")
+    @classmethod
+    def _validate_extension(cls, v: Any) -> list[Any]:  # noqa: ANN401
+        return [v] if isinstance(v, str) else v
 
     @model_validator(mode="after")
     def _validate_model(self) -> Self:
