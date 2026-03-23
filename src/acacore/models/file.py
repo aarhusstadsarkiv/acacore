@@ -291,7 +291,7 @@ class BaseFile(BaseModel):
         if set_match and signature:
             self.puid = signature.puid
             self.signature = signature.signature
-            if signature.extension and self.suffix != signature.extension:
+            if signature.extension and self.suffix.lower() != signature.extension.lower():
                 self.warning = ["extension mismatch"]
             else:
                 self.warning = None
