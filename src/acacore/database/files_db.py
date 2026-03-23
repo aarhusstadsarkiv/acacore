@@ -105,7 +105,12 @@ class FilesDB(Database):
             OriginalFile,
             "files_original",
             ["relative_path"],
-            {"uuid": ["uuid"], "checksum": ["checksum"], "action": ["action"]},
+            {
+                "uuid": ["uuid"],
+                "checksum": ["checksum"],
+                "action": ["action"],
+                "parent": ["parent"],
+            },
             ["root"],
         )
         self.master_files: Table[MasterFile] = Table(
