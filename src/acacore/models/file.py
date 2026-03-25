@@ -10,8 +10,7 @@ from typing import TypedDict
 from uuid import UUID
 from uuid import uuid4
 
-# noinspection PyProtectedMember
-from chardet import ResultDict
+from chardet import DetectionDict
 from pydantic import BaseModel
 from pydantic import Field
 from pydantic import model_validator
@@ -74,15 +73,17 @@ def get_identifier[A](file: "BaseFile", file_classes: list[TSiegfriedFileClass],
         return action
     if regex_formats := [(p, a) for p, a in actions.items() if p.startswith(("!regex=", "!iregex="))]:  # noqa: SIM102
         if action := reduce(
-            lambda acc, cur: acc
-            or (
-                cur[1]
-                if re.fullmatch(
-                    cur[0].removeprefix("!regex=").removeprefix("!iregex"),
-                    file.relative_path.name,
-                    re.IGNORECASE if cur[0].startswith("!iregex") else 0,
+            lambda acc, cur: (
+                acc
+                or (
+                    cur[1]
+                    if re.fullmatch(
+                        cur[0].removeprefix("!regex=").removeprefix("!iregex"),
+                        file.relative_path.name,
+                        re.IGNORECASE if cur[0].startswith("!iregex") else 0,
+                    )
+                    else None
                 )
-                else None
             ),
             regex_formats,
             None,
@@ -181,7 +182,7 @@ class BaseFile(BaseModel):
 
     uuid: UUID4 = Field(default_factory=uuid4)
     checksum: str
-    encoding: ResultDict | None
+    encoding: DetectionDict | None
     relative_path: Path
     is_binary: bool
     size: int
@@ -319,7 +320,7 @@ class BaseFile(BaseModel):
         self.checksum = file_checksum(self.get_absolute_path(self.root), False)[0]
         return self.checksum
 
-    def get_encoding(self) -> ResultDict | None:
+    def get_encoding(self) -> DetectionDict | None:
         self.encoding = file_checksum(self.get_absolute_path(self.root), True)[1]
         return self.encoding
 
