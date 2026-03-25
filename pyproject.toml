@@ -1,29 +1,29 @@
 [project]
 name = "acacore"
-version = "5.4.10"
+version = "5.4.11"
 description = ""
 authors = [{ name = "Matteo Campinoti", email = "matteo.campinoti94@gmail.com" }]
 requires-python = ">=3.12"
 readme = "README.md"
 license = "GPL-3.0"
 dependencies = [
-    "pydantic>=2.10.2,<3",
-    "pyyaml>=6.0.2,<7",
-    "click>=8.1.7,<9",
-    "imagesize>=1.4.1,<2",
-    "packaging~=24.2",
-    "pillow>=11.0.0,<12",
-    "orjson>=3.10.12,<4",
-    "chardet>=5.2.0,<6",
-    "structlog>=25.4.0",
-    "psutil>=7.1.0",
+    "pydantic>=2.12.5,<3",
+    "pyyaml>=6.0.3,<7",
+    "click>=8.3.1,<9",
+    "imagesize>=2.0.0,<3",
+    "packaging~=26.0",
+    "pillow>=12.1.1,<13",
+    "orjson>=3.11.7,<4",
+    "chardet>=7.3.0,<8",
+    "structlog>=25.5.0",
+    "psutil>=7.2.2",
 ]
 
 [dependency-groups]
 dev = [
-    "ruff>=0.9.3,<1",
-    "pytest>=8.3.3,<9",
-    "coverage>=7.6.1,<8",
+    "ruff>=0.15.7,<1",
+    "pytest>=9.0.2,<10",
+    "coverage>=7.13.5,<8",
 ]
 
 [build-system]
