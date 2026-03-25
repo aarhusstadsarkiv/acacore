@@ -41,6 +41,27 @@ TSiegfriedFileClass = Literal[
     "word processor",
 ]
 
+SIEGFRIED_FILE_CLASS_PRIORITY: list[TSiegfriedFileClass] = [
+    "video",
+    "audio",
+    "aggregate",
+    "database",
+    "dataset",
+    "email",
+    "font",
+    "gis",
+    "image (raster)",
+    "image (vector)",
+    "model",
+    "page description",
+    "presentation",
+    "spreadsheet",
+    "text (mark-up)",
+    "text (structured)",
+    "text (unstructured)",
+    "word processor",
+]
+
 
 def _check_process(process: CompletedProcess) -> CompletedProcess:
     """
