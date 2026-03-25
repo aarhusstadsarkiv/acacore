@@ -397,7 +397,7 @@ def upgrade_5_4_7to5_4_9(con: Connection, _root: Path, logger: UpgradeLogger) ->
 
 def upgrade_5_4_9to5_4_11(con: Connection, _root: Path, logger: UpgradeLogger) -> Version:
     for table_name in ("files_original", "files_master", "files_access", "files_statutory"):
-        logger("5.4.11", "update", {"table": "table_name", "column": "encoding"})
+        logger("5.4.11", "update", {"table": table_name, "column": "encoding"})
         con.execute(
             f"""
             update {table_name}
