@@ -17,6 +17,7 @@ from pydantic import model_validator
 from pydantic import UUID4
 
 from acacore.siegfried.siegfried import Siegfried
+from acacore.siegfried.siegfried import SIEGFRIED_FILE_CLASS_PRIORITY
 from acacore.siegfried.siegfried import SiegfriedFile
 from acacore.siegfried.siegfried import TSiegfriedFileClass
 from acacore.utils.functions import file_checksum
@@ -94,7 +95,7 @@ def get_identifier[A](file: "BaseFile", file_classes: list[TSiegfriedFileClass],
     if file.suffix and (action := actions.get(f"!ext={''.join(file.relative_path.suffixes)}")):
         return action
     if file_classes:
-        for c in file_classes:
+        for c in sorted(file_classes, key=SIEGFRIED_FILE_CLASS_PRIORITY.index):
             if action := actions.get(f"!{c}"):
                 return action
     if file.is_binary and (action := actions.get("!binary")):
