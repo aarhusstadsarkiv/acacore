@@ -363,7 +363,7 @@ def upgrade_5_3to5_4(con: Connection, _root: Path, logger: UpgradeLogger) -> Ver
     return set_db_version(con, Version("5.4.0"))
 
 
-def upgrade_5_4to_5_4_7(con: Connection, _root: Path, logger: UpgradeLogger) -> Version:
+def upgrade_5_4to5_4_7(con: Connection, _root: Path, logger: UpgradeLogger) -> Version:
     logger("5.4.7", "drop", {"view": "view_signatures_count"})
     con.execute("drop view if exists view_signatures_count")
     con.commit()
@@ -387,7 +387,7 @@ def upgrade_5_4to_5_4_7(con: Connection, _root: Path, logger: UpgradeLogger) -> 
     return set_db_version(con, Version("5.4.7"))
 
 
-def upgrade_5_4_7to_5_4_9(con: Connection, _root: Path, logger: UpgradeLogger) -> Version:
+def upgrade_5_4_7to5_4_9(con: Connection, _root: Path, logger: UpgradeLogger) -> Version:
     logger("5.4.9", "create", {"index": "idx_files_original_parent"})
     con.execute("create index if not exists idx_files_original_parent on files_original (parent)")
     con.commit()
@@ -425,9 +425,9 @@ def get_upgrade_function(
     elif current_version < Version("5.4.0"):
         return upgrade_5_3to5_4
     elif current_version < Version("5.4.7"):
-        return upgrade_5_4to_5_4_7
+        return upgrade_5_4to5_4_7
     elif current_version < Version("5.4.9"):
-        return upgrade_5_4_7to_5_4_9
+        return upgrade_5_4_7to5_4_9
     elif current_version < Version("5.4.11"):
         return upgrade_5_4_9to5_4_11
     elif current_version < latest_version:
