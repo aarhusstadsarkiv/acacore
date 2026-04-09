@@ -410,6 +410,7 @@ class OriginalFile(BaseFile):
     parent: UUID4 | None = None
     processed: bool = False
     lock: bool = False
+    gis_main: UUID4 | None = None
     original_path: Path
 
     @property
