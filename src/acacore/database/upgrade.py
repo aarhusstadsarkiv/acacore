@@ -2,13 +2,13 @@ from collections.abc import Callable
 from itertools import batched
 from json import dumps
 from json import loads
-from os import PathLike
 from pathlib import Path
 from sqlite3 import Connection
 from sqlite3 import DatabaseError
 from sqlite3 import OperationalError
 from typing import Any
 
+from chardet import DetectionDict
 from packaging.version import InvalidVersion
 from packaging.version import Version
 
@@ -25,12 +25,14 @@ UpgradeLogger = Callable[[Version | str, str, str | dict[str, Any] | None], None
 
 
 # noinspection SqlResolve
-def get_db_version(conn: Connection) -> Version | None:
+def get_db_version(conn: Connection) -> Version:
     try:
-        cur = conn.execute("select VALUE from Metadata where KEY like 'version'").fetchone()
-        return Version(loads(cur[0])) if cur else None
-    except (OperationalError, ValueError, InvalidVersion):
-        return None
+        row = conn.execute("select VALUE from Metadata where KEY like 'version'").fetchone()
+        if not row:
+            raise DatabaseError("Cannot find version in database.")
+        return Version(loads(row[0]))
+    except (OperationalError, ValueError, InvalidVersion) as err:
+        raise DatabaseError("Cannot find version in database.", *err.args)
 
 
 def set_db_version(conn: Connection, version: Version) -> Version:
@@ -173,7 +175,7 @@ def upgrade_5_1to5_2(con: Connection, root: Path, logger: UpgradeLogger) -> Vers
     if "encoding" not in table_columns(con, "files_statutory"):
         con.execute("alter table files_statutory add column encoding text")
 
-    def _encoding(path: str | PathLike[str]) -> dict | None:
+    def _encoding(path: str | Path) -> DetectionDict | None:
         detector = UniversalDetector()
         with open(path, "rb") as f:
             while chunk := f.read(2**20):
@@ -410,6 +412,24 @@ def upgrade_5_4_9to5_4_11(con: Connection, _root: Path, logger: UpgradeLogger) -
     return set_db_version(con, Version("5.4.11"))
 
 
+# noinspection SqlResolve
+def upgrade_5_4to5_5(con: Connection, _root: Path, logger: UpgradeLogger) -> Version:
+    logger("5.5.0", "alter", {"table": "files_original", "add": "gis_main"})
+    if "gis_main" not in table_columns(con, "files_original"):
+        con.execute("alter table files_original add column gis_main text null")
+
+    logger("5.5.0", "create", {"index": "idx_files_original_gis"})
+    con.execute("create index if not exists idx_files_original_gis on files_original (gis_main)")
+
+    logger("5.5.0", "create", {"index": "idx_files_original_processed"})
+    con.execute("create index if not exists idx_files_original_processed on files_original (processed)")
+
+    logger("5.5.0", "create", {"index": "idx_files_master_processed"})
+    con.execute("create index if not exists idx_files_master_processed on files_master (processed)")
+
+    return set_db_version(con, Version("5.5.0"))
+
+
 def get_upgrade_function(
     current_version: Version,
     latest_version: Version,
@@ -430,6 +450,8 @@ def get_upgrade_function(
         return upgrade_5_4_7to5_4_9
     elif current_version < Version("5.4.11"):
         return upgrade_5_4_9to5_4_11
+    elif current_version < Version("5.5.0"):
+        return upgrade_5_4to5_5
     elif current_version < latest_version:
         return lambda c, _, __: set_db_version(c, Version(__version__))
     else:
@@ -461,7 +483,7 @@ def is_latest(connection: Connection, *, raise_on_difference: bool = False) -> b
     return current_version == latest_version
 
 
-def upgrade(connection: Connection, files_root: str | PathLike[str], logger: UpgradeLogger | None):
+def upgrade(connection: Connection, files_root: str | Path, logger: UpgradeLogger | None):
     """
     Upgrade a database to the latest version of acacore.
 

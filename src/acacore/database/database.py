@@ -2,13 +2,13 @@ from collections.abc import Generator
 from collections.abc import Iterable
 from collections.abc import Mapping
 from collections.abc import Sequence
-from os import PathLike
 from pathlib import Path
 from sqlite3 import Connection
 from sqlite3 import Cursor as SQLiteCursor
 from sqlite3 import OperationalError
 from sqlite3 import ProgrammingError
 from types import TracebackType
+from typing import Literal
 from typing import overload
 from typing import Self
 
@@ -23,6 +23,7 @@ from .table_keyvalue import KeysTable
 from .table_view import View
 
 _P = Sequence[SQLValue] | Mapping[str, SQLValue]
+TIsolationLevel = Literal["DEFERRED", "EXCLUSIVE", "IMMEDIATE"]
 
 
 def _file_processes(path: Path) -> Generator[Process, None, None]:
@@ -50,11 +51,11 @@ class Database:
 
     def __init__(
         self,
-        path: str | PathLike[str],
+        path: str | Path,
         *,
         timeout: float = 5.0,
         detect_types: int = 0,
-        isolation_level: str | None = "DEFERRED",
+        isolation_level: TIsolationLevel | None = "DEFERRED",
         check_same_thread: bool = True,
         cached_statements: int = 100,
         readonly: bool = False,

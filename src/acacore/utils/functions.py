@@ -1,9 +1,11 @@
 from collections.abc import Callable
 from collections.abc import Generator
 from hashlib import sha256
+from os import stat
 from pathlib import Path
 from re import match
 
+from chardet import DetectionDict
 from chardet import UniversalDetector
 from imagesize import get as get_image_size
 from PIL import Image
@@ -25,23 +27,28 @@ def or_none[T, R](func: Callable[[T], R]) -> Callable[[T], R | None]:
     return lambda x: None if x is None else func(x)
 
 
-def rm_tree(path: Path):
+def rm_tree(path: str | Path):
     """
     Remove a directory and all the files and other folders it contains.
 
     :param path: The path to the directory.
     """
+    path: Path = Path(path)
+
     if not path.is_dir():
         path.unlink(missing_ok=True)
         return
 
     for item in path.iterdir():
-        rm_tree(item) if item.is_dir() else item.unlink(missing_ok=True)
+        if item.is_dir():
+            rm_tree(item)
+        else:
+            item.unlink(missing_ok=True)
 
     path.rmdir()
 
 
-def find_files(path: Path, exclude: list[Path] | None = None) -> Generator[Path, None, None]:
+def find_files(path: str | Path, exclude: list[str | Path] | None = None) -> Generator[Path, None, None]:
     """
     Find files in the specified root directories, excluding any files or directories included in the `exclude` list.
 
@@ -51,10 +58,11 @@ def find_files(path: Path, exclude: list[Path] | None = None) -> Generator[Path,
     :param exclude: A list of files or directories to exclude from the search, defaults to None.
     :return: A generator that yields paths of found files.
     """
+    path: Path = Path(path)
+    exclude: list[Path] | None = [p_ for p in exclude if (p_ := Path(p)).is_relative_to(path)] if exclude else None
+
     if exclude and path in exclude:
         return
-    elif exclude:
-        exclude = [p for p in exclude if p.is_relative_to(path)] or None
 
     if path.is_file():
         yield path
@@ -62,7 +70,7 @@ def find_files(path: Path, exclude: list[Path] | None = None) -> Generator[Path,
         yield from (f for i in sorted(path.iterdir()) for f in find_files(i, exclude=exclude))
 
 
-def file_checksum(path: Path, encoding: bool | str = False) -> tuple[str, dict | None]:
+def file_checksum(path: str | Path, encoding: bool | str = False) -> tuple[str, DetectionDict | None]:
     """
     Calculate the checksum of a file using the SHA256 hash algorithm.
 
@@ -73,7 +81,7 @@ def file_checksum(path: Path, encoding: bool | str = False) -> tuple[str, dict |
     """
     file_hash = sha256()
     detector = UniversalDetector()
-    with path.open("rb") as f:
+    with open(path, "rb") as f:
         chunk = f.read(2**20)
         while chunk:
             file_hash.update(chunk)
@@ -81,16 +89,16 @@ def file_checksum(path: Path, encoding: bool | str = False) -> tuple[str, dict |
                 detector.feed(chunk)
             chunk = f.read(2**20)
     detector.close()
-    encoding_str: str | None = (
+    encoding_result: DetectionDict | None = (
         None
         if encoding is False
-        else encoding
+        else DetectionDict(encoding=encoding, confidence=1.0, language=None, mime_type=None)
         if isinstance(encoding, str)
         else enc
         if (enc := detector.result).get("encoding")
         else None
     )
-    return file_hash.hexdigest(), encoding_str
+    return file_hash.hexdigest(), encoding_result
 
 
 def is_valid_suffix(suffix: str) -> bool:
@@ -103,7 +111,7 @@ def is_valid_suffix(suffix: str) -> bool:
     return match(r"^\.[a-zA-Z0-9]+$", suffix) is not None
 
 
-def is_binary(path: Path, chunk_size: int = 1024):
+def is_binary(path: str | Path, chunk_size: int = 1024):
     """
     Check if a file is a binary or plain text.
 
@@ -111,11 +119,11 @@ def is_binary(path: Path, chunk_size: int = 1024):
     :param chunk_size: The size of the chunk to be read from the file in bytes, defaults to 1024.
     :return: True if the file is binary, False if it is not.
     """
-    with path.open("rb") as f:
+    with open(path, "rb") as f:
         return bool(f.read(chunk_size).translate(None, _text_bytes))
 
 
-def get_bof(path: Path, chunk_size: int = 1024) -> bytes:
+def get_bof(path: str | Path, chunk_size: int = 1024) -> bytes:
     """
     Get the beginning chunk of a file in bytes.
 
@@ -123,11 +131,11 @@ def get_bof(path: Path, chunk_size: int = 1024) -> bytes:
     :param chunk_size: The size of each chunk to read from the file, defaults to 1024.
     :return: The contents of the first chunk of the file as a bytes object.
     """
-    with path.open("rb") as f:
+    with open(path, "rb") as f:
         return f.read(chunk_size)
 
 
-def get_eof(path: Path, chunk_size: int = 1024) -> bytes:
+def get_eof(path: str | Path, chunk_size: int = 1024) -> bytes:
     """
     Get the ending chunk of a file in bytes.
 
@@ -135,13 +143,13 @@ def get_eof(path: Path, chunk_size: int = 1024) -> bytes:
     :param chunk_size: The size of each chunk to read from the file, defaults to 1024.
     :return: The contents of the last chunk of the file as a bytes object.
     """
-    with path.open("rb") as f:
-        file_size: int = path.stat().st_size
+    with open(path, "rb") as f:
+        file_size: int = stat(path).st_size
         f.seek(0 if chunk_size > file_size else (file_size - chunk_size))
         return f.read(chunk_size)
 
 
-def image_size(path: Path) -> tuple[int, int]:
+def image_size(path: str | Path) -> tuple[int, int]:
     """
     Calculate the size of an image.
 

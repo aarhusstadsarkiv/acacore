@@ -1,7 +1,7 @@
 import re
 from functools import reduce
 from math import ceil
-from os import PathLike
+from os import stat
 from pathlib import Path
 from typing import Literal
 from typing import NotRequired
@@ -195,13 +195,13 @@ class BaseFile(BaseModel):
     @classmethod
     def from_file(
         cls,
-        path: str | PathLike[str],
-        root: str | PathLike[str],
+        path: str | Path,
+        root: str | Path,
         options: OptionsBaseFile,
         siegfried: Siegfried | SiegfriedFile | None = None,
         uuid: UUID | None = None,
         encoding: bool | str | None = None,
-    ) -> Self:
+    ) -> "BaseFile":
         """
         Create a file object from a given path.
 
@@ -218,19 +218,19 @@ class BaseFile(BaseModel):
         path = Path(path)
         root = Path(root)
         file = BaseFile(
-            root=root,
-            relative_path=path.relative_to(root) if root else path,
+            root=Path(root),
+            relative_path=Path(path).relative_to(root) if root else Path(path),
             uuid=uuid or uuid4(),
             checksum="",
             encoding=None,
             is_binary=is_binary(path),
-            size=path.stat().st_size,
+            size=stat(path).st_size,
             puid=None,
             signature=None,
             warning=None,
         )
         file.checksum, file.encoding = file_checksum(
-            path,
+            Path(path),
             encoding=False if file.size == 0 else encoding if isinstance(encoding, bool | str) else not file.is_binary,
         )
 
@@ -410,6 +410,7 @@ class OriginalFile(BaseFile):
     parent: UUID4 | None = None
     processed: bool = False
     lock: bool = False
+    gis_main: UUID4 | None = None
     original_path: Path
 
     @property
@@ -427,13 +428,13 @@ class OriginalFile(BaseFile):
     @classmethod
     def from_file(
         cls,
-        path: str | PathLike[str],
-        root: str | PathLike[str],
+        path: str | Path,
+        root: str | Path,
         options: OptionsOriginalFile,
         siegfried: Siegfried | SiegfriedFile | None = None,
         uuid: UUID | None = None,
         encoding: bool | str | None = None,
-    ) -> Self:
+    ) -> "OriginalFile":
         """
         Create a file object from a given path.
 
@@ -512,7 +513,7 @@ class OriginalFile(BaseFile):
                     chunk_size=action.reidentify.chunk_size,
                     set_match=True,
                 ):
-                    if new_action := self.get_action(actions, file_classes):
+                    if new_action := self.get_action(actions or {}, file_classes):
                         action = new_action
                     else:
                         action = Action(
@@ -557,7 +558,7 @@ class OriginalFile(BaseFile):
         :param set_match: Set the matched action if ``True``, defaults to ``False``.
         :return: The matched ``Action`` object, if any, otherwise ``None``.
         """
-        action: Action | None = get_identifier(self, file_classes, actions)
+        action: Action | None = get_identifier(self, file_classes or [], actions)
         from_alternative: bool = False
 
         if action and action.alternatives and (new_puid := action.alternatives.get(self.suffixes.lower(), None)):
@@ -596,13 +597,13 @@ class ConvertedFile(BaseFile):
     @classmethod
     def from_file(
         cls,
-        path: str | PathLike[str],
-        root: str | PathLike[str],
+        path: str | Path,
+        root: str | Path,
         options: OptionsConvertedFile,
         siegfried: Siegfried | SiegfriedFile | None = None,
         uuid: UUID | None = None,
         encoding: bool | str | None = None,
-    ) -> Self:
+    ) -> "ConvertedFile":
         """
         Create a file object from a given path.
 
@@ -653,13 +654,13 @@ class MasterFile(ConvertedFile):
     @classmethod
     def from_file(
         cls,
-        path: str | PathLike[str],
-        root: str | PathLike[str],
+        path: str | Path,
+        root: str | Path,
         options: OptionsMasterFile,
         siegfried: Siegfried | SiegfriedFile | None = None,
         uuid: UUID | None = None,
         encoding: bool | str | None = None,
-    ) -> Self:
+    ) -> "MasterFile":
         """
         Create a file object from a given path.
 
@@ -743,7 +744,7 @@ class MasterFile(ConvertedFile):
         :param set_match: Set the matched action if ``True``, defaults to ``False``.
         :return: The matched ``Action`` object, if any, otherwise ``None``.
         """
-        action: MasterConvertAction | None = get_identifier(self, file_classes, actions)
+        action: MasterConvertAction | None = get_identifier(self, file_classes or [], actions)
 
         if set_match and action:
             if target in ("access", "all"):
@@ -793,13 +794,13 @@ class StatutoryFile(ConvertedFile):
     @classmethod
     def from_file(
         cls,
-        path: str | PathLike[str],
-        root: str | PathLike[str],
+        path: str | Path,
+        root: str | Path,
         options: OptionsStatutoryFile,
         siegfried: Siegfried | SiegfriedFile | None = None,
         uuid: UUID | None = None,
         encoding: bool | str | None = None,
-    ) -> Self:
+    ) -> "StatutoryFile":
         """
         Create a file object from a given path.
 

@@ -287,6 +287,6 @@ def test_upgrade(test_folder: Path, temp_folder: Path):
     with FilesDB(database_file_copy, check_version=False) as db:
         assert db.version() < Version(__version__)
 
-        db.upgrade(test_folder)
+        db.upgrade(test_folder, lambda *x: print(*x))  # noqa: PLW0108
 
         assert db.version() == Version(__version__)
