@@ -16,6 +16,7 @@ from acacore.models.reference_files import TActionType
 from .database import Database
 from .database import KeysTable
 from .database import Table
+from .database import TIsolationLevel
 from .database import View
 from .upgrade import is_latest
 from .upgrade import upgrade
@@ -66,7 +67,7 @@ class FilesDB(Database):
         *,
         timeout: float = 5.0,
         detect_types: int = 0,
-        isolation_level: str | None = "DEFERRED",
+        isolation_level: TIsolationLevel | None = "DEFERRED",
         check_same_thread: bool = True,
         check_initialisation: bool = False,
         check_version: bool = True,

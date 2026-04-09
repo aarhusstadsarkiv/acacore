@@ -23,6 +23,7 @@ from .table_keyvalue import KeysTable
 from .table_view import View
 
 _P = Sequence[SQLValue] | Mapping[str, SQLValue]
+TIsolationLevel = Literal["DEFERRED", "EXCLUSIVE", "IMMEDIATE"]
 
 
 def _file_processes(path: Path) -> Generator[Process, None, None]:
@@ -54,7 +55,7 @@ class Database:
         *,
         timeout: float = 5.0,
         detect_types: int = 0,
-        isolation_level: Literal["DEFERRED", "EXCLUSIVE", "IMMEDIATE"] | None = "DEFERRED",
+        isolation_level: TIsolationLevel | None = "DEFERRED",
         check_same_thread: bool = True,
         cached_statements: int = 100,
         readonly: bool = False,
