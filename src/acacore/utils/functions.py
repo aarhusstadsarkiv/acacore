@@ -69,7 +69,7 @@ def find_files(path: Path, exclude: list[Path] | None = None) -> Generator[Path,
         yield from (f for i in sorted(path.iterdir()) for f in find_files(i, exclude=exclude))
 
 
-def file_checksum(path: Path, encoding: bool | str = False) -> tuple[str, DetectionDict | None]:
+def file_checksum(path: str | Path, encoding: bool | str = False) -> tuple[str, DetectionDict | None]:
     """
     Calculate the checksum of a file using the SHA256 hash algorithm.
 
@@ -80,7 +80,7 @@ def file_checksum(path: Path, encoding: bool | str = False) -> tuple[str, Detect
     """
     file_hash = sha256()
     detector = UniversalDetector()
-    with path.open("rb") as f:
+    with open(path, "rb") as f:
         chunk = f.read(2**20)
         while chunk:
             file_hash.update(chunk)
