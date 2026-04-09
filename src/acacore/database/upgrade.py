@@ -412,6 +412,24 @@ def upgrade_5_4_9to5_4_11(con: Connection, _root: Path, logger: UpgradeLogger) -
     return set_db_version(con, Version("5.4.11"))
 
 
+# noinspection SqlResolve
+def upgrade_5_4to5_5(con: Connection, _root: Path, logger: UpgradeLogger) -> Version:
+    logger("5.5.0", "alter", {"table": "files_original", "add": "gis_main"})
+    if "gis_main" not in table_columns(con, "files_original"):
+        con.execute("alter table files_original add column gis_main text null")
+
+    logger("5.5.0", "create", {"index": "gis", "table": "files_original", "columns": ["gis_main"]})
+    con.execute("create index if not exists idx_files_original_gis on files_original (gis_main)")
+
+    logger("5.5.0", "create", {"index": "gis", "table": "files_original", "columns": ["processed"]})
+    con.execute("create index if not exists idx_files_original_processed on files_original (processed)")
+
+    logger("5.5.0", "create", {"index": "gis", "table": "files_master", "columns": ["processed"]})
+    con.execute("create index if not exists idx_files_master_processed on files_master (processed)")
+
+    return set_db_version(con, Version("5.5.0"))
+
+
 def get_upgrade_function(
     current_version: Version,
     latest_version: Version,
@@ -432,6 +450,8 @@ def get_upgrade_function(
         return upgrade_5_4_7to5_4_9
     elif current_version < Version("5.4.11"):
         return upgrade_5_4_9to5_4_11
+    elif current_version < Version("5.5.0"):
+        return upgrade_5_4to5_5
     elif current_version < latest_version:
         return lambda c, _, __: set_db_version(c, Version(__version__))
     else:
