@@ -110,6 +110,7 @@ class FilesDB(Database):
                 "checksum": ["checksum"],
                 "action": ["action"],
                 "parent": ["parent"],
+                "gis": ["gis_main"],
             },
             ["root"],
         )
