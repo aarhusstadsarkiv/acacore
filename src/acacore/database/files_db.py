@@ -1,4 +1,3 @@
-from os import PathLike
 from pathlib import Path
 from sqlite3 import DatabaseError
 from typing import Union
@@ -63,7 +62,7 @@ class FilesDB(Database):
 
     def __init__(
         self,
-        path: str | PathLike[str],
+        path: str | Path,
         *,
         timeout: float = 5.0,
         detect_types: int = 0,
@@ -211,7 +210,7 @@ class FilesDB(Database):
         if check_version and self.is_initialised():
             is_latest(self.connection, raise_on_difference=True)
 
-    def upgrade(self, files_root: str | PathLike[str], logger: UpgradeLogger | None = None):
+    def upgrade(self, files_root: str | Path, logger: UpgradeLogger | None = None):
         """
         Upgrade the database to the latest version.
 
@@ -231,7 +230,9 @@ class FilesDB(Database):
 
         :return: ``True`` if the database is initialised, ``False`` otherwise.
         """
-        return self.metadata.name in self.tables() and self.metadata.get("version")
+        if self.metadata.name in self.tables():
+            return self.metadata.get("version") is not None
+        return False
 
     def version(self) -> Version:
         """
@@ -240,12 +241,14 @@ class FilesDB(Database):
         :return: The database version as a ``Version`` object.
         :raise DatabaseError: If the database is not initialized.
         """
-        if self.is_initialised():
-            return Version(self.metadata.get("version"))
+        if self.metadata.name in self.tables() and (version := self.metadata.get("version")):
+            # noinspection PyTypeChecker
+            # "version" field is either str or None and the "if" checks for None
+            return Version(version)
         raise DatabaseError("Not initialised")
 
     # noinspection DuplicatedCode
-    def init(self: Union[str, PathLike[str], "FilesDB"]) -> "FilesDB":
+    def init(self: Union[str, Path, "FilesDB"]) -> "FilesDB":
         """
         Initialize the database with all the necessary tables and views.
 

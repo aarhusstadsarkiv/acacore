@@ -2,13 +2,13 @@ from collections.abc import Callable
 from itertools import batched
 from json import dumps
 from json import loads
-from os import PathLike
 from pathlib import Path
 from sqlite3 import Connection
 from sqlite3 import DatabaseError
 from sqlite3 import OperationalError
 from typing import Any
 
+from chardet import DetectionDict
 from packaging.version import InvalidVersion
 from packaging.version import Version
 
@@ -25,12 +25,14 @@ UpgradeLogger = Callable[[Version | str, str, str | dict[str, Any] | None], None
 
 
 # noinspection SqlResolve
-def get_db_version(conn: Connection) -> Version | None:
+def get_db_version(conn: Connection) -> Version:
     try:
-        cur = conn.execute("select VALUE from Metadata where KEY like 'version'").fetchone()
-        return Version(loads(cur[0])) if cur else None
-    except (OperationalError, ValueError, InvalidVersion):
-        return None
+        row = conn.execute("select VALUE from Metadata where KEY like 'version'").fetchone()
+        if not row:
+            raise DatabaseError("Cannot find version in database.")
+        return Version(loads(row[0]))
+    except (OperationalError, ValueError, InvalidVersion) as err:
+        raise DatabaseError("Cannot find version in database.", *err.args)
 
 
 def set_db_version(conn: Connection, version: Version) -> Version:
@@ -173,7 +175,7 @@ def upgrade_5_1to5_2(con: Connection, root: Path, logger: UpgradeLogger) -> Vers
     if "encoding" not in table_columns(con, "files_statutory"):
         con.execute("alter table files_statutory add column encoding text")
 
-    def _encoding(path: str | PathLike[str]) -> dict | None:
+    def _encoding(path: str | Path) -> DetectionDict | None:
         detector = UniversalDetector()
         with open(path, "rb") as f:
             while chunk := f.read(2**20):
@@ -461,7 +463,7 @@ def is_latest(connection: Connection, *, raise_on_difference: bool = False) -> b
     return current_version == latest_version
 
 
-def upgrade(connection: Connection, files_root: str | PathLike[str], logger: UpgradeLogger | None):
+def upgrade(connection: Connection, files_root: str | Path, logger: UpgradeLogger | None):
     """
     Upgrade a database to the latest version of acacore.
 

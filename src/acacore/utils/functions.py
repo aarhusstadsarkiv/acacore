@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from collections.abc import Generator
 from hashlib import sha256
+from os import stat
 from pathlib import Path
 from re import match
 
@@ -26,18 +27,23 @@ def or_none[T, R](func: Callable[[T], R]) -> Callable[[T], R | None]:
     return lambda x: None if x is None else func(x)
 
 
-def rm_tree(path: Path):
+def rm_tree(path: str | Path):
     """
     Remove a directory and all the files and other folders it contains.
 
     :param path: The path to the directory.
     """
+    path: Path = Path(path)
+
     if not path.is_dir():
         path.unlink(missing_ok=True)
         return
 
     for item in path.iterdir():
-        rm_tree(item) if item.is_dir() else item.unlink(missing_ok=True)
+        if item.is_dir():
+            rm_tree(item)
+        else:
+            item.unlink(missing_ok=True)
 
     path.rmdir()
 
@@ -104,7 +110,7 @@ def is_valid_suffix(suffix: str) -> bool:
     return match(r"^\.[a-zA-Z0-9]+$", suffix) is not None
 
 
-def is_binary(path: Path, chunk_size: int = 1024):
+def is_binary(path: str | Path, chunk_size: int = 1024):
     """
     Check if a file is a binary or plain text.
 
@@ -112,11 +118,11 @@ def is_binary(path: Path, chunk_size: int = 1024):
     :param chunk_size: The size of the chunk to be read from the file in bytes, defaults to 1024.
     :return: True if the file is binary, False if it is not.
     """
-    with path.open("rb") as f:
+    with open(path, "rb") as f:
         return bool(f.read(chunk_size).translate(None, _text_bytes))
 
 
-def get_bof(path: Path, chunk_size: int = 1024) -> bytes:
+def get_bof(path: str | Path, chunk_size: int = 1024) -> bytes:
     """
     Get the beginning chunk of a file in bytes.
 
@@ -124,11 +130,11 @@ def get_bof(path: Path, chunk_size: int = 1024) -> bytes:
     :param chunk_size: The size of each chunk to read from the file, defaults to 1024.
     :return: The contents of the first chunk of the file as a bytes object.
     """
-    with path.open("rb") as f:
+    with open(path, "rb") as f:
         return f.read(chunk_size)
 
 
-def get_eof(path: Path, chunk_size: int = 1024) -> bytes:
+def get_eof(path: str | Path, chunk_size: int = 1024) -> bytes:
     """
     Get the ending chunk of a file in bytes.
 
@@ -136,13 +142,13 @@ def get_eof(path: Path, chunk_size: int = 1024) -> bytes:
     :param chunk_size: The size of each chunk to read from the file, defaults to 1024.
     :return: The contents of the last chunk of the file as a bytes object.
     """
-    with path.open("rb") as f:
-        file_size: int = path.stat().st_size
+    with open(path, "rb") as f:
+        file_size: int = stat(path).st_size
         f.seek(0 if chunk_size > file_size else (file_size - chunk_size))
         return f.read(chunk_size)
 
 
-def image_size(path: Path) -> tuple[int, int]:
+def image_size(path: str | Path) -> tuple[int, int]:
     """
     Calculate the size of an image.
 
