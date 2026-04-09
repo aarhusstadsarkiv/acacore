@@ -418,13 +418,13 @@ def upgrade_5_4to5_5(con: Connection, _root: Path, logger: UpgradeLogger) -> Ver
     if "gis_main" not in table_columns(con, "files_original"):
         con.execute("alter table files_original add column gis_main text null")
 
-    logger("5.5.0", "create", {"index": "gis", "table": "files_original", "columns": ["gis_main"]})
+    logger("5.5.0", "create", {"index": "idx_files_original_gis"})
     con.execute("create index if not exists idx_files_original_gis on files_original (gis_main)")
 
-    logger("5.5.0", "create", {"index": "gis", "table": "files_original", "columns": ["processed"]})
+    logger("5.5.0", "create", {"index": "idx_files_original_processed"})
     con.execute("create index if not exists idx_files_original_processed on files_original (processed)")
 
-    logger("5.5.0", "create", {"index": "gis", "table": "files_master", "columns": ["processed"]})
+    logger("5.5.0", "create", {"index": "idx_files_master_processed"})
     con.execute("create index if not exists idx_files_master_processed on files_master (processed)")
 
     return set_db_version(con, Version("5.5.0"))
