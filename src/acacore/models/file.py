@@ -1,6 +1,7 @@
 import re
 from functools import reduce
 from math import ceil
+from os import stat
 from pathlib import Path
 from typing import Literal
 from typing import NotRequired
@@ -223,7 +224,7 @@ class BaseFile(BaseModel):
             checksum="",
             encoding=None,
             is_binary=is_binary(path),
-            size=path.stat().st_size,
+            size=stat(path).st_size,
             puid=None,
             signature=None,
             warning=None,
@@ -556,7 +557,7 @@ class OriginalFile(BaseFile):
         :param set_match: Set the matched action if ``True``, defaults to ``False``.
         :return: The matched ``Action`` object, if any, otherwise ``None``.
         """
-        action: Action | None = get_identifier(self, file_classes, actions)
+        action: Action | None = get_identifier(self, file_classes or [], actions)
         from_alternative: bool = False
 
         if action and action.alternatives and (new_puid := action.alternatives.get(self.suffixes.lower(), None)):
