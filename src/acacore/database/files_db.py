@@ -111,6 +111,7 @@ class FilesDB(Database):
                 "action": ["action"],
                 "parent": ["parent"],
                 "gis": ["gis_main"],
+                "processed": ["processed"],
             },
             ["root"],
         )
@@ -123,6 +124,7 @@ class FilesDB(Database):
                 "uuid": ["uuid"],
                 "checksum": ["checksum"],
                 "original_uuid": ["original_uuid"],
+                "processed": ["processed"],
             },
             ["root"],
         )
