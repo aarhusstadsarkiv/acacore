@@ -48,7 +48,7 @@ def rm_tree(path: str | Path):
     path.rmdir()
 
 
-def find_files(path: Path, exclude: list[Path] | None = None) -> Generator[Path, None, None]:
+def find_files(path: str | Path, exclude: list[str | Path] | None = None) -> Generator[Path, None, None]:
     """
     Find files in the specified root directories, excluding any files or directories included in the `exclude` list.
 
@@ -58,10 +58,11 @@ def find_files(path: Path, exclude: list[Path] | None = None) -> Generator[Path,
     :param exclude: A list of files or directories to exclude from the search, defaults to None.
     :return: A generator that yields paths of found files.
     """
+    path: Path = Path(path)
+    exclude: list[Path] | None = [p_ for p in exclude if (p_ := Path(p)).is_relative_to(path)] if exclude else None
+
     if exclude and path in exclude:
         return
-    elif exclude:
-        exclude = [p for p in exclude if p.is_relative_to(path)] or None
 
     if path.is_file():
         yield path
