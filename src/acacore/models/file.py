@@ -21,11 +21,11 @@ from acacore.siegfried.siegfried import SIEGFRIED_FILE_CLASS_PRIORITY
 from acacore.siegfried.siegfried import SiegfriedFile
 from acacore.siegfried.siegfried import TSiegfriedFileClass
 from acacore.utils.functions import file_checksum
+from acacore.utils.functions import file_suffixes
 from acacore.utils.functions import get_bof
 from acacore.utils.functions import get_eof
 from acacore.utils.functions import image_size
 from acacore.utils.functions import is_binary
-from acacore.utils.functions import is_valid_suffix
 
 from .reference_files import Action
 from .reference_files import ActionData
@@ -380,13 +380,7 @@ class BaseFile(BaseModel):
 
         :return: All the file extensions as a string.
         """
-        suffixes: list[str] = []
-        for suffix in self.relative_path.suffixes[::-1]:
-            if is_valid_suffix(suffix):
-                suffixes.insert(0, suffix)
-            else:
-                break
-        return "".join(suffixes)
+        return file_suffixes(self.relative_path)
 
     @suffixes.setter
     def suffixes(self, new_suffixes: str):

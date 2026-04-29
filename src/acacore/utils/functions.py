@@ -101,6 +101,21 @@ def file_checksum(path: str | Path, encoding: bool | str = False) -> tuple[str, 
     return file_hash.hexdigest(), encoding_result
 
 
+def file_suffixes(path: str | Path) -> str:
+    """
+    Get all valid suffixes from a path.
+
+    :return: All valid suffixes as a string.
+    """
+    suffixes: list[str] = []
+    for suffix in Path(path).suffixes[::-1]:
+        if is_valid_suffix(suffix):
+            suffixes.insert(0, suffix)
+        else:
+            break
+    return "".join(suffixes)
+
+
 def is_valid_suffix(suffix: str) -> bool:
     r"""
     Check if a file suffix is valid (matches \.[a-zA-Z0-9]+).
