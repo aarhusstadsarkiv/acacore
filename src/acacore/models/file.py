@@ -286,9 +286,10 @@ class BaseFile(BaseModel):
         signature_length: int = 0
 
         for sig in custom_signatures:
-            if (match_length := sig.match(bof, eof)) > signature_length:
+            extension_match, byte_match = sig.match(bof, eof, self.suffix)
+            if extension_match and byte_match > signature_length:
                 signature = sig
-                signature_length = match_length
+                signature_length = byte_match
 
         if set_match and signature:
             self.puid = signature.puid

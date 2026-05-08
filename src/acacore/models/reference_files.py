@@ -55,6 +55,7 @@ class CustomSignature(BaseModel):
     eof: str | None = None
     operator: Literal["AND", "OR"] | None = None
     extension: list[str] | None = None
+    extension_required: bool = False
 
     @field_validator("extension", mode="before")
     @classmethod
@@ -67,9 +68,27 @@ class CustomSignature(BaseModel):
             raise ValueError("One of bof or eof must be set.")
         if self.bof and self.eof and not self.operator:
             raise ValueError("Operator must be set if both bof and eof are set.")
+        if self.extension_required and not self.extension:
+            raise ValueError("Extension must be set if required.")
+        if self.extension and any(not search(r"^(\.\w+)+$", e) for e in self.extension):
+            raise ValueError("Extension must be in the format (\\.\\w+)+.")
         return self
 
-    def match(self, bof: str | None, eof: str | None) -> int:
+    def match(self, bof: str | None, eof: str | None, suffix: str) -> tuple[bool, int]:
+        if not (extension_match := self.match_extension(suffix)):
+            return False, 0
+        elif not (byte_match := self.match_bof_eof(bof, eof)):
+            return extension_match, 0
+
+        return extension_match, byte_match
+
+    def match_extension(self, suffix: str) -> bool:
+        if not self.extension_required or not self.extension:
+            return True
+
+        return suffix.lower() in self.extension
+
+    def match_bof_eof(self, bof: str | None, eof: str | None) -> int:
         if not bof and not eof:
             return 0
         elif self.bof and self.eof:
