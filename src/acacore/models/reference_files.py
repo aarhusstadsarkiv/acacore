@@ -47,6 +47,7 @@ class CustomSignature(BaseModel):
     :param puid: The PUID (PRONOM Unique Identifier) associated with the signature.
     :param signature: The long name of the signature.
     :param extension: The file extension associated with the signature.
+    :param extension_required: Whether the extension must match for the signature to be valid.
     :param bytes: The length of the BOF/EOF to be used for matching.
     """
 
