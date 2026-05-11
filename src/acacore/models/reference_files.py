@@ -101,10 +101,10 @@ class CustomSignature(BaseModel):
         match_bof: str | None = bof
         match_eof: str | None = eof
 
-        if self.bof and (not match_bof or len(match_bof) < (self.bytes or 0)):
+        if self.bof and (not match_bof or len(match_bof) < (self.bytes or 0) * 2):
             match_bof = get_bof(path, self.bytes or default_chunk_size).hex()
 
-        if self.eof and (not match_eof or len(match_eof) < (self.bytes or 0)):
+        if self.eof and (not match_eof or len(match_eof) < (self.bytes or 0) * 2):
             match_eof = get_eof(path, self.bytes or default_chunk_size).hex()
 
         return self.match(match_bof, match_eof, Path(path).suffix)
