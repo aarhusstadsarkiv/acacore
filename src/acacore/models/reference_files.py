@@ -145,6 +145,8 @@ class CustomSignature(BaseModel):
         :param eof: The EOF bytes as a hexadecimal string, or ``None``.
         :returns: The length of the match in bytes.
         """
+        match_length: int = 0
+
         if not bof and not eof:
             return 0
         elif self.bof and self.eof:
@@ -156,17 +158,17 @@ class CustomSignature(BaseModel):
             match_eof: Match[str] | None = search(self.eof, eof or "")
 
             if match_bof and match_eof:
-                return (match_bof.end() - match_bof.start()) + (match_eof.end() - match_eof.start())
+                match_length = (match_bof.end() - match_bof.start()) + (match_eof.end() - match_eof.start())
             elif self.operator == "OR" and match_bof:
-                return match_bof.end() - match_bof.start()
+                match_length = match_bof.end() - match_bof.start()
             elif self.operator == "OR" and match_eof:
-                return match_eof.end() - match_eof.start()
+                match_length = match_eof.end() - match_eof.start()
         elif self.bof and (match_bof := search(self.bof, bof or "")):
-            return match_bof.end() - match_bof.start()
+            match_length = match_bof.end() - match_bof.start()
         elif self.eof and (match_eof := search(self.eof, eof or "")):
-            return match_eof.end() - match_eof.start()
+            match_length = match_eof.end() - match_eof.start()
 
-        return 0
+        return match_length // 2
 
 
 class IgnoreIfAction(NoDefaultsModel):
