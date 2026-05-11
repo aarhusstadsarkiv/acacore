@@ -47,6 +47,7 @@ class CustomSignature(BaseModel):
     :param puid: The PUID (PRONOM Unique Identifier) associated with the signature.
     :param signature: The long name of the signature.
     :param extension: The file extension associated with the signature.
+    :param bytes: The length of the BOF/EOF to be used for matching.
     """
 
     puid: str
@@ -56,6 +57,7 @@ class CustomSignature(BaseModel):
     operator: Literal["AND", "OR"] | None = None
     extension: list[str] | None = None
     extension_required: bool = False
+    bytes: int | None = Field(ge=1)
 
     @field_validator("extension", mode="before")
     @classmethod
