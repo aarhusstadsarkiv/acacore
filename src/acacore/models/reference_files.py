@@ -81,15 +81,21 @@ class CustomSignature(BaseModel):
             raise ValueError("Extension must be in the format (\\.\\w+)+.")
         return self
 
-    def match_file(self, path: str | Path, bof: str | None, eof: str | None) -> tuple[bool, int]:
+    def match_file(
+        self,
+        path: str | Path,
+        bof: str | None = None,
+        eof: str | None = None,
+        default_chunk_size: int = 1024,
+    ) -> tuple[bool, int]:
         match_bof: str | None = bof
         match_eof: str | None = eof
 
-        if self.bytes and match_bof and len(match_bof) < self.bytes:
-            match_bof = get_bof(path, self.bytes).hex()
+        if self.bof and (not match_bof or len(match_bof) < (self.bytes or 0)):
+            match_bof = get_bof(path, self.bytes or default_chunk_size).hex()
 
-        if self.bytes and match_eof and len(match_eof) < self.bytes:
-            match_eof = get_eof(path, self.bytes).hex()
+        if self.eof and (not match_eof or len(match_eof) < (self.bytes or 0)):
+            match_eof = get_eof(path, self.bytes or default_chunk_size).hex()
 
         return self.match(match_bof, match_eof, Path(path).suffix)
 
