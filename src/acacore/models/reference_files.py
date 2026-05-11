@@ -1,3 +1,4 @@
+from pathlib import Path
 from re import Match
 from re import search
 from typing import Any
@@ -10,6 +11,9 @@ from pydantic import BaseModel
 from pydantic import Field
 from pydantic import field_validator
 from pydantic import model_validator
+
+from acacore.utils.functions import get_bof
+from acacore.utils.functions import get_eof
 
 from .base import NoDefaultsModel
 
@@ -76,6 +80,18 @@ class CustomSignature(BaseModel):
         if self.extension and any(not search(r"^(\.\w+)+$", e) for e in self.extension):
             raise ValueError("Extension must be in the format (\\.\\w+)+.")
         return self
+
+    def match_file(self, path: str | Path, bof: str | None, eof: str | None) -> tuple[bool, int]:
+        match_bof: str | None = bof
+        match_eof: str | None = eof
+
+        if self.bytes and match_bof and len(match_bof) < self.bytes:
+            match_bof = get_bof(path, self.bytes).hex()
+
+        if self.bytes and match_eof and len(match_eof) < self.bytes:
+            match_eof = get_eof(path, self.bytes).hex()
+
+        return self.match(match_bof, match_eof, Path(path).suffix)
 
     def match(self, bof: str | None, eof: str | None, suffix: str) -> tuple[bool, int]:
         if not (extension_match := self.match_extension(suffix)):
