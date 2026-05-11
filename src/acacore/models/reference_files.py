@@ -45,14 +45,14 @@ class CustomSignature(BaseModel):
     """
     Class representing a custom signature used for file identification.
 
-    :param bof: The hexadecimal regex pattern representing the beginning of the file.
-    :param eof: The hexadecimal regex pattern representing the end of the file.
-    :param operator: The operator used for combining the begging and end of file patterns.
-    :param puid: The PUID (PRONOM Unique Identifier) associated with the signature.
-    :param signature: The long name of the signature.
-    :param extension: The file extension associated with the signature.
-    :param extension_required: Whether the extension must match for the signature to be valid.
-    :param bytes: The length of the BOF/EOF to be used for matching.
+    :ivar bof: The hexadecimal regex pattern representing the beginning of the file.
+    :ivar eof: The hexadecimal regex pattern representing the end of the file.
+    :ivar operator: The operator used for combining the begging and end of file patterns.
+    :ivar puid: The PUID (PRONOM Unique Identifier) associated with the signature.
+    :ivar signature: The long name of the signature.
+    :ivar extension: The file extension associated with the signature.
+    :ivar extension_required: Whether the extension must match for the signature to be valid.
+    :ivar bytes: The length of the BOF/EOF to be used for matching.
     """
 
     puid: str
