@@ -87,7 +87,7 @@ class CustomSignature(BaseModel):
         bof: str | None = None,
         eof: str | None = None,
         default_chunk_size: int = 1024,
-    ) -> tuple[bool, int]:
+    ) -> tuple[str | None, str | None, bool, int]:
         """
         Match a file against the signature object.
 
@@ -96,7 +96,7 @@ class CustomSignature(BaseModel):
         :param eof: The EOF bytes as a hexadecimal string, or ``None`` to let the method extract it.
         :param default_chunk_size: The default number of bytes to use if the BOF or EOF are not given or not as long
             as specified by the ``bytes`` field.
-        :returns: A tuple containing the extension matching and the length of the BOF/EOF match in bytes.
+        :returns: A tuple containing the used BOF, EOF, extension matching result, and the length of the BOF/EOF match in bytes.
         """
         match_bof: str | None = bof
         match_eof: str | None = eof
@@ -107,7 +107,9 @@ class CustomSignature(BaseModel):
         if self.eof and (not match_eof or len(match_eof) < (self.bytes or 0) * 2):
             match_eof = get_eof(path, self.bytes or default_chunk_size).hex()
 
-        return self.match(match_bof, match_eof, Path(path).suffix)
+        extension_match, byte_match = self.match(match_bof, match_eof, Path(path).suffix)
+
+        return match_bof, match_eof, extension_match, byte_match
 
     def match(self, bof: str | None, eof: str | None, suffix: str) -> tuple[bool, int]:
         """
