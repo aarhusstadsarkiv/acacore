@@ -88,6 +88,16 @@ class CustomSignature(BaseModel):
         eof: str | None = None,
         default_chunk_size: int = 1024,
     ) -> tuple[bool, int]:
+        """
+        Match a file against the signature object.
+
+        :param path: The path to the file to check.
+        :param bof: The BOF bytes as a hexadecimal string, or ``None`` to let the method extract it.
+        :param eof: The EOF bytes as a hexadecimal string, or ``None`` to let the method extract it.
+        :param default_chunk_size: The default number of bytes to use if the BOF or EOF are not given or not as long
+            as specified by the ``bytes`` field.
+        :returns: A tuple containing the extension matching and the length of the BOF/EOF match in bytes.
+        """
         match_bof: str | None = bof
         match_eof: str | None = eof
 
@@ -100,6 +110,14 @@ class CustomSignature(BaseModel):
         return self.match(match_bof, match_eof, Path(path).suffix)
 
     def match(self, bof: str | None, eof: str | None, suffix: str) -> tuple[bool, int]:
+        """
+        Match the given BOF, EOF, and suffix against the patterns stored in the signature object.
+
+        :param bof: The BOF bytes, or ``None``.
+        :param eof: The EOF bytes, or ``None``.
+        :param suffix: The file's suffix.
+        :return: A tuple containing the extension matching and the length of the BOF/EOF match in bytes.
+        """
         if not (extension_match := self.match_extension(suffix)):
             return False, 0
         elif not (byte_match := self.match_bof_eof(bof, eof)):
@@ -108,12 +126,25 @@ class CustomSignature(BaseModel):
         return extension_match, byte_match
 
     def match_extension(self, suffix: str) -> bool:
+        """
+        Match the given suffix against the stored in ``extension``.
+
+        :param suffix: The suffix to match.
+        :returns: `True` if the suffix matches, `False` otherwise.
+        """
         if not self.extension_required or not self.extension:
             return True
 
         return suffix.lower() in self.extension
 
     def match_bof_eof(self, bof: str | None, eof: str | None) -> int:
+        """
+        Match the given BOF/EOF against the patterns stored in the signature object.
+
+        :param bof: The BOF bytes as a hexadecimal string, or ``None``.
+        :param eof: The EOF bytes as a hexadecimal string, or ``None``.
+        :returns: The length of the match in bytes.
+        """
         if not bof and not eof:
             return 0
         elif self.bof and self.eof:
