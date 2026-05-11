@@ -288,7 +288,7 @@ class BaseFile(BaseModel):
         signature_length: int = 0
 
         for sig in custom_signatures:
-            extension_match, byte_match = sig.match_file(path, bof, eof)
+            bof, eof, extension_match, byte_match = sig.match_file(path, bof, eof)
             if extension_match and byte_match > signature_length:
                 signature = sig
                 signature_length = byte_match
