@@ -280,13 +280,15 @@ class BaseFile(BaseModel):
         if self.size == 0:
             return None
 
-        bof = get_bof(self.get_absolute_path(self.root), chunk_size or 1024).hex()
-        eof = get_eof(self.get_absolute_path(self.root), chunk_size or 1024).hex()
+        path: Path = self.get_absolute_path(self.root)
+
+        bof = get_bof(path, chunk_size or 1024).hex()
+        eof = get_eof(path, chunk_size or 1024).hex()
         signature: CustomSignature | None = None
         signature_length: int = 0
 
         for sig in custom_signatures:
-            extension_match, byte_match = sig.match(bof, eof, self.suffix)
+            extension_match, byte_match = sig.match_file(path, bof, eof)
             if extension_match and byte_match > signature_length:
                 signature = sig
                 signature_length = byte_match
