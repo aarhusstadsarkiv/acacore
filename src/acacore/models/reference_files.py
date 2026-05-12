@@ -62,7 +62,7 @@ class CustomSignature(BaseModel):
     operator: Literal["AND", "OR"] | None = None
     extension: list[str] | None = None
     extension_required: bool = False
-    bytes: int | None = Field(ge=1)
+    bytes: int | None = Field(None, ge=1)
 
     @field_validator("extension", mode="before")
     @classmethod
