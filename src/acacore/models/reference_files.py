@@ -1,3 +1,4 @@
+from pathlib import Path
 from re import Match
 from re import search
 from typing import Any
@@ -10,6 +11,9 @@ from pydantic import BaseModel
 from pydantic import Field
 from pydantic import field_validator
 from pydantic import model_validator
+
+from acacore.utils.functions import get_bof
+from acacore.utils.functions import get_eof
 
 from .base import NoDefaultsModel
 
@@ -41,12 +45,14 @@ class CustomSignature(BaseModel):
     """
     Class representing a custom signature used for file identification.
 
-    :param bof: The hexadecimal regex pattern representing the beginning of the file.
-    :param eof: The hexadecimal regex pattern representing the end of the file.
-    :param operator: The operator used for combining the begging and end of file patterns.
-    :param puid: The PUID (PRONOM Unique Identifier) associated with the signature.
-    :param signature: The long name of the signature.
-    :param extension: The file extension associated with the signature.
+    :ivar bof: The hexadecimal regex pattern representing the beginning of the file.
+    :ivar eof: The hexadecimal regex pattern representing the end of the file.
+    :ivar operator: The operator used for combining the begging and end of file patterns.
+    :ivar puid: The PUID (PRONOM Unique Identifier) associated with the signature.
+    :ivar signature: The long name of the signature.
+    :ivar extension: The file extension associated with the signature.
+    :ivar extension_required: Whether the extension must match for the signature to be valid.
+    :ivar bytes: The length of the BOF/EOF to be used for matching.
     """
 
     puid: str
@@ -56,6 +62,7 @@ class CustomSignature(BaseModel):
     operator: Literal["AND", "OR"] | None = None
     extension: list[str] | None = None
     extension_required: bool = False
+    bytes: int | None = Field(None, ge=1)
 
     @field_validator("extension", mode="before")
     @classmethod
@@ -74,7 +81,45 @@ class CustomSignature(BaseModel):
             raise ValueError("Extension must be in the format (\\.\\w+)+.")
         return self
 
+    def match_file(
+        self,
+        path: str | Path,
+        bof: str | None = None,
+        eof: str | None = None,
+        default_chunk_size: int = 1024,
+    ) -> tuple[str | None, str | None, bool, int]:
+        """
+        Match a file against the signature object.
+
+        :param path: The path to the file to check.
+        :param bof: The BOF bytes as a hexadecimal string, or ``None`` to let the method extract it.
+        :param eof: The EOF bytes as a hexadecimal string, or ``None`` to let the method extract it.
+        :param default_chunk_size: The default number of bytes to use if the BOF or EOF are not given or not as long
+            as specified by the ``bytes`` field.
+        :returns: A tuple containing the used BOF, EOF, extension matching result, and the length of the BOF/EOF match in bytes.
+        """
+        match_bof: str | None = bof
+        match_eof: str | None = eof
+
+        if self.bof and (not match_bof or len(match_bof) < (self.bytes or 0) * 2):
+            match_bof = get_bof(path, self.bytes or default_chunk_size).hex()
+
+        if self.eof and (not match_eof or len(match_eof) < (self.bytes or 0) * 2):
+            match_eof = get_eof(path, self.bytes or default_chunk_size).hex()
+
+        extension_match, byte_match = self.match(match_bof, match_eof, Path(path).suffix)
+
+        return match_bof, match_eof, extension_match, byte_match
+
     def match(self, bof: str | None, eof: str | None, suffix: str) -> tuple[bool, int]:
+        """
+        Match the given BOF, EOF, and suffix against the patterns stored in the signature object.
+
+        :param bof: The BOF bytes, or ``None``.
+        :param eof: The EOF bytes, or ``None``.
+        :param suffix: The file's suffix.
+        :return: A tuple containing the extension matching and the length of the BOF/EOF match in bytes.
+        """
         if not (extension_match := self.match_extension(suffix)):
             return False, 0
         elif not (byte_match := self.match_bof_eof(bof, eof)):
@@ -83,12 +128,27 @@ class CustomSignature(BaseModel):
         return extension_match, byte_match
 
     def match_extension(self, suffix: str) -> bool:
+        """
+        Match the given suffix against the stored in ``extension``.
+
+        :param suffix: The suffix to match.
+        :returns: `True` if the suffix matches, `False` otherwise.
+        """
         if not self.extension_required or not self.extension:
             return True
 
         return suffix.lower() in self.extension
 
     def match_bof_eof(self, bof: str | None, eof: str | None) -> int:
+        """
+        Match the given BOF/EOF against the patterns stored in the signature object.
+
+        :param bof: The BOF bytes as a hexadecimal string, or ``None``.
+        :param eof: The EOF bytes as a hexadecimal string, or ``None``.
+        :returns: The length of the match in bytes.
+        """
+        match_length: int = 0
+
         if not bof and not eof:
             return 0
         elif self.bof and self.eof:
@@ -100,17 +160,17 @@ class CustomSignature(BaseModel):
             match_eof: Match[str] | None = search(self.eof, eof or "")
 
             if match_bof and match_eof:
-                return (match_bof.end() - match_bof.start()) + (match_eof.end() - match_eof.start())
+                match_length = (match_bof.end() - match_bof.start()) + (match_eof.end() - match_eof.start())
             elif self.operator == "OR" and match_bof:
-                return match_bof.end() - match_bof.start()
+                match_length = match_bof.end() - match_bof.start()
             elif self.operator == "OR" and match_eof:
-                return match_eof.end() - match_eof.start()
+                match_length = match_eof.end() - match_eof.start()
         elif self.bof and (match_bof := search(self.bof, bof or "")):
-            return match_bof.end() - match_bof.start()
+            match_length = match_bof.end() - match_bof.start()
         elif self.eof and (match_eof := search(self.eof, eof or "")):
-            return match_eof.end() - match_eof.start()
+            match_length = match_eof.end() - match_eof.start()
 
-        return 0
+        return match_length // 2
 
 
 class IgnoreIfAction(NoDefaultsModel):
