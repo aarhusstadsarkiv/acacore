@@ -34,6 +34,7 @@ TTemplateType = Literal[
     "not-preservable",
     "not-convertable",
     "extracted-archive",
+    "unidentified",
     "temporary-file",
 ]
 
