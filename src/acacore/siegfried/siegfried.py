@@ -257,7 +257,7 @@ class Siegfried:
     """
     A class for interacting with the Siegfried file identification tool.
 
-    :ivar See Also: https://github.com/richardlehane/siegfried.
+    https://github.com/richardlehane/siegfried
     """
 
     def __init__(
