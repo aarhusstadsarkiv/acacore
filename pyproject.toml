@@ -24,6 +24,7 @@ dev = [
     "ruff>=0.15.7,<1",
     "pytest>=9.0.2,<10",
     "coverage>=7.13.5,<8",
+    "pyrefly>=1.0.0",
 ]
 
 [build-system]
@@ -142,3 +143,9 @@ max-doc-length = 300
 [tool.pytest.ini_options]
 asyncio_mode="strict"
 pythonpath = ["src"]
+
+[tool.pyrefly]
+project-includes = [
+    "**/*.py*",
+    "**/*.ipynb",
+]
