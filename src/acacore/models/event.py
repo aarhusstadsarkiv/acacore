@@ -100,23 +100,19 @@ class Event(BaseModel):
             reason=reason,
         )
 
-    def log(
+    def msg(
         self,
-        level: int,
-        *logger: Logger | BoundLogger,
         show_null: bool = False,
         show_args: bool | Sequence[str] = True,
         extra_as_msg: bool = False,
         **extra: Any,  # noqa: ANN401
-    ):
+    ) -> tuple[str, dict[str, Any]]:
         """
-        Log the event with the given loggers.
+        Create the message string and items.
 
         The message uses the format ``{operation} uuid={uuid} data={data} reason={reason}``.
         All ``extra`` arguments are added with the format ``{key}={value}``.
 
-        :param level: The logging level to be used for the log message.
-        :param logger: The logger(s) to which the log message will be sent.
         :param show_null: Flag indicating whether to include null values in the log message. Default is False.
         :param show_args: Set to true to show all arguments (uuid, data, reason) in the log message, or a list of
             argument names to show only specific ones. Default is True.
@@ -158,6 +154,34 @@ class Event(BaseModel):
         if extra_as_msg:
             for keyword, value in msg_items.items():
                 msg += f" {keyword.strip()}={value}"
+
+        return msg, msg_items
+
+    def log(
+        self,
+        level: int,
+        *logger: Logger | BoundLogger,
+        show_null: bool = False,
+        show_args: bool | Sequence[str] = True,
+        extra_as_msg: bool = False,
+        **extra: Any,  # noqa: ANN401
+    ):
+        """
+        Log the event with the given loggers.
+
+        The message uses the format ``{operation} uuid={uuid} data={data} reason={reason}``.
+        All ``extra`` arguments are added with the format ``{key}={value}``.
+
+        :param level: The logging level to be used for the log message.
+        :param logger: The logger(s) to which the log message will be sent.
+        :param show_null: Flag indicating whether to include null values in the log message. Default is False.
+        :param show_args: Set to true to show all arguments (uuid, data, reason) in the log message, or a list of
+            argument names to show only specific ones. Default is True.
+        :param extra_as_msg: Flag indicating whether to include ``extra`` keyword arguments in the log message or to
+            pass them to logger.log.
+        :param extra: Additional arguments to be shown in the log message.
+        """
+        msg, msg_items = self.msg(show_null, show_args, extra_as_msg, **extra)
 
         for l in logger:
             l.log(level, msg.strip(), **msg_items)
