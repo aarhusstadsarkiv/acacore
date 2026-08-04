@@ -72,7 +72,7 @@ def tokens_to_where(query: QueryTokens) -> tuple[str, list[QueryValue]]:
     return " and ".join(where), parameters
 
 
-def tokenizer(query_string: str, default_field: str, allowed_fields: list[str]) -> QueryTokens:
+def tokenizer(query_string: str, default_field: str, allowed_fields: list[str] | None = None) -> QueryTokens:
     query_string = token_quotes.sub(r"\0\1\0", query_string)
     tokens: list[str] = [t for t in token_expr.split(query_string) if t]
     field: str = default_field
@@ -99,7 +99,7 @@ def tokenizer(query_string: str, default_field: str, allowed_fields: list[str]) 
             from_file = True
         elif token.startswith("@"):
             field, _, json_operators = token.removeprefix("@").partition("->")
-            if field not in allowed_fields:
+            if allowed_fields and field not in allowed_fields:
                 raise ValueError(f"Invalid field name {field}")
             if json_operators:
                 json_operators = f"->{json_operators}"
