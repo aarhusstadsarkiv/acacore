@@ -126,7 +126,7 @@ class Event(BaseModel):
         """
         msg: str = self.operation
         msg_items: dict[str, Any] = {}
-        uuid: str | None = None  # = f"{self.file_type}:{self.file_uuid}" if self.file_uuid else None
+        uuid: str | None = None
 
         if self.file_uuid and self.file_type:
             f"{self.file_type}:{self.file_uuid}"
