@@ -253,7 +253,6 @@ class FilesDB(Database):
             return Version(version)
         raise DatabaseError("Not initialised")
 
-    # noinspection DuplicatedCode
     def init(self: Union[str, Path, "FilesDB"]) -> "FilesDB":
         """
         Initialize the database with all the necessary tables and views.
