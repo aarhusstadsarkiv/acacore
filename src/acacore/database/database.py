@@ -94,9 +94,9 @@ class Database:
 
     def __exit__(
         self,
-        _exc_type: type[BaseException],
-        _exc_val: BaseException,
-        _exc_tb: TracebackType,
+        _exc_type: type[BaseException] | None,
+        _exc_val: BaseException | None,
+        _exc_tb: TracebackType | None,
     ) -> None:
         self.close()
 
