@@ -13,6 +13,7 @@ QueryTokens = list[tuple[str, QueryValue, str]]  # field name, value(s), operati
 token_quotes = re_compile(r'(?<!\\)"((?:[^"]|(?<=\\)")*)"')
 # noinspection RegExpUnnecessaryNonCapturingGroup
 token_expr = re_compile(r"(?:\x00([^\x00]+)\x00|(?<!\\)\s+)")
+jsonops_expr = re_compile(r"^(->(\d+|'\w+'))*->>(\d+|'\w+')$")
 
 
 def tokens_to_where(query: QueryTokens) -> tuple[str, list[QueryValue]]:
@@ -97,8 +98,14 @@ def tokenizer(query_string: str, default_field: str, allowed_fields: list[str]) 
         elif token == "@file":
             from_file = True
         elif token.startswith("@"):
-            if (field := token.removeprefix("@")) not in allowed_fields:
+            field, _, json_operators = token.removeprefix("@").partition("->")
+            if field not in allowed_fields:
                 raise ValueError(f"Invalid field name {field}")
+            if json_operators:
+                json_operators = f"->{json_operators}"
+                if not jsonops_expr.match(json_operators):
+                    raise ValueError(f"Invalid JSON operators {json_operators}")
+                field = field + json_operators
             like = False
             neg = False
             from_file = False
