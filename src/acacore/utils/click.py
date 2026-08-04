@@ -65,6 +65,7 @@ def param_callback_query(
     required: bool,
     default: str,
     allowed_fields: list[str] | None = None,
+    json_fields: list[str] | None = None,
 ) -> Callable[[Context, Parameter, str | None], query.QueryTokens]:
     def _callback(ctx: Context, param: Parameter, value: str | None) -> query.QueryTokens:
         if not (value := value or "").strip() and required:
@@ -73,7 +74,7 @@ def param_callback_query(
             return []
 
         try:
-            tokens = query.tokenizer(value, default, allowed_fields or [])
+            tokens = query.tokenizer(value, default, allowed_fields, json_fields)
             if not tokens and required:
                 raise BadParameter("no values in query.", ctx, param)
             return tokens
