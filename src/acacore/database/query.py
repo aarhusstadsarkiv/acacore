@@ -13,7 +13,8 @@ QueryTokens = list[tuple[str, QueryValue, str]]  # field name, value(s), operati
 token_quotes = re_compile(r'(?<!\\)"((?:[^"]|(?<=\\)")*)"')
 # noinspection RegExpUnnecessaryNonCapturingGroup
 token_expr = re_compile(r"(?:\x00([^\x00]+)\x00|(?<!\\)\s+)")
-jsonops_expr = re_compile(r"^(->(\d+|'\w+'))*->>(\d+|'\w+')$")
+jsonop_expr = re_compile(r"->>?(\d+|('?)\w+\2)")
+jsonops_expr = re_compile(r"^(->>?(\d+|('?)\w+\3))+$")
 
 
 def tokens_to_where(query: QueryTokens) -> tuple[str, list[QueryValue]]:
@@ -103,16 +104,19 @@ def tokenizer(
         elif token == "@file":
             from_file = True
         elif token.startswith("@"):
-            field, _, json_operators = token.removeprefix("@").partition("->")
+            field, _, json_operation = token.removeprefix("@").partition("->")
             if allowed_fields and field not in allowed_fields:
                 raise ValueError(f"Invalid field name {field}")
-            if json_operators:
+            if json_operation:
                 if json_fields and field not in json_fields:
                     raise ValueError(f"Invalid JSON field name {field}")
-                json_operators = f"->{json_operators}"
-                if not jsonops_expr.match(json_operators):
-                    raise ValueError(f"Invalid JSON operators {json_operators}")
-                field = field + json_operators
+                json_operation = f"->{json_operation}"
+                if not jsonops_expr.match(json_operation):
+                    raise ValueError(f"Invalid JSON operators {json_operation}")
+                json_operators = [
+                    o if o.isdigit() else f"'{o.strip("'")}'" for o, _ in jsonop_expr.findall(json_operation)
+                ]
+                field = f"{field}->{'->>'.join(json_operators)}"
             like = False
             neg = False
             from_file = False
