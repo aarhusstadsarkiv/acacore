@@ -29,10 +29,10 @@ class Event(BaseModel):
     reason: str | None = None
 
     @model_validator(mode="after")
-    def _model_validator(self, data: Self):
-        if (data.file_uuid and not data.file_type) or (not data.file_uuid and data.file_type):
+    def _model_validator(self) -> Self:
+        if (self.file_uuid and not self.file_type) or (not self.file_uuid and self.file_type):
             raise ValueError("uuid and file type must be set together")
-        return data
+        return self
 
     @classmethod
     def from_command(
