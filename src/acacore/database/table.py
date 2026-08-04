@@ -46,7 +46,7 @@ def _where_dict_to_sql(where: WhereDict) -> tuple[str, list[SQLValue]]:
 
 
 def _where_to_sql(
-    where: str | WhereDict | BaseModel,
+    where: str | WhereDict | BaseModel | None,
     params: list[SQLValue] | None,
     primary_keys: list[ColumnSpec],
 ) -> tuple[str, list[SQLValue]]:
@@ -304,7 +304,7 @@ class Table[M: BaseModel]:
         """
         return self.insert(*rows, on_exists="replace")
 
-    def update(self, row: M, where: str | WhereDict | M = None, params: list[SQLValue] | None = None) -> int:
+    def update(self, row: M, where: str | WhereDict | M | None = None, params: list[SQLValue] | None = None) -> int:
         """
         Update a single entry in the table.
 

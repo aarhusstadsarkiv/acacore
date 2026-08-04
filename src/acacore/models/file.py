@@ -390,6 +390,7 @@ class BaseFile(BaseModel):
         self.relative_path = self.relative_path.with_name(self.name.removesuffix(self.suffixes) + new_suffixes)
 
 
+# noinspection method-overriding
 class OriginalFile(BaseFile):
     """
     File model for OriginalDocuments files.
@@ -423,6 +424,7 @@ class OriginalFile(BaseFile):
         return data
 
     @classmethod
+    # pyrefly: ignore [bad-override]
     def from_file(
         cls,
         path: str | Path,
@@ -467,6 +469,7 @@ class OriginalFile(BaseFile):
 
         return file
 
+    # pyrefly: ignore [bad-override]
     def identify(
         self,
         siegfried: Siegfried | SiegfriedFile | None = None,
@@ -581,6 +584,7 @@ class OriginalFile(BaseFile):
         return action
 
 
+# noinspection method-overriding
 class ConvertedFile(BaseFile):
     """
     File model for output of file conversion.
@@ -592,6 +596,7 @@ class ConvertedFile(BaseFile):
     sequence: int = Field(ge=0)
 
     @classmethod
+    # pyrefly: ignore [bad-override]
     def from_file(
         cls,
         path: str | Path,
@@ -631,6 +636,7 @@ class ConvertedFile(BaseFile):
         )
 
 
+# noinspection method-overriding
 class MasterFile(ConvertedFile):
     """
     File model for MasterDocuments files converted from OriginalDocuments.
@@ -649,6 +655,7 @@ class MasterFile(ConvertedFile):
         return "master"
 
     @classmethod
+    # pyrefly: ignore [bad-override]
     def from_file(
         cls,
         path: str | Path,
@@ -692,6 +699,7 @@ class MasterFile(ConvertedFile):
 
         return file
 
+    # pyrefly: ignore [bad-override]
     def identify(
         self,
         siegfried: Siegfried | SiegfriedFile | None = None,
@@ -765,6 +773,7 @@ class AccessFile(ConvertedFile):
         return "access"
 
 
+# noinspection method-overriding
 class StatutoryFile(ConvertedFile):
     """
     File model for MasterDocuments files converted from OriginalDocuments.
@@ -789,6 +798,7 @@ class StatutoryFile(ConvertedFile):
         return self
 
     @classmethod
+    # pyrefly: ignore [bad-override]
     def from_file(
         cls,
         path: str | Path,

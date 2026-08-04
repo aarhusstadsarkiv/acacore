@@ -1,5 +1,4 @@
 from datetime import datetime
-from os import PathLike
 from pathlib import Path
 from re import compile as re_compile
 from subprocess import CompletedProcess
@@ -257,14 +256,14 @@ class Siegfried:
     """
     A class for interacting with the Siegfried file identification tool.
 
-    :ivar See Also: https://github.com/richardlehane/siegfried.
+    https://github.com/richardlehane/siegfried.
     """
 
     def __init__(
         self,
-        binary: str | PathLike = "sf",
+        binary: str | Path = "sf",
         signature: str = "default.sig",
-        home: str | PathLike | None = None,
+        home: str | Path | None = None,
     ) -> None:
         """
         Initializes a new instance of the Siegfried class.
@@ -306,15 +305,15 @@ class Siegfried:
         """
         if signature is not None and signature not in get_type_args(TSignaturesProvider):
             raise IdentificationError(f"Unknown signature provider {signature!r}")
-        signature = signature.lower() if signature else self.signature.removesuffix(".sig")
+        signature_provider = signature if signature else self.signature.removesuffix(".sig")
         signature_file = f"{signature}.sig" if signature else self.signature
 
-        self.run("-sig", signature_file, "-update", signature)
+        self.run("-sig", signature_file, "-update", signature_provider)
 
         if set_signature:
             self.signature = signature_file
 
-    def identify(self, *path: str | PathLike) -> SiegfriedResult:
+    def identify(self, *path: str | Path) -> SiegfriedResult:
         """
         Identify a file.
 

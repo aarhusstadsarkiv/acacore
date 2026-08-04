@@ -1,5 +1,6 @@
 from pathlib import Path
 from sqlite3 import DatabaseError
+from typing import Self
 from typing import Union
 
 from packaging.version import Version
@@ -214,7 +215,7 @@ class FilesDB(Database):
         if check_version and self.is_initialised():
             is_latest(self.connection, raise_on_difference=True)
 
-    def upgrade(self, files_root: str | Path, logger: UpgradeLogger | None = None):
+    def upgrade(self, files_root: str | Path, logger: UpgradeLogger | None = None) -> Self:
         """
         Upgrade the database to the latest version.
 
@@ -227,6 +228,7 @@ class FilesDB(Database):
         if self.uncommitted_changes:
             raise DatabaseError("Database has uncommitted changes")
         upgrade(self.connection, files_root, logger)
+        return self
 
     def is_initialised(self) -> bool:
         """
@@ -251,7 +253,6 @@ class FilesDB(Database):
             return Version(version)
         raise DatabaseError("Not initialised")
 
-    # noinspection DuplicatedCode
     def init(self: Union[str, Path, "FilesDB"]) -> "FilesDB":
         """
         Initialize the database with all the necessary tables and views.

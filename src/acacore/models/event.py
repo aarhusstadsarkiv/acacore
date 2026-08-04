@@ -28,12 +28,11 @@ class Event(BaseModel):
     data: object | None = None
     reason: str | None = None
 
-    @classmethod
     @model_validator(mode="after")
-    def _model_validator(cls, data: Self):
-        if (data.file_uuid and not data.file_type) or (not data.file_uuid and data.file_type):
+    def _model_validator(self) -> Self:
+        if (self.file_uuid and not self.file_type) or (not self.file_uuid and self.file_type):
             raise ValueError("uuid and file type must be set together")
-        return data
+        return self
 
     @classmethod
     def from_command(
@@ -70,17 +69,17 @@ class Event(BaseModel):
 
         operation = f"{command.strip(':.')}:{operation.strip(':')}"
 
-        if add_params_to_data and not isinstance(ctx, Context):
-            raise TypeError(f"add_params_to_data is not compatible with ctx of type {type(ctx)}")
-
-        if add_params_to_data and data is None:
-            data = {"acacore": __version__, "params": ctx.params}
-        elif add_params_to_data and isinstance(data, dict):
-            data |= {"acacore": __version__, "params": ctx.params}
-        elif add_params_to_data and isinstance(data, list):
-            data.append({"acacore": __version__, "params": ctx.params})
+        if add_params_to_data and isinstance(ctx, Context):
+            if add_params_to_data and data is None:
+                data = {"acacore": __version__, "params": ctx.params}
+            elif add_params_to_data and isinstance(data, dict):
+                data |= {"acacore": __version__, "params": ctx.params}
+            elif add_params_to_data and isinstance(data, list):
+                data.append({"acacore": __version__, "params": ctx.params})
+            elif add_params_to_data:
+                raise TypeError(f"Data type {type(data)} is not compatible with add_params_to_data")
         elif add_params_to_data:
-            raise TypeError(f"Data type {type(data)} is not compatible with add_params_to_data")
+            raise TypeError(f"add_params_to_data is not compatible with ctx of type {type(ctx)}")
 
         file_type: Literal["original", "master", "access", "statutory"] | None = None
         file_uuid: UUID | None = None
@@ -100,6 +99,63 @@ class Event(BaseModel):
             data=data,
             reason=reason,
         )
+
+    def msg(
+        self,
+        show_null: bool = False,
+        show_args: bool | Sequence[str] = True,
+        extra_as_msg: bool = False,
+        **extra: Any,  # noqa: ANN401
+    ) -> tuple[str, dict[str, Any]]:
+        """
+        Create the message string and items.
+
+        The message uses the format ``{operation} uuid={uuid} data={data} reason={reason}``.
+        All ``extra`` arguments are added with the format ``{key}={value}``.
+
+        :param show_null: Flag indicating whether to include null values in the log message. Default is False.
+        :param show_args: Set to true to show all arguments (uuid, data, reason) in the log message, or a list of
+            argument names to show only specific ones. Default is True.
+        :param extra_as_msg: Flag indicating whether to include ``extra`` keyword arguments in the log message or to
+            pass them to logger.log.
+        :param extra: Additional arguments to be shown in the log message.
+        """
+        msg: str = self.operation
+        msg_items: dict[str, Any] = {}
+        uuid: str | None = None
+
+        if self.file_uuid and self.file_type:
+            uuid = f"{self.file_type}:{self.file_uuid}"
+        elif self.file_uuid:
+            uuid = str(self.file_uuid)
+
+        if isinstance(show_args, bool):
+            if show_args is True and show_null:
+                msg_items["uuid"] = uuid
+                msg_items["data"] = self.data
+                msg_items["reason"] = self.reason
+            else:
+                if uuid is not None:
+                    msg_items["uuid"] = uuid
+                if self.data is not None:
+                    msg_items["data"] = self.data
+                if self.reason is not None:
+                    msg_items["reason"] = self.reason
+        else:
+            if "uuid" in show_args:
+                msg_items["uuid"] = uuid
+            if "data" in show_args:
+                msg_items["data"] = self.data
+            if "reason" in show_args:
+                msg_items["reason"] = self.reason
+
+        msg_items |= extra
+
+        if extra_as_msg:
+            for keyword, value in msg_items.items():
+                msg += f" {keyword.strip()}={value}"
+
+        return msg, msg_items
 
     def log(
         self,
@@ -125,36 +181,7 @@ class Event(BaseModel):
             pass them to logger.log.
         :param extra: Additional arguments to be shown in the log message.
         """
-        msg: str = self.operation
-        msg_items: dict[str, Any] = {}
-        uuid: str | None = f"{self.file_type}:{self.file_uuid}" if self.file_uuid else None
+        msg, msg_items = self.msg(show_null, show_args, extra_as_msg, **extra)
 
-        if not show_args:
-            pass
-        elif show_args is True and show_null:
-            msg_items["uuid"] = uuid
-            msg_items["data"] = self.data
-            msg_items["reason"] = self.reason
-        elif show_args is True:
-            if uuid is not None:
-                msg_items["uuid"] = uuid
-            if self.data is not None:
-                msg_items["data"] = self.data
-            if self.reason is not None:
-                msg_items["reason"] = self.reason
-        else:
-            if "uuid" in show_args:
-                msg_items["uuid"] = uuid
-            if "data" in show_args:
-                msg_items["data"] = self.data
-            if "reason" in show_args:
-                msg_items["reason"] = self.reason
-
-        msg_items |= extra
-
-        if extra_as_msg:
-            for keyword, value in msg_items.items():
-                msg += f" {keyword.strip()}={value}"
-
-        for logger in logger:
-            logger.log(level, msg.strip(), **msg_items)
+        for l in logger:
+            l.log(level, msg.strip(), **msg_items)

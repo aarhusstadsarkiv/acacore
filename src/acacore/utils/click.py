@@ -30,7 +30,7 @@ def ctx_params(ctx: Context) -> dict[str, Parameter]:
     :param ctx: The ``Context`` object of the command from which to extract parameters.
     :return: A dict of all the parameters of the context's command.
     """
-    return {p.name: p for p in ctx.command.params}
+    return {p.name: p for p in ctx.command.params if p.name}
 
 
 def param_callback_regex(
@@ -65,18 +65,19 @@ def param_callback_query(
     required: bool,
     default: str,
     allowed_fields: list[str] | None = None,
-) -> Callable[[Context, Parameter, str], query.QueryTokens]:
-    def _callback(ctx: Context, param: Parameter, value: str | None) -> tuple[str | None, list[str]]:
+    json_fields: list[str] | None = None,
+) -> Callable[[Context, Parameter, str | None], query.QueryTokens]:
+    def _callback(ctx: Context, param: Parameter, value: str | None) -> query.QueryTokens:
         if not (value := value or "").strip() and required:
             raise MissingParameter(None, ctx, param)
         if not value:
-            return None, []
+            return []
 
         try:
-            tokens = query.tokenizer(value, default, allowed_fields or [])
+            tokens = query.tokenizer(value, default, allowed_fields, json_fields)
             if not tokens and required:
                 raise BadParameter("no values in query.", ctx, param)
-            return query.tokens_to_where(tokens)
+            return tokens
         except ClickException:
             raise
         except FileNotFoundError as err:
@@ -127,11 +128,12 @@ def check_database_version(ctx: Context, param: Parameter, path: Path):
 
 def context_commands(ctx: Context) -> list[str]:
     current: Context = ctx
-    command_parts: list[str] = [current.command.name]
+    command_parts: list[str] = [current.command.name] if current.command.name else []
 
     while current.parent is not None:
         current = current.parent
-        command_parts.insert(0, current.command.name)
+        if current.command.name:
+            command_parts.insert(0, current.command.name)
 
     return command_parts
 
@@ -150,7 +152,9 @@ def get_logger(
     :param sort_keys: Whether to sort keys in logging messages.
     :return: A structlog BoundLogger.
     """
-    prog: str = ctx if isinstance(ctx, str) else ctx.find_root().command.name
+    prog: str | None = ctx if isinstance(ctx, str) else ctx.find_root().command.name
+    if not prog:
+        raise ValueError("Context root does not have a command name")
     structlog.configure(
         processors=[
             structlog.contextvars.merge_contextvars,
@@ -168,16 +172,16 @@ def get_logger(
     return structlog.get_logger(prog)
 
 
-# noinspection PyProtectedMember
+# noinspection PyProtectedMember,PyTypeHints
 def start_program(
     ctx: Context,
-    database: "FilesDB",  # noqa: F821
+    database: "FilesDB",  # pyrefly: ignore [unknown-name] # noqa: F821
     version: str,
     dry_run: bool = False,
     time: datetime | None = None,
     logger_colors: bool | None = None,
     logger_sort_keys: bool = False,
-) -> tuple[structlog.stdlib.BoundLogger, "Event"]:  # noqa: F821
+) -> tuple[structlog.stdlib.BoundLogger, "Event"]:  # pyrefly: ignore [unknown-name] # noqa: F821
     """
     Setup logger and ``Event`` for the start of a click program.
 
@@ -217,7 +221,7 @@ def start_program(
 
 def end_program(
     ctx: Context,
-    database: "FilesDB",  # noqa: F821
+    database: "FilesDB",  # pyrefly: ignore [unknown-name] # noqa: F821
     exception: ExceptionManager,
     dry_run: bool = False,
     *loggers: Logger | structlog.stdlib.BoundLogger,
