@@ -121,7 +121,7 @@ class ColumnSpec:
             if schema_type in ("object", "array"):
                 to_sql, from_sql = (
                     lambda x: None if x is None else dumps(_dump_object(x), default=str).decode("utf-8"),
-                    lambda x: None if x is None else loads(x),
+                    lambda x: None if x is None else loads(str(x)),
                 )
             elif type_name in _sql_schema_type_converters:
                 to_sql, from_sql = _sql_schema_type_converters[type_name]
@@ -133,7 +133,7 @@ class ColumnSpec:
                 sql_type, to_sql, from_sql = (
                     "json",
                     lambda x: None if x is None else dumps(_dump_object(x), default=str).decode("utf-8"),
-                    lambda x: None if x is None else loads(x),
+                    lambda x: None if x is None else loads(str(x)),
                 )
             else:
                 spec = cls.from_schema(name, {**schema_any_of[0], **schema}, defs)
