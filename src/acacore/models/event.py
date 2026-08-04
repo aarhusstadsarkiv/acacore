@@ -28,9 +28,8 @@ class Event(BaseModel):
     data: object | None = None
     reason: str | None = None
 
-    @classmethod
     @model_validator(mode="after")
-    def _model_validator(cls, data: Self):
+    def _model_validator(self, data: Self):
         if (data.file_uuid and not data.file_type) or (not data.file_uuid and data.file_type):
             raise ValueError("uuid and file type must be set together")
         return data
@@ -70,17 +69,17 @@ class Event(BaseModel):
 
         operation = f"{command.strip(':.')}:{operation.strip(':')}"
 
-        if add_params_to_data and not isinstance(ctx, Context):
-            raise TypeError(f"add_params_to_data is not compatible with ctx of type {type(ctx)}")
-
-        if add_params_to_data and data is None:
-            data = {"acacore": __version__, "params": ctx.params}
-        elif add_params_to_data and isinstance(data, dict):
-            data |= {"acacore": __version__, "params": ctx.params}
-        elif add_params_to_data and isinstance(data, list):
-            data.append({"acacore": __version__, "params": ctx.params})
+        if add_params_to_data and isinstance(ctx, Context):
+            if add_params_to_data and data is None:
+                data = {"acacore": __version__, "params": ctx.params}
+            elif add_params_to_data and isinstance(data, dict):
+                data |= {"acacore": __version__, "params": ctx.params}
+            elif add_params_to_data and isinstance(data, list):
+                data.append({"acacore": __version__, "params": ctx.params})
+            elif add_params_to_data:
+                raise TypeError(f"Data type {type(data)} is not compatible with add_params_to_data")
         elif add_params_to_data:
-            raise TypeError(f"Data type {type(data)} is not compatible with add_params_to_data")
+            raise TypeError(f"add_params_to_data is not compatible with ctx of type {type(ctx)}")
 
         file_type: Literal["original", "master", "access", "statutory"] | None = None
         file_uuid: UUID | None = None
@@ -127,21 +126,25 @@ class Event(BaseModel):
         """
         msg: str = self.operation
         msg_items: dict[str, Any] = {}
-        uuid: str | None = f"{self.file_type}:{self.file_uuid}" if self.file_uuid else None
+        uuid: str | None = None  # = f"{self.file_type}:{self.file_uuid}" if self.file_uuid else None
 
-        if not show_args:
-            pass
-        elif show_args is True and show_null:
-            msg_items["uuid"] = uuid
-            msg_items["data"] = self.data
-            msg_items["reason"] = self.reason
-        elif show_args is True:
-            if uuid is not None:
+        if self.file_uuid and self.file_type:
+            f"{self.file_type}:{self.file_uuid}"
+        elif self.file_uuid:
+            uuid = str(self.file_uuid)
+
+        if isinstance(show_args, bool):
+            if show_args is True and show_null:
                 msg_items["uuid"] = uuid
-            if self.data is not None:
                 msg_items["data"] = self.data
-            if self.reason is not None:
                 msg_items["reason"] = self.reason
+            else:
+                if uuid is not None:
+                    msg_items["uuid"] = uuid
+                if self.data is not None:
+                    msg_items["data"] = self.data
+                if self.reason is not None:
+                    msg_items["reason"] = self.reason
         else:
             if "uuid" in show_args:
                 msg_items["uuid"] = uuid
