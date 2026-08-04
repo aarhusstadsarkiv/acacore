@@ -7,17 +7,18 @@ from pydantic import BaseModel
 
 M = TypeVar("M", bound=BaseModel)
 FC = TypeVar("FC", bound=Callable[..., Any])
-QueryTokens = list[tuple[str, str | bool | type[Ellipsis] | list[str] | None, str]]  # field name, value(s), operation
+QueryValue = str | bool | list[str] | None
+QueryTokens = list[tuple[str, QueryValue, str]]  # field name, value(s), operation
 
 token_quotes = re_compile(r'(?<!\\)"((?:[^"]|(?<=\\)")*)"')
 # noinspection RegExpUnnecessaryNonCapturingGroup
 token_expr = re_compile(r"(?:\x00([^\x00]+)\x00|(?<!\\)\s+)")
 
 
-def tokens_to_where(query: QueryTokens) -> tuple[str, list[str]]:
-    query_fields: dict[str, list[tuple[str, bool]]] = {}
+def tokens_to_where(query: QueryTokens) -> tuple[str, list[QueryValue]]:
+    query_fields: dict[str, list[tuple[QueryValue, str]]] = {}
     where: list[str] = []
-    parameters: list[str] = []
+    parameters: list[QueryValue] = []
 
     for field, value, operation in query:
         query_fields[field] = [*query_fields.get(field, []), (value, operation)]
