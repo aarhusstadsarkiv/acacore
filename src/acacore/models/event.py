@@ -159,5 +159,5 @@ class Event(BaseModel):
             for keyword, value in msg_items.items():
                 msg += f" {keyword.strip()}={value}"
 
-        for logger in logger:
-            logger.log(level, msg.strip(), **msg_items)
+        for l in logger:
+            l.log(level, msg.strip(), **msg_items)
