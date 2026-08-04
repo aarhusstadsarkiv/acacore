@@ -18,15 +18,14 @@ class Cursor[M: BaseModel]:
     :ivar cursor: The SQLite cursor
     :ivar model: The model to return data as.
     :ivar columns: A list of ``ColumnSpec`` instances that describe the columns in the cursor.
+
+    :param cursor: The SQLite cursor
+    :param model: The model to return data as.
+    :param columns: A list of ``ColumnSpec`` instances that describe the columns in the cursor.
     """
 
     def __init__(self, cursor: SQLiteCursor, model: type[M], columns: list[ColumnSpec]) -> None:
-        """
-        :param cursor: The SQLite cursor
-        :param model: The model to return data as.
-        :param columns: A list of ``ColumnSpec`` instances that describe the columns in the cursor.
-        """  # noqa: D205
-        self.cursor: SQLiteCursor[Row] = cursor
+        self.cursor: SQLiteCursor = cursor
         self.cursor.row_factory = Row
         self.model: type[M] = model
         self.columns: list[ColumnSpec] = columns
