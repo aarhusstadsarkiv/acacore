@@ -119,8 +119,7 @@ class ColumnSpec:
             type_name: str = schema.get("format", schema_type)
 
             if schema_type in ("object", "array"):
-                sql_type, to_sql, from_sql = (
-                    "text",
+                to_sql, from_sql = (
                     lambda x: None if x is None else dumps(_dump_object(x), default=str).decode("utf-8"),
                     lambda x: None if x is None else loads(x),
                 )
@@ -132,7 +131,7 @@ class ColumnSpec:
         elif schema_any_of:
             if not schema_any_of[0] or len(schema_any_of) > 2:
                 sql_type, to_sql, from_sql = (
-                    "text",
+                    "json",
                     lambda x: None if x is None else dumps(_dump_object(x), default=str).decode("utf-8"),
                     lambda x: None if x is None else loads(x),
                 )
