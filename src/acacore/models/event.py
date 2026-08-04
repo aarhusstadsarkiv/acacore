@@ -129,7 +129,7 @@ class Event(BaseModel):
         uuid: str | None = None
 
         if self.file_uuid and self.file_type:
-            f"{self.file_type}:{self.file_uuid}"
+            uuid = f"{self.file_type}:{self.file_uuid}"
         elif self.file_uuid:
             uuid = str(self.file_uuid)
 
