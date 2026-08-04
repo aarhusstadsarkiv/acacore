@@ -20,7 +20,6 @@ __all__ = [
     "upgrade",
 ]
 
-
 UpgradeLogger = Callable[[Version | str, str, str | dict[str, Any] | None], None]
 
 
@@ -50,24 +49,26 @@ def table_columns(con: Connection, table: str) -> list[str]:
 
 # noinspection SqlResolve
 def upgrade_4to4_1(con: Connection, _root: Path, logger: UpgradeLogger) -> Version:
-    con.execute("""
-    create table files_master_tmp
-    (
-        uuid              text    not null,
-        checksum          text    not null,
-        relative_path     text    not null,
-        is_binary         boolean not null,
-        size              integer not null,
-        puid              text,
-        signature         text,
-        warning           text,
-        original_uuid     text,
-        convert_access    text,
-        convert_statutory text,
-        processed         integer not null,
-        primary key (relative_path)
+    con.execute(
+        """
+        create table files_master_tmp
+        (
+            uuid              text    not null,
+            checksum          text    not null,
+            relative_path     text    not null,
+            is_binary         boolean not null,
+            size              integer not null,
+            puid              text,
+            signature         text,
+            warning           text,
+            original_uuid     text,
+            convert_access    text,
+            convert_statutory text,
+            processed         integer not null,
+            primary key (relative_path)
+        )
+        """
     )
-    """)
 
     logger("4.1.0", "processed", {"table": "files_master"})
     con.execute("insert or ignore into files_master_tmp select * from files_master")
@@ -89,57 +90,62 @@ def upgrade_4to4_1(con: Connection, _root: Path, logger: UpgradeLogger) -> Versi
     con.execute("drop view log_paths")
     con.execute("drop table files_master")
     con.execute("alter table files_master_tmp rename to 'files_master'")
-    con.execute("""
-    create view files_all as
-    select uuid,
-       checksum,
-       relative_path,
-       is_binary,
-       size,
-       puid,
-       signature,
-       warning
-    from files_original
-    union
-    select uuid,
-           checksum,
-           relative_path,
-           is_binary,
-           size,
-           puid,
-           signature,
-           warning
-    from files_master
-    union
-    select uuid,
-           checksum,
-           relative_path,
-           is_binary,
-           size,
-           puid,
-           signature,
-           warning
-    from files_access
-    union
-    select uuid,
-           checksum,
-           relative_path,
-           is_binary,
-           size,
-           puid,
-           signature,
-           warning
-    from files_statutory
-    """)
-    con.execute("""
-    create view log_paths as
-    select coalesce(fo.relative_path, fm.relative_path, fa.relative_path, fs.relative_path) as file_relative_path, l.*
-    from log l
-        left join files_original  fo on l.file_type = 'original'  and fo.uuid = l.file_uuid
-        left join files_master    fm on l.file_type = 'master'    and fm.uuid = l.file_uuid
-        left join files_access    fa on l.file_type = 'access'    and fa.uuid = l.file_uuid
-        left join files_statutory fs on l.file_type = 'statutory' and fs.uuid = l.file_uuid
-    """)
+    con.execute(
+        """
+        create view files_all as
+        select uuid,
+               checksum,
+               relative_path,
+               is_binary,
+               size,
+               puid,
+               signature,
+               warning
+        from files_original
+        union
+        select uuid,
+               checksum,
+               relative_path,
+               is_binary,
+               size,
+               puid,
+               signature,
+               warning
+        from files_master
+        union
+        select uuid,
+               checksum,
+               relative_path,
+               is_binary,
+               size,
+               puid,
+               signature,
+               warning
+        from files_access
+        union
+        select uuid,
+               checksum,
+               relative_path,
+               is_binary,
+               size,
+               puid,
+               signature,
+               warning
+        from files_statutory
+        """
+    )
+    con.execute(
+        """
+        create view log_paths as
+        select coalesce(fo.relative_path, fm.relative_path, fa.relative_path, fs.relative_path) as file_relative_path,
+               l.*
+        from log l
+                 left join files_original fo on l.file_type = 'original' and fo.uuid = l.file_uuid
+                 left join files_master fm on l.file_type = 'master' and fm.uuid = l.file_uuid
+                 left join files_access fa on l.file_type = 'access' and fa.uuid = l.file_uuid
+                 left join files_statutory fs on l.file_type = 'statutory' and fs.uuid = l.file_uuid
+        """
+    )
     con.commit()
 
     con.execute("vacuum")
@@ -218,7 +224,7 @@ def upgrade_5_3to5_4(con: Connection, _root: Path, logger: UpgradeLogger) -> Ver
             puid              text,
             signature         text,
             warning           text,
-            original_uuid     text not null,
+            original_uuid     text    not null,
             sequence          integer not null,
             convert_access    text,
             convert_statutory text,
@@ -240,7 +246,7 @@ def upgrade_5_3to5_4(con: Connection, _root: Path, logger: UpgradeLogger) -> Ver
             puid          text,
             signature     text,
             warning       text,
-            original_uuid text not null,
+            original_uuid text    not null,
             sequence      integer not null,
             primary key (relative_path)
         )
@@ -259,7 +265,7 @@ def upgrade_5_3to5_4(con: Connection, _root: Path, logger: UpgradeLogger) -> Ver
             puid           text,
             signature      text,
             warning        text,
-            original_uuid  text not null,
+            original_uuid  text    not null,
             sequence       integer not null,
             doc_collection integer,
             doc_id         integer,
@@ -430,6 +436,295 @@ def upgrade_5_4to5_5(con: Connection, _root: Path, logger: UpgradeLogger) -> Ver
     return set_db_version(con, Version("5.5.0"))
 
 
+# noinspection SqlResolve
+def upgrade_5_5to5_6(con: Connection, _root: Path, logger: UpgradeLogger) -> Version:
+    items: list[tuple[str, str, str]] = con.execute(
+        "select type, name, sql from sqlite_master where type in ('index', 'view') and sql is not null"
+    ).fetchall()
+    for t, n, _ in items:
+        logger("5.6.0", "drop", {"type": t, "name": n})
+        con.execute(f"drop {t} if exists {n}")
+
+    logger(
+        "5.6.0",
+        "alter",
+        {"table": "files_original", "columns": ["encoding", "warning", "action_data"], "type": "json"},
+    )
+    con.execute("drop table if exists __files_original")
+    con.execute(
+        """
+        create table __files_original
+        (
+            uuid          text    not null,
+            checksum      text    not null,
+            encoding      json,
+            relative_path text    not null,
+            is_binary     boolean not null,
+            size          integer not null,
+            puid          text,
+            signature     text,
+            warning       json,
+            action        text,
+            action_data   json    not null,
+            parent        text,
+            processed     boolean not null,
+            lock          boolean not null,
+            gis_main      text,
+            original_path text    not null,
+            primary key (relative_path)
+        )
+        """
+    )
+    con.execute(
+        """
+        insert into __files_original
+        select uuid,
+               checksum,
+               encoding,
+               relative_path,
+               is_binary,
+               size,
+               puid,
+               signature,
+               warning,
+               action,
+               action_data,
+               parent,
+               processed,
+               lock,
+               gis_main,
+               original_path
+        from files_original
+        """
+    )
+
+    logger(
+        "5.6.0",
+        "alter",
+        {
+            "table": "files_master",
+            "columns": ["encoding", "warning", "convert_access", "convert_statutory"],
+            "type": "json",
+        },
+    )
+    con.execute("drop table if exists __files_master")
+    con.execute(
+        """
+        create table __files_master
+        (
+            uuid              text    not null,
+            checksum          text    not null,
+            encoding          json,
+            relative_path     text    not null,
+            is_binary         boolean not null,
+            size              integer not null,
+            puid              text,
+            signature         text,
+            warning           json,
+            original_uuid     text    not null,
+            sequence          integer not null,
+            convert_access    json,
+            convert_statutory json,
+            processed         integer not null,
+            primary key (relative_path)
+        )
+        """
+    )
+    con.execute(
+        """
+        insert into __files_master
+        select uuid,
+               checksum,
+               encoding,
+               relative_path,
+               is_binary,
+               size,
+               puid,
+               signature,
+               warning,
+               original_uuid,
+               sequence,
+               convert_access,
+               convert_statutory,
+               processed
+        from files_master
+        """
+    )
+
+    logger(
+        "5.6.0",
+        "alter",
+        {"table": "files_access", "columns": ["encoding", "warning"], "type": "json"},
+    )
+    con.execute("drop table if exists __files_access")
+    con.execute(
+        """
+        create table __files_access
+        (
+            uuid          text    not null,
+            checksum      text    not null,
+            encoding      json,
+            relative_path text    not null,
+            is_binary     boolean not null,
+            size          integer not null,
+            puid          text,
+            signature     text,
+            warning       json,
+            original_uuid text    not null,
+            sequence      integer not null,
+            primary key (relative_path)
+        )
+        """
+    )
+    con.execute(
+        """
+        insert into __files_access
+        select uuid,
+               checksum,
+               encoding,
+               relative_path,
+               is_binary,
+               size,
+               puid,
+               signature,
+               warning,
+               original_uuid,
+               sequence
+        from files_access
+        """
+    )
+
+    logger(
+        "5.6.0",
+        "alter",
+        {"table": "files_statutory", "columns": ["encoding", "warning"], "type": "json"},
+    )
+    con.execute("drop table if exists __files_statutory")
+    con.execute(
+        """
+        create table __files_statutory
+        (
+            uuid           text    not null,
+            checksum       text    not null,
+            encoding       json,
+            relative_path  text    not null,
+            is_binary      boolean not null,
+            size           integer not null,
+            puid           text,
+            signature      text,
+            warning        json,
+            original_uuid  text    not null,
+            sequence       integer not null,
+            doc_collection integer,
+            doc_id         integer,
+            primary key (relative_path)
+        )
+        """
+    )
+    con.execute(
+        """
+        insert into __files_statutory
+        select uuid,
+               checksum,
+               encoding,
+               relative_path,
+               is_binary,
+               size,
+               puid,
+               signature,
+               warning,
+               original_uuid,
+               sequence,
+               doc_collection,
+               doc_id
+        from files_statutory
+        """
+    )
+
+    logger(
+        "5.6.0",
+        "alter",
+        {"table": "files_statutory", "columns": ["data"], "type": "json"},
+    )
+    con.execute("drop table if exists __log")
+    con.execute(
+        """
+        create table __log
+        (
+            file_uuid text,
+            file_type text,
+            time      text not null,
+            operation text not null,
+            data      json,
+            reason    text
+        )
+        """
+    )
+    con.execute(
+        """
+        insert into __log
+        select file_uuid, file_type, time, operation, data, reason
+        from log
+        """
+    )
+
+    logger(
+        "5.6.0",
+        "alter",
+        {"table": "metadata", "columns": ["value"], "type": "json"},
+    )
+    con.execute("drop table if exists __metadata")
+    con.execute(
+        """
+        create table __metadata
+        (
+            key   text not null,
+            value json,
+            primary key (key)
+        )
+        """
+    )
+    con.execute(
+        """
+        insert into __metadata
+        select key, value
+        from metadata
+        """
+    )
+
+    logger("5.6.0", "rename", {"table": "files_original"})
+    con.execute("drop table if exists files_original")
+    con.execute("alter table __files_original rename to files_original")
+
+    logger("5.6.0", "rename", {"table": "files_master"})
+    con.execute("drop table if exists files_master")
+    con.execute("alter table __files_master rename to files_master")
+
+    logger("5.6.0", "rename", {"table": "files_access"})
+    con.execute("drop table if exists files_access")
+    con.execute("alter table __files_access rename to files_access")
+
+    logger("5.6.0", "rename", {"table": "files_statutory"})
+    con.execute("drop table if exists files_statutory")
+    con.execute("alter table __files_statutory rename to files_statutory")
+
+    logger("5.6.0", "rename", {"table": "log"})
+    con.execute("drop table if exists log")
+    con.execute("alter table __log rename to log")
+
+    logger("5.6.0", "rename", {"table": "metadata"})
+    con.execute("drop table if exists metadata")
+    con.execute("alter table __metadata rename to metadata")
+
+    for t, n, s in items:
+        logger("5.6.0", "create", {"type": t, "name": n})
+        con.execute(s)
+
+    con.commit()
+
+    return set_db_version(con, Version("5.6.0"))
+
+
 def get_upgrade_function(
     current_version: Version,
     latest_version: Version,
@@ -452,6 +747,8 @@ def get_upgrade_function(
         return upgrade_5_4_9to5_4_11
     elif current_version < Version("5.5.0"):
         return upgrade_5_4to5_5
+    elif current_version < Version("5.6.0"):
+        return upgrade_5_5to5_6
     elif current_version < latest_version:
         return lambda c, _, __: set_db_version(c, Version(__version__))
     else:
@@ -500,3 +797,4 @@ def upgrade(connection: Connection, files_root: str | Path, logger: UpgradeLogge
     while current_version < latest_version:
         update_function = get_upgrade_function(current_version, latest_version)
         current_version = update_function(connection, Path(files_root), logger or (lambda *_: None))
+        connection.commit()
