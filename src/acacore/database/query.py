@@ -72,7 +72,12 @@ def tokens_to_where(query: QueryTokens) -> tuple[str, list[QueryValue]]:
     return " and ".join(where), parameters
 
 
-def tokenizer(query_string: str, default_field: str, allowed_fields: list[str] | None = None) -> QueryTokens:
+def tokenizer(
+    query_string: str,
+    default_field: str,
+    allowed_fields: list[str] | None = None,
+    json_fields: list[str] | None = None,
+) -> QueryTokens:
     query_string = token_quotes.sub(r"\0\1\0", query_string)
     tokens: list[str] = [t for t in token_expr.split(query_string) if t]
     field: str = default_field
@@ -102,6 +107,8 @@ def tokenizer(query_string: str, default_field: str, allowed_fields: list[str] |
             if allowed_fields and field not in allowed_fields:
                 raise ValueError(f"Invalid field name {field}")
             if json_operators:
+                if json_fields and field not in json_fields:
+                    raise ValueError(f"Invalid JSON field name {field}")
                 json_operators = f"->{json_operators}"
                 if not jsonops_expr.match(json_operators):
                     raise ValueError(f"Invalid JSON operators {json_operators}")
