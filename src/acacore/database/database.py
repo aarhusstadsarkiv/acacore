@@ -114,14 +114,16 @@ class Database:
         """Executes an SQL statement with multiple parameter lists."""
         return self.connection.executemany(sql, parameters)
 
-    def commit(self):
+    def commit(self) -> Self:
         """Commit any pending transaction to the database."""
         self.connection.commit()
         self._committed_changes = self.total_changes
+        return self
 
-    def rollback(self):
+    def rollback(self) -> Self:
         """Roll back to the start of any pending transaction."""
         self.connection.rollback()
+        return self
 
     @property
     def total_changes(self):
@@ -146,9 +148,10 @@ class Database:
         except ProgrammingError:
             return False
 
-    def close(self):
+    def close(self) -> Self:
         """Close the database connection."""
         self.connection.close()
+        return self
 
     def tables(self) -> list[str]:
         """Return a list of table names in the database."""
