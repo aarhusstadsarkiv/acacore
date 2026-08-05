@@ -66,8 +66,8 @@ def param_callback_query(
     default: str,
     allowed_fields: list[str] | None = None,
     json_fields: list[str] | None = None,
-) -> Callable[[Context, Parameter, str | None], query.QueryTokens]:
-    def _callback(ctx: Context, param: Parameter, value: str | None) -> query.QueryTokens:
+) -> Callable[[Context, Parameter, str | None], list[query.QueryToken]]:
+    def _callback(ctx: Context, param: Parameter, value: str | None) -> list[query.QueryToken]:
         if not (value := value or "").strip() and required:
             raise MissingParameter(None, ctx, param)
         if not value:
