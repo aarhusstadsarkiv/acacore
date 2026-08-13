@@ -735,6 +735,18 @@ def upgrade_5_6_3to5_6_4(con: Connection, _root: Path, logger: UpgradeLogger) ->
           and action_data -> 'convert' ->> 'output' is null;
         """
     )
+    con.execute(
+        """
+        update files_original
+        set action_data = json_set(
+                action_data,
+                '$.convert.options',
+                json_object(action_data -> 'convert' ->> 'tool', action_data -> 'convert' -> 'options')
+                          )
+        where action_data ->> 'convert' is not null
+          and action_data -> 'convert' ->> 'options' is not null;
+        """
+    )
 
     logger("5.6.4", "update", {"table": "files_master", "column": "convert_access"})
     con.execute(
@@ -745,6 +757,18 @@ def upgrade_5_6_3to5_6_4(con: Connection, _root: Path, logger: UpgradeLogger) ->
           and convert_access ->> 'output' is null;
         """
     )
+    con.execute(
+        """
+        update files_master
+               set convert_access = json_set(
+                       convert_access,
+                       '$.convert.options',
+                       json_object(convert_access ->> 'tool', convert_access -> 'options')
+               )
+        where convert_access is not null
+          and convert_access ->> 'options' is not null;
+        """
+    )
 
     logger("5.6.4", "update", {"table": "files_master", "column": "convert_statutory"})
     con.execute(
@@ -753,6 +777,18 @@ def upgrade_5_6_3to5_6_4(con: Connection, _root: Path, logger: UpgradeLogger) ->
         set convert_statutory = json_set(convert_statutory, '$.output', convert_statutory ->> 'tool')
         where convert_statutory is not null
           and convert_statutory ->> 'output' is null;
+        """
+    )
+    con.execute(
+        """
+        update files_master
+        set convert_statutory = json_set(
+                convert_statutory,
+                '$.convert.options',
+                json_object(convert_statutory ->> 'tool', convert_statutory -> 'options')
+                                )
+        where convert_statutory is not null
+          and convert_statutory ->> 'options' is not null;
         """
     )
 
