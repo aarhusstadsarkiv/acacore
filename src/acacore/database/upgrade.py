@@ -725,6 +725,78 @@ def upgrade_5_5to5_6(con: Connection, _root: Path, logger: UpgradeLogger) -> Ver
     return set_db_version(con, Version("5.6.0"))
 
 
+def upgrade_5_6_3to5_6_4(con: Connection, _root: Path, logger: UpgradeLogger) -> Version:
+    logger("5.6.4", "update", {"table": "files_original", "column": "action_data"})
+    con.execute(
+        """
+        update files_original
+        set action_data = json_set(action_data, '$.convert.output', action_data -> 'convert' ->> 'tool')
+        where action_data ->> 'convert' is not null
+          and action_data -> 'convert' ->> 'output' is null;
+        """
+    )
+    con.execute(
+        """
+        update files_original
+        set action_data = json_set(
+                action_data,
+                '$.convert.options',
+                json_object(action_data -> 'convert' ->> 'tool', action_data -> 'convert' -> 'options')
+                          )
+        where action_data ->> 'convert' is not null
+          and action_data -> 'convert' ->> 'options' is not null;
+        """
+    )
+
+    logger("5.6.4", "update", {"table": "files_master", "column": "convert_access"})
+    con.execute(
+        """
+        update files_master
+        set convert_access = json_set(convert_access, '$.output', convert_access ->> 'tool')
+        where convert_access is not null
+          and convert_access ->> 'output' is null;
+        """
+    )
+    con.execute(
+        """
+        update files_master
+               set convert_access = json_set(
+                       convert_access,
+                       '$.convert.options',
+                       json_object(convert_access ->> 'tool', convert_access -> 'options')
+               )
+        where convert_access is not null
+          and convert_access ->> 'options' is not null;
+        """
+    )
+
+    logger("5.6.4", "update", {"table": "files_master", "column": "convert_statutory"})
+    con.execute(
+        """
+        update files_master
+        set convert_statutory = json_set(convert_statutory, '$.output', convert_statutory ->> 'tool')
+        where convert_statutory is not null
+          and convert_statutory ->> 'output' is null;
+        """
+    )
+    con.execute(
+        """
+        update files_master
+        set convert_statutory = json_set(
+                convert_statutory,
+                '$.convert.options',
+                json_object(convert_statutory ->> 'tool', convert_statutory -> 'options')
+                                )
+        where convert_statutory is not null
+          and convert_statutory ->> 'options' is not null;
+        """
+    )
+
+    con.commit()
+
+    return set_db_version(con, Version("5.6.4"))
+
+
 def get_upgrade_function(
     current_version: Version,
     latest_version: Version,
@@ -749,6 +821,8 @@ def get_upgrade_function(
         return upgrade_5_4to5_5
     elif current_version < Version("5.6.0"):
         return upgrade_5_5to5_6
+    elif current_version < Version("5.6.4"):
+        return upgrade_5_6_3to5_6_4
     elif current_version < latest_version:
         return lambda c, _, __: set_db_version(c, Version(__version__))
     else:
