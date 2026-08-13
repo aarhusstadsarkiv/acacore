@@ -215,14 +215,14 @@ class ConvertAction(NoDefaultsModel):
     """
 
     tool: str
-    output: str | None = None
-    options: dict[str, Any] | None = None
+    output: str
+    options: dict[str, dict[str, Any]] | None = None
+    via: list[str | tuple[str | None, str]] | None = None
 
     @model_validator(mode="after")
     def _validate_model(self) -> Self:
-        if not self.tool == "copy" and not self.output:
-            raise ValueError("Missing output.")
         self.options = self.options or None
+        self.via = self.via or None
         return self
 
 
