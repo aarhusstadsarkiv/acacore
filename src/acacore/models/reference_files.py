@@ -212,6 +212,9 @@ class ConvertAction(NoDefaultsModel):
 
     :ivar tool: The converter to use for the conversion.
     :ivar output: The output target for the converter.
+    :ivar options: The options for the converters. The top keys are the names of the converters.
+    :ivar via: Required converter steps.
+        Can be the name of a tool, a tuple with a tool/output pair, or a tuple with only the output name.
     """
 
     tool: str
