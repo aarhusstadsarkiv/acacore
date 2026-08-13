@@ -212,17 +212,20 @@ class ConvertAction(NoDefaultsModel):
 
     :ivar tool: The converter to use for the conversion.
     :ivar output: The output target for the converter.
+    :ivar options: The options for the converters. The top keys are the names of the converters.
+    :ivar via: Required converter steps.
+        Can be the name of a tool, a tuple with a tool/output pair, or a tuple with only the output name.
     """
 
     tool: str
-    output: str | None = None
-    options: dict[str, Any] | None = None
+    output: str
+    options: dict[str, dict[str, Any]] | None = None
+    via: list[str | tuple[str | None, str]] | None = None
 
     @model_validator(mode="after")
     def _validate_model(self) -> Self:
-        if not self.tool == "copy" and not self.output:
-            raise ValueError("Missing output.")
         self.options = self.options or None
+        self.via = self.via or None
         return self
 
 
